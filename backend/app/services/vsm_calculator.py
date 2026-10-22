@@ -14,6 +14,15 @@ def compute_vsm_similarity(
     dan kalkulasi cosine_similarity & euclidean_distances.
     Wajib dieksekusi via run_in_threadpool / asyncio.to_thread!
     """
+    if not preprocessed_competitors:
+        return {
+            "cosine_similarities": [],
+            "avg_cosine_similarity": 0.0,
+            "max_cosine_similarity": 0.0,
+            "euclidean_distance": 0.0,
+            "draft_tfidf_weights": {},
+        }
+
     corpus = [preprocessed_draft] + preprocessed_competitors
     
     # Sublinear TF-IDF Weighting (Persamaan 2.1)
