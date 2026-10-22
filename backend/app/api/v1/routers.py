@@ -185,9 +185,12 @@ async def extract_draft_from_file(file: UploadFile = File(...)):
         )
 
     words = extracted_text.split()
+    file_format = filename.split(".")[-1] if "." in filename else ""
     return {
         "filename": file.filename,
         "draft_content": extracted_text,
+        "extracted_text": extracted_text,
+        "file_format": file_format,
         "word_count": len(words),
     }
 
@@ -425,6 +428,7 @@ async def execute_audit(
         turn_number=turn_number,
         target_query=target_query,
         draft_title=draft_title,
+        draft_content=draft_content,
         draft_word_count=draft_word_count,
         audit_timestamp=now_dt.isoformat(),
         verdict_status=cds_decision["verdict_status"],
@@ -453,54 +457,8 @@ async def execute_audit(
 # 3. SESSION MANAGEMENT & EXPORT (/api/v1/sessions/*)
 # =======================================================
 
-@api_router.get("/sessions", response_model=List[SessionListItem])
-def list_user_sessions(
-    q: Optional[str] = None,
-    is_pinned: Optional[bool] = None,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    query = db.query(AuditSession).filter(AuditSession.user_id == current_user.user_id)
-    if is_pinned is not None:
-        query = query.filter(AuditSession.is_pinned == is_pinned)
-    if q:
-        query = query.filter(
-            (AuditSession.draft_title.ilike(f"%{q}%")) | (AuditSession.target_query.ilike(f"%{q}%"))
-        )
-
-    sessions = query.order_by(AuditSession.audit_timestamp.desc()).all()
-    results = []
-    for s in sessions:
-        cds = s.metrics.content_differentiation_score if s.metrics else 0.0
-        results.append(
-            SessionListItem(
-                session_id=s.session_id,
-                turn_number=s.turn_number,
-                target_query=s.target_query,
-                draft_title=s.draft_title,
-                draft_word_count=s.draft_word_count,
-                audit_timestamp=s.audit_timestamp.isoformat(),
-                verdict_status=s.verdict_status,
-                content_differentiation_score=cds,
-                is_pinned=s.is_pinned,
-                parent_session_id=s.parent_session_id,
-            )
-        )
-    return results
-
-
-@api_router.get("/sessions/{session_id}", response_model=AuditExecuteResponse)
-def get_session_detail(
-    session_id: str,
-    db: Session = Depends(get_db),
-):
-    session = db.query(AuditSession).filter(AuditSession.session_id == session_id).first()
-    if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Sesi audit dengan ID {session_id} tidak ditemukan.",
-        )
-
+def _build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
+    """Helper untuk memetakan model AuditSession ke AuditExecuteResponse."""
     thresholds_dict = json.loads(session.thresholds_json) if session.thresholds_json else {}
     thresholds = ThresholdConfig(**thresholds_dict) if thresholds_dict else ThresholdConfig()
 
@@ -564,6 +522,7 @@ def get_session_detail(
         turn_number=session.turn_number,
         target_query=session.target_query,
         draft_title=session.draft_title,
+        draft_content=session.draft_content or "",
         draft_word_count=session.draft_word_count,
         audit_timestamp=session.audit_timestamp.isoformat(),
         verdict_status=session.verdict_status,
@@ -576,6 +535,135 @@ def get_session_detail(
         remediation_prompt=session.remediation_prompt or "",
         serp_competitors=serp_items,
     )
+
+
+@api_router.get("/sessions", response_model=List[SessionListItem])
+def list_user_sessions(
+    q: Optional[str] = None,
+    is_pinned: Optional[bool] = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(AuditSession).filter(AuditSession.user_id == current_user.user_id)
+    if is_pinned is not None:
+        query = query.filter(AuditSession.is_pinned == is_pinned)
+    if q:
+        query = query.filter(
+            (AuditSession.draft_title.ilike(f"%{q}%")) | (AuditSession.target_query.ilike(f"%{q}%"))
+        )
+
+    all_user_sessions = query.order_by(AuditSession.audit_timestamp.desc()).all()
+
+    # Kumpulkan hanya root session atau session terbaru per rantai percakapan (Bab 3.1 & Issue #8)
+    # Temukan root untuk setiap sesi milik user
+    all_sessions_lookup = {s.session_id: s for s in all_user_sessions}
+    chains: Dict[str, List[AuditSession]] = {}
+
+    for s in all_user_sessions:
+        # Telusuri ke atas untuk menemukan root_id
+        curr = s
+        visited = set()
+        while curr.parent_session_id and curr.parent_session_id in all_sessions_lookup and curr.parent_session_id not in visited:
+            visited.add(curr.session_id)
+            curr = all_sessions_lookup[curr.parent_session_id]
+        root_id = curr.session_id
+        if root_id not in chains:
+            chains[root_id] = []
+        chains[root_id].append(s)
+
+    # Ambil sesi terbaru (turn_number terbesar, atau audit_timestamp terbaru) per rantai percakapan
+    representative_sessions = []
+    for root_id, chain_sessions in chains.items():
+        latest = max(chain_sessions, key=lambda item: (item.turn_number, item.audit_timestamp))
+        representative_sessions.append(latest)
+
+    # Urutkan: sesi pinned di atas, lalu audit_timestamp menurun
+    representative_sessions.sort(
+        key=lambda item: (not item.is_pinned, -(item.audit_timestamp.timestamp() if item.audit_timestamp else 0))
+    )
+
+    results = []
+    for s in representative_sessions:
+        cds = s.metrics.content_differentiation_score if s.metrics else 0.0
+        results.append(
+            SessionListItem(
+                session_id=s.session_id,
+                turn_number=s.turn_number,
+                target_query=s.target_query,
+                draft_title=s.draft_title,
+                draft_word_count=s.draft_word_count,
+                audit_timestamp=s.audit_timestamp.isoformat(),
+                verdict_status=s.verdict_status,
+                content_differentiation_score=cds,
+                score_cds=cds,
+                is_pinned=s.is_pinned,
+                parent_session_id=s.parent_session_id,
+            )
+        )
+    return results
+
+
+@api_router.get("/sessions/{session_id}/thread", response_model=List[AuditExecuteResponse])
+def get_session_thread(
+    session_id: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Menelusuri ke atas hingga root session (parent_session_id is None),
+    kumpulkan seluruh rangkaian turn secara berurutan (turn_number = 1, 2, ...),
+    dan kembalikan List[AuditExecuteResponse].
+    """
+    target_session = db.query(AuditSession).filter(AuditSession.session_id == session_id).first()
+    if not target_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sesi audit dengan ID {session_id} tidak ditemukan.",
+        )
+
+    # 1. Telusuri ke atas hingga root
+    curr = target_session
+    visited_up = set()
+    while curr.parent_session_id and curr.parent_session_id not in visited_up:
+        visited_up.add(curr.session_id)
+        parent = db.query(AuditSession).filter(AuditSession.session_id == curr.parent_session_id).first()
+        if not parent:
+            break
+        curr = parent
+
+    root_session = curr
+
+    # 2. Dari root, kumpulkan seluruh rantai ke bawah (menggunakan BFS/DFS)
+    thread_nodes: List[AuditSession] = []
+    queue = [root_session]
+    visited_down = {root_session.session_id}
+
+    while queue:
+        node = queue.pop(0)
+        thread_nodes.append(node)
+        children = db.query(AuditSession).filter(AuditSession.parent_session_id == node.session_id).all()
+        for child in children:
+            if child.session_id not in visited_down:
+                visited_down.add(child.session_id)
+                queue.append(child)
+
+    # Urutkan berdasarkan turn_number asc, audit_timestamp asc
+    thread_nodes.sort(key=lambda item: (item.turn_number, item.audit_timestamp))
+
+    return [_build_audit_execute_response(s) for s in thread_nodes]
+
+
+@api_router.get("/sessions/{session_id}", response_model=AuditExecuteResponse)
+def get_session_detail(
+    session_id: str,
+    db: Session = Depends(get_db),
+):
+    session = db.query(AuditSession).filter(AuditSession.session_id == session_id).first()
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Sesi audit dengan ID {session_id} tidak ditemukan.",
+        )
+    return _build_audit_execute_response(session)
 
 
 @api_router.patch("/sessions/{session_id}")

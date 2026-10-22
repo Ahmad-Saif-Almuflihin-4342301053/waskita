@@ -110,6 +110,7 @@ class AuditExecuteResponse(BaseModel):
     turn_number: int = 1
     target_query: str
     draft_title: str
+    draft_content: str = ""
     draft_word_count: int
     audit_timestamp: str
     verdict_status: str
@@ -132,6 +133,7 @@ class SessionListItem(BaseModel):
     audit_timestamp: str
     verdict_status: str
     content_differentiation_score: float
+    score_cds: float = 0.0
     is_pinned: bool
     parent_session_id: Optional[str] = None
 

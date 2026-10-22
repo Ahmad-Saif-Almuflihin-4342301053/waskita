@@ -250,3 +250,161 @@ class TestAntiXssSanitization:
             for span in data["annotated_spans"]:
                 assert "<script>" not in span["text"]
                 assert "</script>" not in span["text"]
+
+
+# =====================================================================
+# 4. PENGUJIAN SPRINT 2: CONTRACT SYNC, THREAD & EXTRACT FILE
+# =====================================================================
+
+class TestSprint2BackendContractAndThread:
+    """
+    Pengujian fitur Sprint 2 (Issue #8):
+    1. draft_content dikembalikan pada AuditExecuteResponse (execute_audit & get_session_detail).
+    2. score_cds ada pada SessionListItem dan list_user_sessions mengembalikan hanya sesi terbaru/root per rantai.
+    3. Endpoint GET /api/v1/sessions/{session_id}/thread mengumpulkan turn 1, 2, ... berurutan.
+    4. Endpoint POST /api/v1/audit/extract-file mengembalikan draft_content, extracted_text, dan file_format.
+    """
+
+    def test_extract_draft_from_file_response_contract(self, client):
+        file_content = b"# Judul Artikel Kopi\n\nIni adalah contoh isi file draf markdown untuk pengujian."
+        files = {"file": ("draft_test.md", file_content, "text/markdown")}
+        response = client.post("/api/v1/audit/extract-file", files=files)
+        assert response.status_code == 200
+        data = response.json()
+        assert "draft_content" in data
+        assert "extracted_text" in data
+        assert "file_format" in data
+        assert data["file_format"] == "md"
+        assert data["draft_content"] == data["extracted_text"]
+        assert "Judul Artikel Kopi" in data["draft_content"]
+
+    def test_session_detail_and_execute_includes_draft_content(self, client):
+        # Ambil salah satu sesi yang sudah ada di database
+        # Login demo author
+        login_res = client.post("/api/v1/auth/login", json={"username_or_email": "author_demo", "password": "password123"})
+        assert login_res.status_code == 200
+        token = login_res.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        list_res = client.get("/api/v1/sessions", headers=headers)
+        assert list_res.status_code == 200
+        sessions = list_res.json()
+        assert len(sessions) > 0
+        target_session = sessions[0]
+
+        # Validasi kontrak SessionListItem
+        assert "score_cds" in target_session
+        assert "content_differentiation_score" in target_session
+        assert target_session["score_cds"] == target_session["content_differentiation_score"]
+
+        # Detail session
+        detail_res = client.get(f"/api/v1/sessions/{target_session['session_id']}")
+        assert detail_res.status_code == 200
+        detail_data = detail_res.json()
+        assert "draft_content" in detail_data
+        assert isinstance(detail_data["draft_content"], str)
+
+    def test_session_thread_endpoint(self, client):
+        # Buat sesi Turn 1 dan Turn 2 untuk menguji /thread
+        from app.core.database import SessionLocal
+        from app.models.entities import AuditSession, MetricResult, User
+        import datetime, uuid
+
+        db = SessionLocal()
+        user = db.query(User).filter(User.username == "author_demo").first()
+        assert user is not None
+
+        root_id = str(uuid.uuid4())
+        child_id = str(uuid.uuid4())
+        now = datetime.datetime.utcnow()
+
+        session_turn1 = AuditSession(
+            session_id=root_id,
+            user_id=user.user_id,
+            parent_session_id=None,
+            turn_number=1,
+            target_query="analisis thread sprint2",
+            draft_title="Thread Turn 1",
+            draft_content="Konten draf turn 1 berisikan analisis topik secara umum...",
+            draft_word_count=320,
+            audit_timestamp=now,
+            verdict_status="Perlu Revisi",
+            is_pinned=False,
+        )
+        metric1 = MetricResult(
+            session_id=root_id,
+            avg_cosine_similarity=0.72,
+            max_cosine_similarity=0.78,
+            euclidean_distance=1.2,
+            ttr_score=0.45,
+            mattr_score=0.50,
+            hko_percentage=45.0,
+            content_differentiation_score=58.0,
+            is_redundant=True,
+            is_keyword_stuffed=False,
+        )
+        db.add(session_turn1)
+        db.add(metric1)
+
+        session_turn2 = AuditSession(
+            session_id=child_id,
+            user_id=user.user_id,
+            parent_session_id=root_id,
+            turn_number=2,
+            target_query="analisis thread sprint2",
+            draft_title="Thread Turn 2",
+            draft_content="Konten draf turn 2 setelah perbaikan komprehensif...",
+            draft_word_count=350,
+            audit_timestamp=now + datetime.timedelta(minutes=5),
+            verdict_status="Layak Terbit",
+            is_pinned=False,
+        )
+        metric2 = MetricResult(
+            session_id=child_id,
+            avg_cosine_similarity=0.52,
+            max_cosine_similarity=0.58,
+            euclidean_distance=1.6,
+            ttr_score=0.62,
+            mattr_score=0.68,
+            hko_percentage=28.0,
+            content_differentiation_score=86.0,
+            is_redundant=False,
+            is_keyword_stuffed=False,
+        )
+        db.add(session_turn2)
+        db.add(metric2)
+        db.commit()
+
+        try:
+            # Query thread lewat child_id
+            res_from_child = client.get(f"/api/v1/sessions/{child_id}/thread")
+            assert res_from_child.status_code == 200
+            thread_data = res_from_child.json()
+            assert len(thread_data) == 2
+            assert thread_data[0]["session_id"] == root_id
+            assert thread_data[0]["turn_number"] == 1
+            assert thread_data[0]["draft_content"] == session_turn1.draft_content
+            assert thread_data[1]["session_id"] == child_id
+            assert thread_data[1]["turn_number"] == 2
+            assert thread_data[1]["draft_content"] == session_turn2.draft_content
+
+            # Query thread lewat root_id
+            res_from_root = client.get(f"/api/v1/sessions/{root_id}/thread")
+            assert res_from_root.status_code == 200
+            assert len(res_from_root.json()) == 2
+
+            # Cek list_user_sessions hanya mengembalikan sesi terbaru (turn 2) untuk thread ini
+            login_res = client.post("/api/v1/auth/login", json={"username_or_email": "author_demo", "password": "password123"})
+            token = login_res.json()["access_token"]
+            headers = {"Authorization": f"Bearer {token}"}
+            list_res = client.get("/api/v1/sessions", headers=headers)
+            user_session_ids = [s["session_id"] for s in list_res.json()]
+            assert child_id in user_session_ids
+            assert root_id not in user_session_ids
+        finally:
+            # Cleanup
+            db.query(MetricResult).filter(MetricResult.session_id.in_([root_id, child_id])).delete(synchronize_session=False)
+            db.query(AuditSession).filter(AuditSession.session_id.in_([root_id, child_id])).delete(synchronize_session=False)
+            db.commit()
+            db.close()
+
