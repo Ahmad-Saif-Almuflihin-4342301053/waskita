@@ -46,6 +46,8 @@ venv.bak/
 
 # Node / Mokly Tooling
 node_modules/
+node_modules
+frontend/node_modules
 .mokly-cache/
 .mokly-export-*/
 npm-debug.log*
