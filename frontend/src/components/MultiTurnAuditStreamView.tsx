@@ -14,6 +14,8 @@ export interface MultiTurnAuditStreamViewProps {
   isLoading?: boolean;
   currentStep?: number;
   statusMessage?: string;
+  isStepperFadingOut?: boolean;
+  onSelectForPrint?: (audit: AuditExecuteResponse) => void;
 }
 
 export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> = ({
@@ -22,6 +24,8 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
   isLoading = false,
   currentStep = 1,
   statusMessage,
+  isStepperFadingOut = false,
+  onSelectForPrint,
 }) => {
   return (
     <div
@@ -64,11 +68,13 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
               {turn.draftTitle || turn.auditResult.draft_title || 'Naskah Draf Artikel'}
             </div>
 
-            {/* Audit Result Block */}
+            {/* Audit Result Block with Client-Side Exporter */}
             <AuditBlockView
               audit={turn.auditResult}
               turnLabel={turnLabel}
               isDesktop={isDesktop}
+              draftContent={turn.draftContent}
+              onSelectForPrint={onSelectForPrint}
             />
           </React.Fragment>
         );
@@ -77,7 +83,11 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
       {/* Live Stepper Loading Indicator */}
       {isLoading && (
         <div style={{ marginTop: '8px' }}>
-          <LiveStepper currentStep={currentStep} statusMessage={statusMessage} />
+          <LiveStepper
+            currentStep={currentStep}
+            statusMessage={statusMessage}
+            isFadingOut={isStepperFadingOut}
+          />
         </div>
       )}
     </div>

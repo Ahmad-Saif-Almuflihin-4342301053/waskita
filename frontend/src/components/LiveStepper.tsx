@@ -4,17 +4,22 @@ import { COLORS } from './shared-ui';
 export interface LiveStepperProps {
   currentStep: number; // 1 to 5
   statusMessage?: string;
+  isFadingOut?: boolean;
 }
 
 const STEPS = [
-  { step: 1, label: 'Validasi Draf' },
-  { step: 2, label: 'Akuisisi Top 3 SERP' },
-  { step: 3, label: 'Ekstraksi & NLP Sastrawi' },
-  { step: 4, label: 'Komputasi VSM & Information Gain' },
-  { step: 5, label: 'Menyusun Diagnostik White-Box' },
+  { step: 1, label: 'Mengekstrak & menormalisasi draf naskah...' },
+  { step: 2, label: 'Mengakuisisi korpus Top-3 kompetitor SERP...' },
+  { step: 3, label: 'Melakukan tokenisasi & stemming Sastrawi...' },
+  { step: 4, label: 'Menghitung matriks TF-IDF, Cosine Similarity, & Information Gain...' },
+  { step: 5, label: 'Menyusun evaluasi stilometri (MATTR, HKO) & vonis CDS...' },
 ];
 
-export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMessage }) => {
+export const LiveStepper: React.FC<LiveStepperProps> = ({
+  currentStep,
+  statusMessage,
+  isFadingOut = false,
+}) => {
   return (
     <div
       style={{
@@ -24,6 +29,10 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
         padding: '16px 20px',
         margin: '12px 0',
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
+        transition: 'all 0.35s ease',
+        opacity: isFadingOut ? 0 : 1,
+        transform: isFadingOut ? 'scale(0.98) translateY(-6px)' : 'none',
+        pointerEvents: isFadingOut ? 'none' : 'auto',
       }}
     >
       <div
@@ -47,7 +56,9 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
             }}
           />
           <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.deepSlate }}>
-            Audit Kualitas Real-time Sedang Berjalan...
+            {isFadingOut
+              ? 'Seluruh 5 Tahap Evaluasi Selesai!'
+              : 'Audit Kualitas Real-time Sedang Berjalan...'}
           </span>
         </div>
         <span
@@ -60,7 +71,7 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
             borderRadius: '9999px',
           }}
         >
-          Tahap {Math.min(Math.max(currentStep, 1), 5)} dari 5
+          {isFadingOut ? '5 dari 5' : `Tahap ${Math.min(Math.max(currentStep, 1), 5)} dari 5`}
         </span>
       </div>
 
@@ -73,9 +84,9 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
         }}
       >
         {STEPS.map((s) => {
-          const isDone = s.step < currentStep;
-          const isCurrent = s.step === currentStep;
-          const isPending = s.step > currentStep;
+          const isDone = isFadingOut || s.step < currentStep;
+          const isCurrent = !isFadingOut && s.step === currentStep;
+          const isPending = !isFadingOut && s.step > currentStep;
 
           return (
             <div
@@ -112,7 +123,32 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
                   boxShadow: isCurrent ? '0 0 0 2px rgba(192, 206, 232, 0.6)' : 'none',
                 }}
               >
-                {isDone ? '✓' : s.step}
+                {isDone ? (
+                  '✓'
+                ) : isCurrent ? (
+                  <svg
+                    style={{ animation: 'spin 1s linear infinite', width: 14, height: 14 }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeOpacity="0.25"
+                    />
+                    <path
+                      d="M12 2a10 10 0 0110 10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                ) : (
+                  s.step
+                )}
               </div>
 
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -125,7 +161,7 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
                       color: 'var(--waskita-text-muted, #64748B)',
                     }}
                   >
-                    Memproses...
+                    Sedang diproses...
                   </span>
                 )}
                 {isDone && (
@@ -136,7 +172,7 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
                       fontWeight: 600,
                     }}
                   >
-                    Selesai
+                    Selesai ✓
                   </span>
                 )}
               </div>
@@ -145,7 +181,7 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({ currentStep, statusMes
         })}
       </div>
 
-      {statusMessage && (
+      {statusMessage && !isFadingOut && (
         <div
           style={{
             marginTop: '12px',
