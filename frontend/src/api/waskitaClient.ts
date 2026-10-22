@@ -104,6 +104,26 @@ class WaskitaApiClient {
   }
 
   /**
+   * GET /api/v1/sessions/{id}/thread
+   * Mengambil seluruh runtutan multi-turn percakapan untuk sesi terkait
+   */
+  async getSessionThread(sessionId: string): Promise<AuditExecuteResponse[]> {
+    const res = await fetch(`${BASE_URL}/api/v1/sessions/${sessionId}/thread`, {
+      headers: this.getHeaders(),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail ||
+          `Gagal memuat rangkaian percakapan thread (HTTP ${res.status}: ${res.statusText})`
+      );
+    }
+
+    return await res.json();
+  }
+
+  /**
    * GET /api/v1/sessions/{id}
    */
   async getSessionDetail(sessionId: string): Promise<AuditExecuteResponse> {

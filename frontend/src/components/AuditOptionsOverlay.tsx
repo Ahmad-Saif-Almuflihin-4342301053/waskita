@@ -1,9 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { COLORS, IconX, IconFileUp, IconSearch } from './shared-ui';
 import { QualityThresholds } from '../types/waskita';
 
 export interface AuditOptionsOverlayProps {
-  toggleId: string;
+  toggleId?: string;
   isDesktop?: boolean;
   targetQuery?: string;
   onTargetQueryChange?: (q: string) => void;
@@ -14,23 +14,59 @@ export interface AuditOptionsOverlayProps {
   onClose?: () => void;
 }
 
+export const DEFAULT_THRESHOLDS: QualityThresholds = {
+  max_cosine_similarity: 0.60,
+  min_mattr: 0.55,
+  max_hko_percentage: 40.0,
+  min_cds_score: 75.0,
+};
+
+export const PRESET_OPTIONS = [
+  {
+    name: 'Standar Editorial (Default)',
+    desc: 'Standar umum artikel informatif & web SEO',
+    thresholds: {
+      max_cosine_similarity: 0.60,
+      min_mattr: 0.55,
+      max_hko_percentage: 40.0,
+      min_cds_score: 75.0,
+    },
+  },
+  {
+    name: 'Mode Fleksibel (Blog/Opini)',
+    desc: 'Lebih toleran untuk gaya bahasa santai atau personal',
+    thresholds: {
+      max_cosine_similarity: 0.70,
+      min_mattr: 0.48,
+      max_hko_percentage: 50.0,
+      min_cds_score: 65.0,
+    },
+  },
+  {
+    name: 'Mode Ketat (Riset/Akademis)',
+    desc: 'Standar ketat orisinalitas riset & variasi kosakata',
+    thresholds: {
+      max_cosine_similarity: 0.45,
+      min_mattr: 0.65,
+      max_hko_percentage: 30.0,
+      min_cds_score: 82.0,
+    },
+  },
+];
+
 export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
   toggleId,
   isDesktop = false,
   targetQuery = 'resep kopi tubruk tradisional',
   onTargetQueryChange,
-  thresholds = {
-    max_cosine_similarity: 0.60,
-    min_mattr: 0.55,
-    max_hko_percentage: 40.0,
-    min_cds_score: 75.0,
-  },
+  thresholds = DEFAULT_THRESHOLDS,
   onThresholdsChange,
   onFileUpload,
-  isOpen,
+  isOpen = false,
   onClose,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isPresetPopoverOpen, setIsPresetPopoverOpen] = useState(false);
 
   const handleSliderChange = (key: keyof QualityThresholds, val: number) => {
     if (onThresholdsChange) {
@@ -48,9 +84,36 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
     }
   };
 
+  const applyPreset = (presetThresholds: QualityThresholds) => {
+    if (onThresholdsChange) {
+      onThresholdsChange(presetThresholds);
+    }
+    setIsPresetPopoverOpen(false);
+  };
+
+  const resetToDefault = () => {
+    if (onThresholdsChange) {
+      onThresholdsChange(DEFAULT_THRESHOLDS);
+    }
+    setIsPresetPopoverOpen(false);
+  };
+
+  // Evaluasi Peringatan Kombinasi Ngawur (Sanity Check)
+  const isUnderConstrained =
+    thresholds.max_cosine_similarity > 0.75 ||
+    thresholds.min_cds_score < 55 ||
+    (thresholds.min_mattr < 0.42 && thresholds.max_hko_percentage > 60);
+
+  const isOverConstrained =
+    thresholds.max_cosine_similarity < 0.35 ||
+    thresholds.min_cds_score > 90 ||
+    thresholds.min_mattr > 0.78 ||
+    thresholds.max_hko_percentage < 20;
+
+  if (!isOpen) return null;
+
   return (
     <>
-      <input type="checkbox" id={toggleId} style={{ display: 'none' }} />
       <input
         type="file"
         ref={fileInputRef}
@@ -60,14 +123,6 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
       />
       <style>
         {`
-          #${toggleId}:checked ~ .audit-options-backdrop {
-            display: block !important;
-          }
-          #${toggleId}:checked ~ .audit-options-container {
-            transform: ${isDesktop ? 'translateY(0) scale(1)' : 'translateY(0)'} !important;
-            opacity: 1 !important;
-            pointer-events: auto !important;
-          }
           .waskita-slider-custom {
             -webkit-appearance: none;
             appearance: none;
@@ -102,141 +157,94 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
         `}
       </style>
 
-      {/* Backdrop: Invisible for Desktop, Dark for Mobile */}
-      <label
-        htmlFor={toggleId}
+      {/* Backdrop */}
+      <div
         onClick={onClose}
-        className="audit-options-backdrop"
         style={{
-          display: isOpen ? 'block' : 'none',
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: isDesktop ? 'transparent' : 'rgba(15, 23, 42, 0.45)',
-          backdropFilter: isDesktop ? 'none' : 'blur(2px)',
-          zIndex: 90,
-          cursor: 'pointer',
+          background: 'rgba(30, 41, 59, 0.4)',
+          zIndex: 48,
+          backdropFilter: 'blur(2px)',
         }}
       />
 
-      {/* Modal / Bottom Sheet / Desktop Floating Popover Content */}
+      {/* Container Overlay: Desktop centered floating card or Mobile bottom sheet */}
       <div
-        className="audit-options-container"
-        style={
-          isDesktop
-            ? {
-                position: 'absolute',
-                bottom: '84px',
-                left: 'max(32px, calc(50% - 380px))',
-                width: '460px',
-                maxWidth: 'calc(100% - 64px)',
-                maxHeight: '520px',
-                background: COLORS.warmCream,
-                borderRadius: '20px',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 12px 32px rgba(30, 41, 59, 0.15)',
-                opacity: isOpen ? 1 : 0,
-                pointerEvents: isOpen ? 'auto' : 'none',
-                transform: isOpen ? 'translateY(0) scale(1)' : 'translateY(10px) scale(0.98)',
-                transition: 'all 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-                overflow: 'hidden',
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-              }
-            : {
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: '58vh',
-                background: COLORS.warmCream,
-                borderRadius: '28px 28px 0 0',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                boxShadow: '0 -8px 30px rgba(0, 0, 0, 0.18)',
-                transform: isOpen ? 'translateY(0)' : 'translateY(100%)',
-                opacity: isOpen ? 1 : 0,
-                pointerEvents: isOpen ? 'auto' : 'none',
-                transition: 'all 0.28s cubic-bezier(0.16, 1, 0.3, 1)',
-                overflow: 'hidden',
-              }
-        }
+        style={{
+          position: 'fixed',
+          bottom: isDesktop ? 'auto' : 0,
+          top: isDesktop ? '50%' : 'auto',
+          left: isDesktop ? '50%' : 0,
+          right: isDesktop ? 'auto' : 0,
+          transform: isDesktop ? 'translate(-50%, -50%)' : 'none',
+          width: isDesktop ? '460px' : '100%',
+          maxHeight: isDesktop ? '86vh' : '78vh',
+          background: COLORS.warmCream,
+          borderRadius: isDesktop ? '24px' : '28px 28px 0 0',
+          boxShadow: '0 20px 50px rgba(30, 41, 59, 0.28)',
+          zIndex: 50,
+          overflowY: 'auto',
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
       >
-        {/* Header / Drag Handle */}
-        {isDesktop ? (
-          <div
-            style={{
-              padding: '16px 20px 12px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-              flexShrink: 0,
-            }}
-          >
-            <div style={{ fontSize: '15px', fontWeight: 700, color: COLORS.deepSlate }}>
-              Opsi Audit &amp; Kustomisasi Masukan
-            </div>
-            <label
-              htmlFor={toggleId}
-              onClick={onClose}
-              style={{
-                width: '30px',
-                height: '30px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                background: 'var(--waskita-track, rgba(30, 41, 59, 0.06))',
-                color: COLORS.deepSlate,
-              }}
-            >
-              <IconX size={16} />
-            </label>
-          </div>
-        ) : (
-          <div
-            style={{
-              width: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '10px 0 6px 0',
-              flexShrink: 0,
-            }}
-          >
-            <div
-              style={{
-                width: '48px',
-                height: '5px',
-                borderRadius: '9999px',
-                background: '#94A3B8',
-              }}
-            />
-          </div>
-        )}
-
-        {/* Scrollable Content inside Sheet/Card */}
+        {/* Header Overlay */}
         <div
           style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: isDesktop ? '16px 20px 20px 20px' : '8px 16px 24px 16px',
+            padding: '16px 20px 12px 20px',
             display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+            position: 'sticky',
+            top: 0,
+            background: COLORS.warmCream,
+            zIndex: 10,
           }}
         >
-          {/* 1. Unggah Berkas Dokumen */}
+          <div style={{ fontSize: '15px', fontWeight: 700, color: COLORS.deepSlate }}>
+            Opsi Parameter Audit &amp; Masukan
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup Opsi"
+            style={{
+              cursor: 'pointer',
+              background: 'transparent',
+              border: 'none',
+              padding: 4,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              color: COLORS.deepSlate,
+            }}
+          >
+            <IconX size={20} color={COLORS.deepSlate} />
+          </button>
+        </div>
+
+        {/* Content Body */}
+        <div
+          style={{
+            padding: '16px 20px 24px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+          }}
+        >
+          {/* 1. Unggah Berkas */}
           <div
             style={{
               background: COLORS.warmSand,
               borderRadius: '16px',
-              padding: '12px 14px',
+              padding: '14px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -245,10 +253,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div
                 style={{
-                  width: '36px',
-                  height: '36px',
+                  width: 36,
+                  height: 36,
                   borderRadius: '10px',
-                  background: COLORS.warmCream,
+                  background: COLORS.mutedSkyBlue,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -259,10 +267,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               </div>
               <div>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.deepSlate }}>
-                  Unggah Berkas Dokumen
+                  Unggah Naskah Artikel
                 </div>
-                <div style={{ fontSize: '11px', color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.7))' }}>
-                  Mendukung .md, .txt, .docx
+                <div style={{ fontSize: '11px', color: 'var(--waskita-text-muted, #64748B)' }}>
+                  Mendukung .md, .txt, .docx (100% Client-Side)
                 </div>
               </div>
             </div>
@@ -272,8 +280,8 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               style={{
                 background: COLORS.softPeriwinkle,
                 border: 'none',
-                borderRadius: '9999px',
-                padding: '6px 14px',
+                borderRadius: '10px',
+                padding: '8px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
                 color: COLORS.deepSlate,
@@ -321,7 +329,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             </div>
           </div>
 
-          {/* 3. Ambang Batas (4 Range Sliders) */}
+          {/* 3. Ambang Batas (4 Range Sliders) & Popover Preset Cerdas */}
           <div
             style={{
               background: COLORS.warmSand,
@@ -329,11 +337,125 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               padding: '14px',
               display: 'flex',
               flexDirection: 'column',
-              gap: '12px',
+              gap: '14px',
+              position: 'relative',
             }}
           >
-            <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.deepSlate }}>
-              Ambang Batas Kualitas (Kustomisasi)
+            {/* Title Bar with Preset & Reset */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                position: 'relative',
+              }}
+            >
+              <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.deepSlate }}>
+                Ambang Batas Kualitas
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
+                {/* Popover Preset Cerdas Trigger Button */}
+                <div
+                  onMouseEnter={() => isDesktop && setIsPresetPopoverOpen(true)}
+                  onMouseLeave={() => isDesktop && setIsPresetPopoverOpen(false)}
+                  style={{ position: 'relative' }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsPresetPopoverOpen((prev) => !prev)}
+                    style={{
+                      background: 'rgba(192, 213, 229, 0.45)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '4px 8px',
+                      fontSize: '11.5px',
+                      fontWeight: 600,
+                      color: COLORS.deepSlate,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    Preset Cerdas ▾
+                  </button>
+
+                  {/* Popover Menu */}
+                  {isPresetPopoverOpen && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        marginTop: 4,
+                        width: '230px',
+                        background: 'var(--waskita-surface-white, #FFFFFF)',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+                        border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))',
+                        zIndex: 60,
+                        padding: '6px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}
+                    >
+                      {PRESET_OPTIONS.map((preset) => (
+                        <button
+                          key={preset.name}
+                          type="button"
+                          onClick={() => applyPreset(preset.thresholds)}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 10px',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '2px',
+                            transition: 'background 0.15s ease',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = 'var(--waskita-card, #E9DFCA)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = 'transparent';
+                          }}
+                        >
+                          <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.deepSlate }}>
+                            {preset.name}
+                          </span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--waskita-text-muted, #64748B)' }}>
+                            {preset.desc}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Reset Default Button */}
+                <button
+                  type="button"
+                  onClick={resetToDefault}
+                  title="Kembalikan ke standar default"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(30, 41, 59, 0.2)',
+                    borderRadius: '8px',
+                    padding: '3px 8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: COLORS.deepSlate,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset Default
+                </button>
+              </div>
             </div>
 
             {/* Slider 1: VSM Cosine Similarity */}
@@ -447,6 +569,39 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                 onChange={(e) => handleSliderChange('min_cds_score', parseFloat(e.target.value))}
               />
             </div>
+
+            {/* Sanity Check Warning Banner */}
+            {isUnderConstrained && (
+              <div
+                style={{
+                  background: 'var(--waskita-amber-bg, #FEF3C7)',
+                  border: '1px solid var(--waskita-amber-border, #F59E0B)',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  color: 'var(--waskita-amber-body, #92400E)',
+                  lineHeight: 1.4,
+                }}
+              >
+                ⚠️ <strong>Ambang batas terlalu longgar:</strong> Draf yang sangat mirip kompetitor atau miskin kosakata berisiko tetap diloloskan.
+              </div>
+            )}
+
+            {isOverConstrained && (
+              <div
+                style={{
+                  background: 'var(--waskita-rose-bg, #FEE2E2)',
+                  border: '1px solid var(--waskita-rose-border, #EF4444)',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  fontSize: '11px',
+                  color: 'var(--waskita-rose-text, #991B1B)',
+                  lineHeight: 1.4,
+                }}
+              >
+                🛑 <strong>Kombinasi terlalu ekstrem:</strong> Hampir semua artikel normal akan divonis "Perlu Revisi" dengan standar seketat ini.
+              </div>
+            )}
           </div>
         </div>
       </div>
