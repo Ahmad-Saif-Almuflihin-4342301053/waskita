@@ -1,0 +1,142 @@
+import re
+from typing import Dict, List, Literal, Optional
+from pydantic import BaseModel, Field, field_validator
+
+
+class ThresholdConfig(BaseModel):
+    max_cosine_similarity: float = Field(default=0.60, ge=0.0, le=1.0)
+    min_mattr: float = Field(default=0.55, ge=0.0, le=1.0)
+    max_hko_percentage: float = Field(default=40.0, ge=0.0, le=100.0)
+    min_cds_score: float = Field(default=75.0, ge=0.0, le=100.0)
+
+
+class AuditExecuteRequest(BaseModel):
+    target_query: str = Field(..., min_length=2, max_length=255)
+    draft_title: str = Field(..., min_length=3, max_length=255)
+    draft_content: str = Field(..., min_length=50)
+    parent_session_id: Optional[str] = None
+    use_cached_serp: bool = True
+    thresholds: Optional[ThresholdConfig] = Field(default_factory=ThresholdConfig)
+
+    @field_validator("draft_content")
+    @classmethod
+    def validate_word_count(cls, v: str) -> str:
+        # Menghitung jumlah kata bersih
+        words = re.findall(r"\b\w+\b", v)
+        if len(words) < 300:
+            raise ValueError(
+                f"Draf artikel Anda hanya memuat {len(words)} kata. "
+                "Sesuai standar audit WASKITA (FR-02), panjang naskah minimal adalah 300 kata "
+                "agar analisis semantik IR dan stilometri dapat dihitung secara valid."
+            )
+        return v
+
+
+class MetricResultSchema(BaseModel):
+    content_differentiation_score: float
+    avg_cosine_similarity: float
+    max_cosine_similarity: float
+    euclidean_distance: float
+    ttr_score: float
+    mattr_score: float
+    hko_percentage: float
+    is_redundant: bool
+    is_keyword_stuffed: bool
+
+
+class EntityGapItem(BaseModel):
+    term_string: str
+    term_surface_form: str
+    tfidf_weight: float
+    competitor_consensus_count: int
+
+
+class EntityGapsGroup(BaseModel):
+    deficit: List[EntityGapItem] = Field(default_factory=list)
+    gain: List[EntityGapItem] = Field(default_factory=list)
+
+
+# Tabel 3.6 Proposal TA: 'yellow' | 'red' | 'blue' | 'green'
+StabiloColor = Literal["yellow", "red", "blue", "green"]
+
+
+class AnnotatedSpan(BaseModel):
+    text: str
+    color: Optional[StabiloColor] = None
+    label: Optional[str] = None
+
+
+class SerpCompetitorItem(BaseModel):
+    rank_position: int
+    page_title: str
+    source_url: str
+    domain_name: str
+    snippet_text: Optional[str] = None
+    word_count: int = 0
+    cosine_similarity: Optional[float] = None
+    fetch_status: str = "success"
+
+
+class AuditExecuteResponse(BaseModel):
+    session_id: str
+    parent_session_id: Optional[str] = None
+    turn_number: int = 1
+    target_query: str
+    draft_title: str
+    draft_word_count: int
+    audit_timestamp: str
+    verdict_status: str
+    degradation_warning: Optional[str] = None
+    thresholds: ThresholdConfig
+    metrics: MetricResultSchema
+    entity_gaps: EntityGapsGroup
+    annotated_spans: List[AnnotatedSpan]
+    overview_bullets: List[str]
+    remediation_prompt: str
+    serp_competitors: List[SerpCompetitorItem]
+
+
+class SessionListItem(BaseModel):
+    session_id: str
+    turn_number: int
+    target_query: str
+    draft_title: str
+    draft_word_count: int
+    audit_timestamp: str
+    verdict_status: str
+    content_differentiation_score: float
+    is_pinned: bool
+    parent_session_id: Optional[str] = None
+
+
+class UserProfileSchema(BaseModel):
+    user_id: int
+    username: str
+    email: str
+    role: str
+    plan_tier: str
+    session_quota: int = 100
+    used_sessions: int = 0
+
+
+class AuthTokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserProfileSchema
+
+
+class LoginRequest(BaseModel):
+    username_or_email: str
+    password: str
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=64)
+    email: str = Field(..., min_length=5, max_length=120)
+    password: str = Field(..., min_length=6, max_length=128)
+    role: str = "author"
+
+
+class SessionUpdatePatch(BaseModel):
+    draft_title: Optional[str] = None
+    is_pinned: Optional[bool] = None
