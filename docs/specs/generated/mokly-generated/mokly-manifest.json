@@ -1,0 +1,102 @@
+{
+  "assetClosure": [],
+  "blobHashAlgorithm": "sha1",
+  "entries": [
+    {
+      "colorSchemes": [
+        "light",
+        "dark"
+      ],
+      "description": "",
+      "kind": "document",
+      "path": "design-task",
+      "relatedDocs": [],
+      "resources": [],
+      "sourcePath": "specs/design-task.md",
+      "title": "TECHNICAL BLUEPRINT & UX SPECIFICATION (REVISED V4.0 — DUAL-THEME LIGHT & DARK MODE WITH OFFICIAL DARK LOGO): WASKITA"
+    },
+    {
+      "colorSchemes": [
+        "light",
+        "dark"
+      ],
+      "description": "Antarmuka Waskita Mode Tamu (Belum Login) interaktif hidup. Mobile dengan off-canvas drawer & bottom sheet 58vh. Desktop widescreen 2 kolom sejati dengan persistent sidebar 280px dan floating input capsule.",
+      "kind": "screen",
+      "path": "gatekeeper/01-waskita-guest",
+      "relatedDocs": [],
+      "sourcePath": "specs/gatekeeper/01-waskita-guest.mockup.tsx",
+      "title": "01. Waskita - Mode Tamu (Belum Login)",
+      "useCasePaths": []
+    },
+    {
+      "colorSchemes": [
+        "light",
+        "dark"
+      ],
+      "description": "Antarmuka Waskita V3.0 mode terautentikasi (sudah login): Sidebar riwayat Gemini-style interaktif yang dapat memindahkan alur analisis saat diklik, header dengan menu popover 7 aksi, floating composer dock permanen, dan tata letak responsif sejati untuk Mobile (390x844) dan Widescreen Desktop (1440x900).",
+      "kind": "screen",
+      "path": "gatekeeper/02-waskita-authenticated",
+      "relatedDocs": [],
+      "sourcePath": "specs/gatekeeper/02-waskita-authenticated.mockup.tsx",
+      "title": "02. Waskita - Mode Terautentikasi (Sudah Login)",
+      "useCasePaths": []
+    }
+  ],
+  "folders": [],
+  "generatedBy": "mokly",
+  "generatedFiles": [
+    {
+      "blobHash": "4d594653c31df453e0780a3e5839dbb952abacc8",
+      "path": "design-task/index.dark.html"
+    },
+    {
+      "blobHash": "9f9b1b221776d5eb6737e1b5b6ed7933c3925a5d",
+      "path": "design-task/index.html"
+    },
+    {
+      "blobHash": "98b5d873ae55ddf9b13da4a62d05707d78f656bb",
+      "path": "gatekeeper/01-waskita-guest/index.desktop.dark.html"
+    },
+    {
+      "blobHash": "f904eb48c28f787921ac7ddabc0d69ca191e754e",
+      "path": "gatekeeper/01-waskita-guest/index.desktop.html"
+    },
+    {
+      "blobHash": "d04f7e5d6f49df7688c32ebc0b460b960e004bb6",
+      "path": "gatekeeper/01-waskita-guest/index.mobile.dark.html"
+    },
+    {
+      "blobHash": "d6956379e8c29109b6f64dfba23a42622206c66f",
+      "path": "gatekeeper/01-waskita-guest/index.mobile.html"
+    },
+    {
+      "blobHash": "72c73385233ecbfa8a983e6051af5618d89b6a5a",
+      "path": "gatekeeper/02-waskita-authenticated/index.desktop.dark.html"
+    },
+    {
+      "blobHash": "2a4fb2e03c7283ab33955797940b880dbe56a30e",
+      "path": "gatekeeper/02-waskita-authenticated/index.desktop.html"
+    },
+    {
+      "blobHash": "16ac687fffdf03b770049454eb2eaaa0e050bb75",
+      "path": "gatekeeper/02-waskita-authenticated/index.mobile.dark.html"
+    },
+    {
+      "blobHash": "d420163edce93cb382fe5370a8224b3724e00b64",
+      "path": "gatekeeper/02-waskita-authenticated/index.mobile.html"
+    }
+  ],
+  "schemaVersion": 10,
+  "sourceFiles": [
+    "mokly.config.ts",
+    "specs/design-task.md",
+    "specs/gatekeeper/01-waskita-guest.mockup.tsx",
+    "specs/gatekeeper/02-waskita-authenticated.mockup.tsx",
+    "specs/gatekeeper/partials/auth-audit-views.tsx",
+    "specs/gatekeeper/partials/auth-sidebar-header.tsx",
+    "specs/gatekeeper/partials/guest-sidebar.tsx",
+    "specs/gatekeeper/partials/guest-workspace.tsx",
+    "specs/gatekeeper/partials/shared-ui.tsx",
+    "specs/renderer.tsx"
+  ]
+}
