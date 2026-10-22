@@ -3,6 +3,26 @@ from typing import Dict, List, Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 
+def sanitize_xss(text: str) -> str:
+    """
+    Sanitasi input dari tag script, iframe, objek, event handler berbahaya (Anti-XSS).
+    Menghapus tag <script>...</script>, <iframe>, <object>, <embed>, dan event handler seperti onerror/onload.
+    """
+    if not text:
+        return text
+    # 1. Hapus blok tag script beserta isinya
+    cleaned = re.sub(r"<script[\s\S]*?>[\s\S]*?</script>", "", text, flags=re.IGNORECASE)
+    # 2. Hapus tag iframe, object, embed, style
+    cleaned = re.sub(r"</?(?:iframe|object|embed|style|meta|link)[\s\S]*?>", "", cleaned, flags=re.IGNORECASE)
+    # 3. Hapus inline javascript: URIs
+    cleaned = re.sub(r"javascript:[^\s\"'>]*", "", cleaned, flags=re.IGNORECASE)
+    # 4. Hapus event handlers seperti onerror=..., onclick=..., onload=...
+    cleaned = re.sub(r"\bon\w+\s*=\s*([\"'][^\"']*[\"']|[^\s>]+)", "", cleaned, flags=re.IGNORECASE)
+    # 5. Hapus sisa tag pembuka/penutup script yang terisolasi
+    cleaned = re.sub(r"</?script\b[^>]*>", "", cleaned, flags=re.IGNORECASE)
+    return cleaned.strip()
+
+
 class ThresholdConfig(BaseModel):
     max_cosine_similarity: float = Field(default=0.60, ge=0.0, le=1.0)
     min_mattr: float = Field(default=0.55, ge=0.0, le=1.0)
@@ -17,6 +37,13 @@ class AuditExecuteRequest(BaseModel):
     parent_session_id: Optional[str] = None
     use_cached_serp: bool = True
     thresholds: Optional[ThresholdConfig] = Field(default_factory=ThresholdConfig)
+
+    @field_validator("target_query", "draft_title", "draft_content", mode="before")
+    @classmethod
+    def sanitize_inputs(cls, v: str) -> str:
+        if isinstance(v, str):
+            return sanitize_xss(v)
+        return v
 
     @field_validator("draft_content")
     @classmethod
