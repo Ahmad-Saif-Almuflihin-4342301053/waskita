@@ -13,7 +13,9 @@ import {
 
 export interface GuestSidebarProps {
   isDesktop?: boolean;
-  sidebarToggleId: string;
+  isOpen?: boolean;
+  onClose?: () => void;
+  sidebarToggleId?: string;
   onSignIn?: () => void;
   onNewChat?: () => void;
   onToggleTheme?: () => void;
@@ -21,39 +23,61 @@ export interface GuestSidebarProps {
 
 export const GuestSidebar: React.FC<GuestSidebarProps> = ({
   isDesktop = false,
+  isOpen = false,
+  onClose,
   sidebarToggleId,
   onSignIn,
   onNewChat,
   onToggleTheme,
 }) => {
   return (
-    <aside
-      className={isDesktop ? "guest-sidebar-desktop" : "guest-sidebar-mobile"}
-      style={{
-        width: isDesktop ? "280px" : "100%",
-        height: "100vh",
-        backgroundColor: COLORS.warmCream,
-        color: COLORS.deepSlate,
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-        display: "flex",
-        flexDirection: "column",
-        position: isDesktop ? "relative" : "fixed",
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: isDesktop ? "auto" : 0,
-        zIndex: isDesktop ? 30 : 60,
-        borderRight: isDesktop ? `1px solid ${COLORS.warmSand}` : "none",
-        boxSizing: "border-box",
-        overflow: "hidden",
-        flexShrink: 0,
-        transition: isDesktop
-          ? "width 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-          : "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
-        transform: isDesktop ? "none" : "translateX(-100%)",
-      }}
-    >
+    <>
+      {!isDesktop && (
+        <div
+          onClick={onClose}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(30, 41, 59, 0.45)",
+            backdropFilter: "blur(2px)",
+            zIndex: 55,
+            opacity: isOpen ? 1 : 0,
+            pointerEvents: isOpen ? "auto" : "none",
+            transition: "opacity 0.25s ease",
+          }}
+        />
+      )}
+
+      <aside
+        className={isDesktop ? "guest-sidebar-desktop" : "guest-sidebar-mobile"}
+        style={{
+          width: isDesktop ? "280px" : "280px",
+          height: "100vh",
+          backgroundColor: COLORS.warmCream,
+          color: COLORS.deepSlate,
+          fontFamily:
+            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          display: "flex",
+          flexDirection: "column",
+          position: isDesktop ? "relative" : "fixed",
+          top: 0,
+          left: 0,
+          bottom: 0,
+          right: isDesktop ? "auto" : "auto",
+          zIndex: isDesktop ? 30 : 60,
+          borderRight: isDesktop ? `1px solid ${COLORS.warmSand}` : "none",
+          boxSizing: "border-box",
+          overflow: "hidden",
+          flexShrink: 0,
+          transition: isDesktop
+            ? "width 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
+            : "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          transform: isDesktop ? "none" : isOpen ? "translateX(0)" : "translateX(-100%)",
+        }}
+      >
       {isDesktop ? (
         <>
           {/* Expanded State Content (280px) */}
@@ -469,5 +493,6 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
         </>
       )}
     </aside>
-  );
+  </>
+);
 };

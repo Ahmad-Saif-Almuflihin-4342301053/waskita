@@ -52,6 +52,7 @@ export interface AuditExecuteResponse {
   turn_number: number;
   target_query: string;
   draft_title: string;
+  draft_content?: string;
   draft_word_count: number;
   audit_timestamp: string;
   verdict_status: 'Layak Terbit' | 'Perlu Revisi';

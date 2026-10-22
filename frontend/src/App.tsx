@@ -6,11 +6,14 @@ import {
   AuthSidebar,
   AuthHeader,
   FloatingComposerDock,
+  SAMPLE_DRAFTS,
 } from './components/auth-sidebar-header';
 import { NewAnalysisEmptyView } from './components/auth-audit-views';
 import { MultiTurnAuditStreamView } from './components/MultiTurnAuditStreamView';
-import { AuditOptionsOverlay } from './components/AuditOptionsOverlay';
+import { AuditOptionsOverlay, DEFAULT_THRESHOLDS } from './components/AuditOptionsOverlay';
 import { ConfirmModal } from './components/ConfirmModal';
+import { AuthModal } from './components/AuthModal';
+import { ExecutiveAuditPrintReport } from './components/ExecutiveAuditPrintReport';
 import { useToast } from './context/ToastContext';
 import { useTheme } from './context/ThemeContext';
 import { waskitaClient } from './api/waskitaClient';
@@ -23,13 +26,16 @@ import {
   QualityThresholds,
   AuditSessionSummary,
 } from './types/waskita';
+import { countPureWords, extractSmartKeyword } from './utils/draftSanitizer';
+import { parseUploadedFileClientSide, exportAuditToMarkdown } from './utils/clientExporter';
 
 export const App: React.FC = () => {
-  const { theme, toggleTheme } = useTheme();
+  const { toggleTheme } = useTheme();
   const { showToast } = useToast();
 
   // Mode: Guest vs Authenticated (Member)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
+  const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
 
   // Responsive state
   const [isDesktop, setIsDesktop] = useState<boolean>(() => window.innerWidth >= 768);
@@ -81,13 +87,13 @@ export const App: React.FC = () => {
     {
       draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
       draftContent:
-        'Kopi tubruk adalah minuman khas Indonesia yang dibuat dengan menyeduh bubuk kopi secara langsung tanpa disaring...',
+        'Kopi tubruk adalah minuman khas Indonesia yang dibuat dengan cara menyeduh bubuk kopi secara langsung tanpa disaring sama sekali...',
       auditResult: INITIAL_AUDIT_TURN_1,
     },
     {
       draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas (Revisi #2)',
       draftContent:
-        'Menikmati seduhan kopi tubruk sejatinya merayakan kesederhanaan rasa yang jujur...',
+        'Menikmati seduhan kopi tubruk sejatinya merayakan kesederhanaan rasa yang jujur tanpa intervensi saringan mekanis...',
       auditResult: INITIAL_AUDIT_TURN_2,
     },
   ]);
@@ -95,12 +101,28 @@ export const App: React.FC = () => {
   // Input composer draft state
   const [draftInput, setDraftInput] = useState<string>('');
   const [targetQuery, setTargetQuery] = useState<string>('resep kopi tubruk tradisional');
-  const [thresholds, setThresholds] = useState<QualityThresholds>({
-    max_cosine_similarity: 0.60,
-    min_mattr: 0.55,
-    max_hko_percentage: 40.0,
-    min_cds_score: 75.0,
+  const [isPlusGlowing, setIsPlusGlowing] = useState<boolean>(false);
+  const [detectedKeywordHint, setDetectedKeywordHint] = useState<string | null>(null);
+
+  // Thresholds state dengan persistensi localStorage (waskita_custom_thresholds)
+  const [thresholds, setThresholds] = useState<QualityThresholds>(() => {
+    try {
+      const saved = localStorage.getItem('waskita_custom_thresholds');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Failed to parse waskita_custom_thresholds:', e);
+    }
+    return DEFAULT_THRESHOLDS;
   });
+
+  const handleThresholdsChange = (newThresholds: QualityThresholds) => {
+    setThresholds(newThresholds);
+    try {
+      localStorage.setItem('waskita_custom_thresholds', JSON.stringify(newThresholds));
+    } catch (e) {
+      console.warn('Failed to save waskita_custom_thresholds:', e);
+    }
+  };
 
   // UI Drawer & Popover toggles
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
@@ -110,13 +132,89 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [stepperStep, setStepperStep] = useState<number>(1);
   const [stepperMessage, setStepperMessage] = useState<string>('');
+  const [isStepperFadingOut, setIsStepperFadingOut] = useState<boolean>(false);
+
+  // Print state
+  const [printAuditData, setPrintAuditData] = useState<AuditExecuteResponse | null>(null);
 
   // Confirmation Modals
   const [deleteModalOpen, setDeleteModalOpen] = useState<boolean>(false);
+  const [deleteTargetSessionId, setDeleteTargetSessionId] = useState<string | null>(null);
   const [renameModalOpen, setRenameModalOpen] = useState<boolean>(false);
+  const [renameTargetSessionId, setRenameTargetSessionId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState<string>('');
 
-  // 1. Submit Audit with 5-stage Live Stepper
+  // Auto-authentication demo on mount for member mode
+  useEffect(() => {
+    const initAuth = async () => {
+      const token = localStorage.getItem('waskita_token');
+      if (token) {
+        waskitaClient.setToken(token);
+      } else {
+        // Auto-authenticate as author_demo
+        try {
+          const res = await fetch('/api/v1/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: 'author_demo',
+              password: 'password123',
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.access_token) {
+              waskitaClient.setToken(data.access_token);
+              localStorage.setItem('waskita_token', data.access_token);
+            }
+          }
+        } catch (e) {
+          // Dev fallback
+          waskitaClient.setToken('demo-token-author-demo');
+        }
+      }
+
+      // Fetch user sessions from backend SQLite WAL
+      try {
+        const fetchedSessions = await waskitaClient.getSessions();
+        if (fetchedSessions && fetchedSessions.length > 0) {
+          setSessions(fetchedSessions);
+        }
+      } catch (e) {
+        // Keep initial sessions state
+      }
+    };
+
+    if (isAuthenticated) {
+      initAuth();
+    }
+  }, [isAuthenticated]);
+
+  // Handle Paste with auto sanitization & keyword detection
+  const handlePasteSanitized = (cleanText: string, keywordCandidate: string) => {
+    setDraftInput(cleanText);
+    if (keywordCandidate) {
+      setTargetQuery(keywordCandidate);
+      setDetectedKeywordHint(keywordCandidate);
+      setIsPlusGlowing(true);
+      setTimeout(() => setIsPlusGlowing(false), 3500);
+      setTimeout(() => setDetectedKeywordHint(null), 6000);
+    }
+  };
+
+  const handleSelectSampleDraft = (sampleKey: 'revisionNeeded' | 'approvedReady') => {
+    const sample = SAMPLE_DRAFTS[sampleKey];
+    if (sample) {
+      setDraftInput(sample.text);
+      setTargetQuery(sample.query);
+      setDetectedKeywordHint(sample.query);
+      setIsPlusGlowing(true);
+      setTimeout(() => setIsPlusGlowing(false), 3500);
+      setTimeout(() => setDetectedKeywordHint(null), 6000);
+    }
+  };
+
+  // 1. Submit Audit with 5-stage Live Stepper & Fade-out transition
   const handleExecuteAudit = async (contentToSubmit?: string) => {
     const content = contentToSubmit || draftInput;
     if (!content.trim()) {
@@ -128,47 +226,52 @@ export const App: React.FC = () => {
       return;
     }
 
-    const wordCount = content.trim().split(/\s+/).length;
-    if (wordCount < 10) {
+    const wordCount = countPureWords(content);
+    if (wordCount < 300) {
       showToast({
         type: 'warning',
-        title: 'Naskah Terlalu Singkat',
-        message: `Naskah baru memiliki ${wordCount} kata. Minimal panjang teks untuk audit adalah 300 kata (disarankan).`,
+        title: 'Kata-kata Belum Cukup',
+        message: `Naskah baru memiliki ${wordCount} / 300 kata minimum. Lengkapi naskah Anda agar evaluasi valid.`,
       });
+      return;
     }
 
     setIsLoading(true);
+    setIsStepperFadingOut(false);
     setStepperStep(1);
-    setStepperMessage('Memeriksa panjang kata, struktur heading, dan integritas naskah...');
+    setStepperMessage('Mengekstrak & menormalisasi draf naskah...');
 
     const stepTimer1 = setTimeout(() => {
       setStepperStep(2);
-      setStepperMessage('Mengakuisisi korpus 3 artikel kompetitor teratas di Google SERP...');
-    }, 1100);
+      setStepperMessage('Mengakuisisi korpus Top-3 kompetitor SERP...');
+    }, 900);
 
     const stepTimer2 = setTimeout(() => {
       setStepperStep(3);
-      setStepperMessage('Menjalankan tokenisasi, stemming Sastrawi, dan eliminasi stopwords...');
-    }, 2200);
+      setStepperMessage('Melakukan tokenisasi & stemming Sastrawi...');
+    }, 1800);
 
     const stepTimer3 = setTimeout(() => {
       setStepperStep(4);
-      setStepperMessage('Mengukur Cosine Similarity VSM & Information Gain (Δ-loss / Δ-gain)...');
-    }, 3300);
+      setStepperMessage('Menghitung matriks TF-IDF, Cosine Similarity, & Information Gain...');
+    }, 2700);
 
     const stepTimer4 = setTimeout(() => {
       setStepperStep(5);
-      setStepperMessage('Menyusun skor akhir CDS dan diagnostik stabilo per kalimat...');
-    }, 4400);
+      setStepperMessage('Menyusun evaluasi stilometri (MATTR, HKO) & vonis CDS...');
+    }, 3600);
 
     try {
-      const parentSession = currentTurns.length > 0 ? currentTurns[currentTurns.length - 1].auditResult.session_id : null;
+      const parentSession =
+        currentTurns.length > 0
+          ? currentTurns[currentTurns.length - 1].auditResult.session_id
+          : null;
       let result: AuditExecuteResponse;
 
       try {
         result = await waskitaClient.executeAudit({
           target_query: targetQuery,
-          draft_title: `Draf Naskah: ${targetQuery.substring(0, 30)}...`,
+          draft_title: `Draf: ${targetQuery.substring(0, 32)}...`,
           draft_content: content,
           parent_session_id: parentSession,
           use_cached_serp: true,
@@ -176,11 +279,14 @@ export const App: React.FC = () => {
         });
       } catch (err: any) {
         // Fallback simulation when backend server is offline/dev
-        await new Promise((r) => setTimeout(r, 4800));
+        await new Promise((r) => setTimeout(r, 4200));
         const newScore = Math.min(
           95,
           currentTurns.length > 0
-            ? Math.round(currentTurns[currentTurns.length - 1].auditResult.metrics.content_differentiation_score + 15)
+            ? Math.round(
+                currentTurns[currentTurns.length - 1].auditResult.metrics
+                  .content_differentiation_score + 15
+              )
             : 70
         );
         const verdict = newScore >= thresholds.min_cds_score ? 'Layak Terbit' : 'Perlu Revisi';
@@ -191,6 +297,7 @@ export const App: React.FC = () => {
           turn_number: currentTurns.length + 1,
           target_query: targetQuery,
           draft_title: `Revisi #${currentTurns.length + 1} - ${targetQuery}`,
+          draft_content: content,
           draft_word_count: wordCount,
           audit_timestamp: new Date().toISOString(),
           verdict_status: verdict,
@@ -208,17 +315,45 @@ export const App: React.FC = () => {
             is_keyword_stuffed: newScore < thresholds.min_cds_score,
           },
           entity_gaps: {
-            deficit: newScore >= thresholds.min_cds_score ? [] : [
-              { term_string: 'rasio seduh', term_surface_form: 'Rasio Seduh 1:15', tfidf_weight: 0.8, competitor_consensus_count: 2 },
-            ],
+            deficit:
+              newScore >= thresholds.min_cds_score
+                ? []
+                : [
+                    {
+                      term_string: 'rasio seduh',
+                      term_surface_form: 'Rasio Seduh 1:15',
+                      tfidf_weight: 0.8,
+                      competitor_consensus_count: 2,
+                    },
+                  ],
             gain: [
-              { term_string: 'analisis unik', term_surface_form: 'Cita Rasa Lokal Khas', tfidf_weight: 0.9, competitor_consensus_count: 0 },
+              {
+                term_string: 'analisis unik',
+                term_surface_form: 'Cita Rasa Lokal Khas',
+                tfidf_weight: 0.9,
+                competitor_consensus_count: 0,
+              },
             ],
           },
           annotated_spans: [
-            { text: content.slice(0, 120), color: newScore >= thresholds.min_cds_score ? 'green' : 'yellow', label: newScore >= thresholds.min_cds_score ? 'Orisinalitas Kuat' : 'Klise/Generik' },
-            { text: content.slice(120, 240) || 'Paragraf penjelasan tambahan...', color: 'blue', label: 'Saran Celah Defisit' },
-            { text: content.slice(240) || 'Paragraf penutup naskah...', color: newScore >= thresholds.min_cds_score ? 'green' : 'red', label: newScore >= thresholds.min_cds_score ? 'Orisinalitas Kuat' : 'Redundansi VSM Tinggi' },
+            {
+              text: content.slice(0, 120),
+              color: newScore >= thresholds.min_cds_score ? 'green' : 'yellow',
+              label: newScore >= thresholds.min_cds_score ? 'Orisinalitas Kuat' : 'Klise/Generik',
+            },
+            {
+              text: content.slice(120, 240) || 'Paragraf penjelasan...',
+              color: 'blue',
+              label: 'Saran Celah Defisit',
+            },
+            {
+              text: content.slice(240) || 'Paragraf penutup naskah...',
+              color: newScore >= thresholds.min_cds_score ? 'green' : 'red',
+              label:
+                newScore >= thresholds.min_cds_score
+                  ? 'Orisinalitas Kuat'
+                  : 'Redundansi VSM Tinggi',
+            },
           ],
           overview_bullets: [
             `Audit selesai dengan skor diferensiasi konten ${newScore}%.`,
@@ -235,6 +370,10 @@ export const App: React.FC = () => {
       clearTimeout(stepTimer3);
       clearTimeout(stepTimer4);
 
+      // Trigger Stepper Centang Hijau -> Fade-Out Halus
+      setIsStepperFadingOut(true);
+      await new Promise((r) => setTimeout(r, 450));
+
       setCurrentTurns((prev) => [
         ...prev,
         {
@@ -244,7 +383,7 @@ export const App: React.FC = () => {
         },
       ]);
 
-      // If active session was 'new', make it active
+      // If active session was 'new', update sidebar
       if (!activeSessionId || activeSessionId === 'session-new') {
         const newSessionId = result.session_id;
         setActiveSessionId(newSessionId);
@@ -268,7 +407,9 @@ export const App: React.FC = () => {
       showToast({
         type: 'success',
         title: 'Audit Berhasil',
-        message: `Hasil analisis #${result.turn_number} siap: CDS ${Math.round(result.metrics.content_differentiation_score)}% (${result.verdict_status})`,
+        message: `Hasil analisis #${result.turn_number} siap: CDS ${Math.round(
+          result.metrics.content_differentiation_score
+        )}% (${result.verdict_status})`,
       });
     } catch (err: any) {
       clearTimeout(stepTimer1);
@@ -282,41 +423,44 @@ export const App: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsStepperFadingOut(false);
       setStepperStep(1);
       setStepperMessage('');
     }
   };
 
-  // 2. File Uploader Handler (.md, .txt, .docx)
+  // 2. Client-Side File Uploader Handler (.md, .txt, .docx) sesuai Standar PZN
   const handleFileUpload = async (file: File) => {
     try {
       showToast({
         type: 'info',
-        title: 'Mengekstrak Berkas',
-        message: `Mengunggah berkas ${file.name}...`,
+        title: 'Mengekstrak Berkas (Client-Side)',
+        message: `Membaca ${file.name}...`,
       });
 
-      let extracted = '';
-      try {
-        const res = await waskitaClient.extractFile(file);
-        extracted = res.extracted_text;
-      } catch {
-        // Client-side text read fallback
-        extracted = await file.text();
+      const parsed = await parseUploadedFileClientSide(file);
+      setDraftInput(parsed.text);
+
+      const smartKey = extractSmartKeyword(parsed.text);
+      if (smartKey) {
+        setTargetQuery(smartKey);
+        setDetectedKeywordHint(smartKey);
+        setIsPlusGlowing(true);
+        setTimeout(() => setIsPlusGlowing(false), 3500);
+        setTimeout(() => setDetectedKeywordHint(null), 6000);
       }
 
-      setDraftInput(extracted);
       setIsOptionsOpen(false);
       showToast({
         type: 'success',
         title: 'Berkas Berhasil Dimuat',
-        message: `Naskah (${extracted.split(/\s+/).length} kata) siap diaudit.`,
+        message: `Naskah (${parsed.wordCount} kata, ${parsed.imageCount} gambar, ${parsed.videoCount} video) siap diaudit.`,
       });
     } catch (err: any) {
       showToast({
         type: 'error',
         title: 'Ekstraksi Gagal',
-        message: err.message || 'Gagal membaca berkas yang diunggah.',
+        message: err.message || 'Gagal membaca berkas.',
       });
     }
   };
@@ -329,11 +473,10 @@ export const App: React.FC = () => {
 Judul: ${latest.draft_title}
 Kueri: ${latest.target_query}
 Status: ${latest.verdict_status}
-Skor CDS: ${Math.round(latest.metrics.content_differentiation_score)}% (Ambang: ${thresholds.min_cds_score}%)
+Skor CDS: ${Math.round(latest.metrics.content_differentiation_score)}%
 Max Cosine: ${latest.metrics.max_cosine_similarity.toFixed(2)}
 MATTR: ${latest.metrics.mattr_score.toFixed(2)}
-HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%
-Rekomendasi:\n${latest.overview_bullets.map((b) => `- ${b}`).join('\n')}`;
+HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
 
     navigator.clipboard.writeText(summary);
     showToast({
@@ -343,43 +486,14 @@ Rekomendasi:\n${latest.overview_bullets.map((b) => `- ${b}`).join('\n')}`;
     });
   };
 
-  const handleDownloadReport = async () => {
+  const handleDownloadReport = () => {
     if (currentTurns.length === 0) return;
-    const latest = currentTurns[currentTurns.length - 1].auditResult;
-    const reportMd = `# Laporan Audit Orisinalitas Konten Waskita
-**Judul Artikel:** ${latest.draft_title}  
-**Kueri Target:** \`${latest.target_query}\`  
-**Waktu Audit:** ${new Date(latest.audit_timestamp).toLocaleString('id-ID')}  
-**Status Kelayakan:** ${latest.verdict_status} (CDS: ${Math.round(latest.metrics.content_differentiation_score)}%)
-
----
-
-## 1. Ringkasan Metrik
-- **Kemiripan Kosinus Maksimal (VSM):** ${latest.metrics.max_cosine_similarity.toFixed(2)}
-- **Kekayaan Kosakata (MATTR):** ${latest.metrics.mattr_score.toFixed(2)}
-- **Tumpang-tindih Heading (HKO):** ${Math.round(latest.metrics.hko_percentage)}%
-
-## 2. Diagnostik Rekomendasi
-${latest.overview_bullets.map((b) => `- ${b}`).join('\n')}
-
-## 3. Remediasi Prompt LLM
-\`\`\`
-${latest.remediation_prompt}
-\`\`\`
-`;
-
-    const blob = new Blob([reportMd], { type: 'text/markdown;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `waskita-audit-${latest.session_id.substring(0, 8)}.md`;
-    link.click();
-    URL.revokeObjectURL(url);
-
+    const latest = currentTurns[currentTurns.length - 1];
+    exportAuditToMarkdown(latest.auditResult, latest.draftContent);
     showToast({
       type: 'success',
       title: 'Laporan Diunduh',
-      message: 'Berkas laporan .md berhasil diunduh ke perangkat Anda.',
+      message: 'Berkas .md berhasil digenerate di sisi browser (PZN Client-Side).',
     });
   };
 
@@ -405,28 +519,55 @@ ${latest.remediation_prompt}
     });
   };
 
-  const handlePin = () => {
+  const handlePin = async (sessionIdToPin?: string) => {
+    const targetId = sessionIdToPin || activeSessionId;
+    if (!targetId) return;
+
     setSessions((prev) =>
-      prev.map((s) => (s.session_id === activeSessionId ? { ...s, is_pinned: !s.is_pinned } : s))
+      prev.map((s) => (s.session_id === targetId ? { ...s, is_pinned: !s.is_pinned } : s))
     );
+
+    try {
+      const currentObj = sessions.find((s) => s.session_id === targetId);
+      await waskitaClient.updateSession(targetId, {
+        is_pinned: !currentObj?.is_pinned,
+      });
+    } catch (e) {
+      // Local state already updated
+    }
+
     showToast({
       type: 'success',
       title: 'Status Disematkan',
-      message: 'Status pin analisis berhasil diperbarui.',
+      message: 'Status pin sesi berhasil diperbarui.',
     });
   };
 
-  const handleRenameClick = () => {
-    const cur = sessions.find((s) => s.session_id === activeSessionId);
-    setRenameValue(cur?.draft_title || '');
+  const handleRenameClick = (sessionId?: string, title?: string) => {
+    const targetId = sessionId || activeSessionId;
+    const cur = sessions.find((s) => s.session_id === targetId);
+    setRenameTargetSessionId(targetId);
+    setRenameValue(title || cur?.draft_title || '');
     setRenameModalOpen(true);
   };
 
-  const handleRenameConfirm = () => {
-    if (!renameValue.trim()) return;
+  const handleRenameConfirm = async () => {
+    if (!renameValue.trim() || !renameTargetSessionId) return;
+    const targetId = renameTargetSessionId;
+    const newTitle = renameValue.trim();
+
     setSessions((prev) =>
-      prev.map((s) => (s.session_id === activeSessionId ? { ...s, draft_title: renameValue.trim() } : s))
+      prev.map((s) => (s.session_id === targetId ? { ...s, draft_title: newTitle } : s))
     );
+
+    try {
+      await waskitaClient.updateSession(targetId, {
+        draft_title: newTitle,
+      });
+    } catch (e) {
+      // Local state already updated
+    }
+
     setRenameModalOpen(false);
     showToast({
       type: 'success',
@@ -435,20 +576,122 @@ ${latest.remediation_prompt}
     });
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (sessionId?: string) => {
+    setDeleteTargetSessionId(sessionId || activeSessionId);
     setDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = () => {
-    setSessions((prev) => prev.filter((s) => s.session_id !== activeSessionId));
-    setActiveSessionId('session-new');
-    setCurrentTurns([]);
+  const handleDeleteConfirm = async () => {
+    const targetId = deleteTargetSessionId || activeSessionId;
+    if (!targetId) return;
+
+    setSessions((prev) => prev.filter((s) => s.session_id !== targetId));
+    if (activeSessionId === targetId) {
+      setActiveSessionId('session-new');
+      setCurrentTurns([]);
+    }
+
+    try {
+      await waskitaClient.deleteSession(targetId);
+    } catch (e) {
+      // Local state already updated
+    }
+
     setDeleteModalOpen(false);
     showToast({
       type: 'info',
       title: 'Riwayat Dihapus',
-      message: 'Sesi analisis telah dihapus dari daftar riwayat.',
+      message: 'Sesi analisis telah dihapus dari database.',
     });
+  };
+
+  const handleExportSessionById = (sessionId: string) => {
+    const sessionObj = sessions.find((s) => s.session_id === sessionId);
+    if (currentTurns.length > 0 && activeSessionId === sessionId) {
+      exportAuditToMarkdown(
+        currentTurns[currentTurns.length - 1].auditResult,
+        currentTurns[currentTurns.length - 1].draftContent
+      );
+    } else {
+      // Mock / fallback export
+      exportAuditToMarkdown({
+        session_id: sessionId,
+        parent_session_id: null,
+        turn_number: 1,
+        target_query: sessionObj?.target_query || 'audit',
+        draft_title: sessionObj?.draft_title || 'Naskah Artikel',
+        draft_word_count: 350,
+        audit_timestamp: sessionObj?.audit_timestamp || new Date().toISOString(),
+        verdict_status: sessionObj?.verdict_status || 'Layak Terbit',
+        degradation_warning: null,
+        thresholds,
+        metrics: {
+          content_differentiation_score: sessionObj?.score_cds || 80,
+          avg_cosine_similarity: 0.45,
+          max_cosine_similarity: 0.52,
+          euclidean_distance: 1.1,
+          ttr_score: 0.6,
+          mattr_score: 0.58,
+          hko_percentage: 25,
+          is_redundant: false,
+          is_keyword_stuffed: false,
+        },
+        entity_gaps: { deficit: [], gain: [] },
+        annotated_spans: [],
+        overview_bullets: ['Audit tersimpan dari riwayat database.'],
+        remediation_prompt: 'Naskah memenuhi standar.',
+      });
+    }
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    try {
+      const thread = await waskitaClient.getSessionThread(sessionId);
+      if (thread && thread.length > 0) {
+        setCurrentTurns(
+          thread.map((t) => ({
+            draftTitle: t.draft_title,
+            draftContent: t.draft_content || '',
+            auditResult: t,
+          }))
+        );
+        return;
+      }
+    } catch (e) {
+      // Fallback local mock sessions
+    }
+
+    if (sessionId === 'session-1') {
+      setCurrentTurns([
+        {
+          draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
+          draftContent: SAMPLE_DRAFTS.revisionNeeded.text,
+          auditResult: INITIAL_AUDIT_TURN_1,
+        },
+        {
+          draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas (Revisi #2)',
+          draftContent: SAMPLE_DRAFTS.approvedReady.text,
+          auditResult: INITIAL_AUDIT_TURN_2,
+        },
+      ]);
+    } else if (sessionId === 'session-2') {
+      setCurrentTurns([
+        {
+          draftTitle: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
+          draftContent: 'Restorasi skuter klasik memerlukan ketelitian...',
+          auditResult: {
+            ...INITIAL_AUDIT_TURN_2,
+            session_id: 'session-2',
+            draft_title: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
+            metrics: {
+              ...INITIAL_AUDIT_TURN_2.metrics,
+              content_differentiation_score: 82.0,
+            },
+          },
+        },
+      ]);
+    }
   };
 
   const handleNewAnalysis = () => {
@@ -457,7 +700,11 @@ ${latest.remediation_prompt}
     setDraftInput('');
   };
 
-  const isCurrentPinned = sessions.find((s) => s.session_id === activeSessionId)?.is_pinned ?? false;
+  const isCurrentPinned =
+    sessions.find((s) => s.session_id === activeSessionId)?.is_pinned ?? false;
+
+  const currentWordCount = countPureWords(draftInput);
+  const isComposerCentered = activeSessionId === 'session-new' || currentTurns.length === 0;
 
   return (
     <div
@@ -479,86 +726,53 @@ ${latest.remediation_prompt}
             isDesktop={isDesktop}
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onOpenPlus={() => setIsOptionsOpen(true)}
-            onSignIn={() => {
-              setIsAuthenticated(true);
-              showToast({
-                type: 'success',
-                title: 'Masuk Berhasil',
-                message: 'Selamat datang di Ruang Kerja Terautentikasi Waskita.',
-              });
-            }}
+            onSignIn={() => setAuthModalOpen(true)}
             draftText={draftInput}
             onDraftTextChange={setDraftInput}
             onSubmit={() => handleExecuteAudit()}
             isLoading={isLoading}
+            onSelectSampleDraft={handleSelectSampleDraft}
           />
 
           <GuestSidebar
             isDesktop={isDesktop}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
             sidebarToggleId="guest-sidebar-toggle"
-            onSignIn={() => setIsAuthenticated(true)}
+            onSignIn={() => setAuthModalOpen(true)}
             onNewChat={handleNewAnalysis}
             onToggleTheme={toggleTheme}
           />
         </>
       )}
 
-      {/* AUTHENTICATED MODE VIEW */}
+      {/* AUTHENTICATED MEMBER MODE VIEW */}
       {isAuthenticated && (
         <>
           {/* Sidebar */}
           <AuthSidebar
             isDesktop={isDesktop}
-            sidebarToggleId="auth-sidebar-toggle-desktop"
-            activeSessionRadioName="active-session"
-            sessionNewId="session-new"
-            sessionOneId="session-1"
-            sessionTwoId="session-2"
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
             sessions={sessions}
             activeSessionId={activeSessionId}
-            onSelectSession={(id) => {
-              setActiveSessionId(id);
-              if (id === 'session-1') {
-                setCurrentTurns([
-                  {
-                    draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
-                    draftContent: 'Kopi tubruk adalah minuman khas Indonesia...',
-                    auditResult: INITIAL_AUDIT_TURN_1,
-                  },
-                  {
-                    draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas (Revisi #2)',
-                    draftContent: 'Menikmati seduhan kopi tubruk...',
-                    auditResult: INITIAL_AUDIT_TURN_2,
-                  },
-                ]);
-              } else if (id === 'session-2') {
-                setCurrentTurns([
-                  {
-                    draftTitle: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
-                    draftContent: 'Restorasi skuter klasik memerlukan ketelitian...',
-                    auditResult: {
-                      ...INITIAL_AUDIT_TURN_2,
-                      session_id: 'session-2',
-                      draft_title: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
-                      metrics: {
-                        ...INITIAL_AUDIT_TURN_2.metrics,
-                        content_differentiation_score: 82.0,
-                      },
-                    },
-                  },
-                ]);
-              }
-            }}
+            onSelectSession={handleSelectSession}
             onNewAnalysis={handleNewAnalysis}
             onToggleTheme={toggleTheme}
             onSignOut={() => {
               setIsAuthenticated(false);
+              waskitaClient.setToken(null);
+              localStorage.removeItem('waskita_token');
               showToast({
                 type: 'info',
                 title: 'Keluar',
                 message: 'Anda kembali ke Mode Tamu.',
               });
             }}
+            onRenameSession={handleRenameClick}
+            onPinSession={handlePin}
+            onDeleteSession={handleDeleteClick}
+            onExportSession={handleExportSessionById}
           />
 
           {/* Right Column (Header + Stream + Composer) */}
@@ -576,16 +790,15 @@ ${latest.remediation_prompt}
             {/* Header with 7 SVG Actions */}
             <AuthHeader
               isDesktop={isDesktop}
-              sidebarToggleId="auth-sidebar-toggle-desktop"
-              headerMenuToggleId="auth-header-menu-toggle-desktop"
+              onOpenSidebar={() => setIsSidebarOpen(true)}
               onCopySummary={handleCopySummary}
               onDownloadReport={handleDownloadReport}
               onCopyDraft={handleCopyDraft}
               onShare={handleShare}
-              onPin={handlePin}
+              onPin={() => handlePin()}
               isPinned={isCurrentPinned}
-              onRename={handleRenameClick}
-              onDelete={handleDeleteClick}
+              onRename={() => handleRenameClick()}
+              onDelete={() => handleDeleteClick()}
             />
 
             {/* Scrollable Main Stream Area */}
@@ -597,46 +810,85 @@ ${latest.remediation_prompt}
                 boxSizing: 'border-box',
               }}
             >
-              {activeSessionId === 'session-new' || currentTurns.length === 0 ? (
-                <NewAnalysisEmptyView
-                  isDesktop={isDesktop}
-                  plusToggleId="auth-plus-toggle-desktop"
-                />
+              {isComposerCentered ? (
+                <div
+                  style={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                  }}
+                >
+                  <NewAnalysisEmptyView isDesktop={isDesktop} />
+                  {/* Komposer Terpadu mode centered di bawah hero */}
+                  <div style={{ width: '100%', maxWidth: '800px', padding: '0 20px' }}>
+                    <FloatingComposerDock
+                      isDesktop={isDesktop}
+                      layoutMode="centered"
+                      onOpenPlus={() => setIsOptionsOpen(true)}
+                      draftText={draftInput}
+                      onDraftTextChange={setDraftInput}
+                      onSubmit={() => handleExecuteAudit()}
+                      isLoading={isLoading}
+                      wordCount={currentWordCount}
+                      minWordCount={300}
+                      isPlusGlowing={isPlusGlowing}
+                      detectedKeywordHint={detectedKeywordHint}
+                      onPasteSanitized={handlePasteSanitized}
+                      onSelectSampleDraft={handleSelectSampleDraft}
+                      activeTurnNumber={currentTurns.length + 1}
+                      activeTargetQuery={targetQuery}
+                    />
+                  </div>
+                </div>
               ) : (
-                <MultiTurnAuditStreamView
-                  isDesktop={isDesktop}
-                  historyTurns={currentTurns}
-                  isLoading={isLoading}
-                  currentStep={stepperStep}
-                  statusMessage={stepperMessage}
-                />
+                <>
+                  <MultiTurnAuditStreamView
+                    isDesktop={isDesktop}
+                    historyTurns={currentTurns}
+                    isLoading={isLoading}
+                    currentStep={stepperStep}
+                    statusMessage={stepperMessage}
+                    isStepperFadingOut={isStepperFadingOut}
+                    onSelectForPrint={(aud) => setPrintAuditData(aud)}
+                  />
+
+                  {/* Floating Composer Dock Melayang di Bawah (Docked Mode) */}
+                  <FloatingComposerDock
+                    isDesktop={isDesktop}
+                    layoutMode="docked"
+                    onOpenPlus={() => setIsOptionsOpen(true)}
+                    draftText={draftInput}
+                    onDraftTextChange={setDraftInput}
+                    onSubmit={() => handleExecuteAudit()}
+                    isLoading={isLoading}
+                    wordCount={currentWordCount}
+                    minWordCount={300}
+                    isPlusGlowing={isPlusGlowing}
+                    detectedKeywordHint={detectedKeywordHint}
+                    onPasteSanitized={handlePasteSanitized}
+                    onSelectSampleDraft={handleSelectSampleDraft}
+                    activeTurnNumber={currentTurns.length + 1}
+                    activeTargetQuery={targetQuery}
+                  />
+                </>
               )}
             </main>
-
-            {/* Floating Composer Dock Melayang di Bawah */}
-            <FloatingComposerDock
-              isDesktop={isDesktop}
-              plusToggleId="auth-plus-toggle-desktop"
-              onOpenPlus={() => setIsOptionsOpen(true)}
-              draftText={draftInput}
-              onDraftTextChange={setDraftInput}
-              onSubmit={() => handleExecuteAudit()}
-              isLoading={isLoading}
-            />
           </div>
         </>
       )}
 
       {/* Options Overlay with 4 Range Sliders & File Uploader */}
       <AuditOptionsOverlay
-        toggleId="auth-plus-toggle-desktop"
         isDesktop={isDesktop}
         isOpen={isOptionsOpen}
         onClose={() => setIsOptionsOpen(false)}
         targetQuery={targetQuery}
         onTargetQueryChange={setTargetQuery}
         thresholds={thresholds}
-        onThresholdsChange={setThresholds}
+        onThresholdsChange={handleThresholdsChange}
         onFileUpload={handleFileUpload}
       />
 
@@ -663,6 +915,7 @@ ${latest.remediation_prompt}
             color: COLORS.deepSlate,
             outline: 'none',
             marginTop: '8px',
+            boxSizing: 'border-box',
           }}
         />
       </ConfirmModal>
@@ -676,6 +929,30 @@ ${latest.remediation_prompt}
         isDanger={true}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModalOpen(false)}
+      />
+
+      {/* Auth Modal for Sign in / Demo Login */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onLoginSuccess={() => {
+          setIsAuthenticated(true);
+        }}
+      />
+
+      {/* Print View Komponen Vektor A4 (Standar PZN) */}
+      <ExecutiveAuditPrintReport
+        auditData={
+          printAuditData ||
+          (currentTurns.length > 0
+            ? currentTurns[currentTurns.length - 1].auditResult
+            : null)
+        }
+        draftContent={
+          currentTurns.length > 0
+            ? currentTurns[currentTurns.length - 1].draftContent
+            : draftInput
+        }
       />
     </div>
   );
