@@ -575,6 +575,23 @@ export const IconUsers: React.FC<IconProps> = ({ size = 18, color = "currentColo
   </svg>
 );
 
+export const IconChevronRight: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+
 // SVG Radial Semi-Circle Gauge Component
 export const SemiCircleGauge: React.FC<{
   score: number;
