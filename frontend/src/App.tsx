@@ -727,6 +727,24 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
       {/* GUEST MODE VIEW */}
       {!isAuthenticated && (
         <>
+          <GuestSidebar
+            isDesktop={isDesktop}
+            isOpen={isSidebarOpen}
+            onClose={() => setIsSidebarOpen(false)}
+            sidebarToggleId="guest-sidebar-toggle"
+            onSignIn={() => {
+              setIsAuthenticated(true);
+              setIsSidebarOpen(false);
+              showToast({
+                type: 'success',
+                title: 'Selamat Datang',
+                message: 'Berhasil masuk ke Dashboard Member Waskita.',
+              });
+            }}
+            onNewChat={handleNewAnalysis}
+            onToggleTheme={toggleTheme}
+          />
+
           <GuestWorkspace
             isDesktop={isDesktop}
             onOpenSidebar={() => setIsSidebarOpen(true)}
@@ -744,24 +762,6 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
             onSubmit={() => handleExecuteAudit()}
             isLoading={isLoading}
             onSelectSampleDraft={handleSelectSampleDraft}
-          />
-
-          <GuestSidebar
-            isDesktop={isDesktop}
-            isOpen={isSidebarOpen}
-            onClose={() => setIsSidebarOpen(false)}
-            sidebarToggleId="guest-sidebar-toggle"
-            onSignIn={() => {
-              setIsAuthenticated(true);
-              setIsSidebarOpen(false);
-              showToast({
-                type: 'success',
-                title: 'Selamat Datang',
-                message: 'Berhasil masuk ke Dashboard Member Waskita.',
-              });
-            }}
-            onNewChat={handleNewAnalysis}
-            onToggleTheme={toggleTheme}
           />
         </>
       )}

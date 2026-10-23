@@ -14,6 +14,7 @@ import {
   IconLaptop,
   IconCheck,
   IconHelpCircle,
+  IconChevronRight,
 } from "./shared-ui";
 import { useTheme } from "../context/ThemeContext";
 
@@ -38,6 +39,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
+  const [themeFlyoutOpen, setThemeFlyoutOpen] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Close popover on click outside
@@ -46,6 +48,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
       const target = e.target as Node;
       if (settingsRef.current && !settingsRef.current.contains(target)) {
         setSettingsPopoverOpen(false);
+        setThemeFlyoutOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -57,6 +60,15 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
     { id: "light", label: "Light", icon: <IconSun size={15} color={COLORS.deepSlate} /> },
     { id: "dark", label: "Dark", icon: <IconMoon size={15} color={COLORS.deepSlate} /> },
   ];
+
+  const currentThemeIcon =
+    theme === "dark" ? (
+      <IconMoon size={15} color={COLORS.deepSlate} />
+    ) : theme === "light" ? (
+      <IconSun size={15} color={COLORS.deepSlate} />
+    ) : (
+      <IconLaptop size={15} color={COLORS.deepSlate} />
+    );
 
   const basePopoverStyle: React.CSSProperties = {
     position: "absolute",
@@ -92,118 +104,191 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
     };
   };
 
-  const renderSettingsPopover = (collapsed: boolean = false) => (
-    <div style={getSettingsPopoverStyle(collapsed)} onClick={(e) => e.stopPropagation()}>
-      <div
-        style={{
-          padding: "6px 8px 4px 8px",
-          fontSize: "11px",
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-          color: "var(--waskita-text-muted, #64748B)",
-        }}
-      >
-        Tema Aplikasi
-      </div>
-
-      {/* Menu Tema Vertikal ala Gemini Resmi dengan Centang ✓ */}
-      <div
-        style={{
+  const renderSettingsPopover = (collapsed: boolean = false) => {
+    const flyoutStyle: React.CSSProperties = collapsed
+      ? {
+          position: "absolute",
+          left: "calc(100% + 6px)",
+          top: "-6px",
+          width: "160px",
+          background: "var(--waskita-surface-white, #FFFFFF)",
+          borderRadius: "12px",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
+          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+          padding: "6px",
           display: "flex",
           flexDirection: "column",
           gap: "2px",
-          padding: "2px 0",
-        }}
-      >
-        {themeOptions.map((opt) => {
-          const isActive = theme === opt.id;
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => setTheme(opt.id)}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "8px 10px",
-                borderRadius: "8px",
-                border: "none",
-                cursor: "pointer",
-                background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                color: COLORS.deepSlate,
-                fontSize: "12.5px",
-                fontWeight: isActive ? 700 : 500,
-                transition: "background 0.15s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                {opt.icon}
-                <span>{opt.label}</span>
-              </div>
-              {isActive && (
-                <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      <hr
-        style={{
-          border: "none",
-          borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
-          margin: "4px 0",
-        }}
-      />
-
-      {/* Menu Bantuan */}
-      <button
-        type="button"
-        onClick={() => {
-          setSettingsPopoverOpen(false);
-          window.open("https://github.com/Ahmad-Saif-Almuflihin-4342301053/waskita#readme", "_blank");
-        }}
-        style={{
-          width: "100%",
-          background: "transparent",
-          border: "none",
-          borderRadius: "8px",
-          padding: "8px 10px",
-          fontSize: "12.5px",
-          fontWeight: 500,
-          textAlign: "left",
-          cursor: "pointer",
+          zIndex: 110,
+        }
+      : isDesktop
+      ? {
+          position: "absolute",
+          left: "calc(100% + 6px)",
+          top: "-6px",
+          width: "160px",
+          background: "var(--waskita-surface-white, #FFFFFF)",
+          borderRadius: "12px",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
+          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+          padding: "6px",
           display: "flex",
-          alignItems: "center",
-          gap: "8px",
-          color: COLORS.deepSlate,
-          transition: "background 0.15s ease",
-        }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "transparent";
-        }}
-      >
-        <IconHelpCircle size={16} color={COLORS.deepSlate} />
-        <span>Bantuan & Dokumentasi</span>
-      </button>
-    </div>
-  );
+          flexDirection: "column",
+          gap: "2px",
+          zIndex: 110,
+        }
+      : {
+          position: "absolute",
+          right: "0",
+          bottom: "calc(100% + 6px)",
+          width: "160px",
+          background: "var(--waskita-surface-white, #FFFFFF)",
+          borderRadius: "12px",
+          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
+          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+          padding: "6px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "2px",
+          zIndex: 110,
+        };
+
+    return (
+      <div style={getSettingsPopoverStyle(collapsed)} onClick={(e) => e.stopPropagation()}>
+        {/* 1. Baris Tema dengan Chevron & Flyout Sub-menu */}
+        <div
+          style={{ position: "relative" }}
+          onMouseEnter={() => setThemeFlyoutOpen(true)}
+          onMouseLeave={() => setThemeFlyoutOpen(false)}
+        >
+          <button
+            type="button"
+            onClick={() => setThemeFlyoutOpen((prev) => !prev)}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "8px 10px",
+              borderRadius: "8px",
+              border: "none",
+              cursor: "pointer",
+              background: themeFlyoutOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+              color: COLORS.deepSlate,
+              fontSize: "12.5px",
+              fontWeight: 500,
+              transition: "background 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+            }}
+            onMouseLeave={(e) => {
+              if (!themeFlyoutOpen) {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              {currentThemeIcon}
+              <span>Tema</span>
+            </div>
+            <IconChevronRight size={14} color="var(--waskita-text-muted, #64748B)" />
+          </button>
+
+          {/* Submenu Flyout Tema */}
+          {themeFlyoutOpen && (
+            <div
+              style={flyoutStyle}
+              onClick={(e) => e.stopPropagation()}
+              onMouseEnter={() => setThemeFlyoutOpen(true)}
+            >
+              {themeOptions.map((opt) => {
+                const isActive = theme === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setTheme(opt.id);
+                      setThemeFlyoutOpen(false);
+                    }}
+                    style={{
+                      width: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 10px",
+                      borderRadius: "8px",
+                      border: "none",
+                      cursor: "pointer",
+                      background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                      color: COLORS.deepSlate,
+                      fontSize: "12.5px",
+                      fontWeight: isActive ? 700 : 500,
+                      transition: "background 0.15s ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLElement).style.background = "transparent";
+                      }
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      {opt.icon}
+                      <span>{opt.label}</span>
+                    </div>
+                    {isActive && (
+                      <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* 2. Baris Bantuan & Dokumentasi */}
+        <button
+          type="button"
+          onClick={() => {
+            setSettingsPopoverOpen(false);
+            setThemeFlyoutOpen(false);
+            window.open("https://github.com/Ahmad-Saif-Almuflihin-4342301053/waskita#readme", "_blank");
+          }}
+          style={{
+            width: "100%",
+            background: "transparent",
+            border: "none",
+            borderRadius: "8px",
+            padding: "8px 10px",
+            fontSize: "12.5px",
+            fontWeight: 500,
+            textAlign: "left",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            color: COLORS.deepSlate,
+            transition: "background 0.15s ease",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+          }}
+        >
+          <IconHelpCircle size={16} color={COLORS.deepSlate} />
+          <span>Bantuan & Dokumentasi</span>
+        </button>
+      </div>
+    );
+  };
 
   return (
     <>
