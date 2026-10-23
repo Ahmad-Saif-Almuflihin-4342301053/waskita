@@ -20,6 +20,12 @@ Dokumen ini memisahkan standar rekayasa menjadi 3 level hierarki yang jelas agar
    - Dilarang keras memakai `window.alert()` atau `window.confirm()`. Wajib gunakan dialog modal berbasis Tailwind/CSS komponen kustom.
 6. **Graceful Error Handling & Fallback:**
    - Setiap panggilan jaringan wajib memiliki blok penanganan error yang humanis (toast/banner), tidak boleh membuat layar putih (*white screen of death*).
+7. **Mobile-First & Touch Ergonomics Mandate (Non-Negotiable):**
+   - Karena pengguna modern mengakses web dari ponsel (smartphone), seluruh perancangan komponen UI/UX wajib berasas **Mobile-First**:
+     a. **Scale Up, Not Scale Down:** Rancang alur dan layout dari batas layar ponsel sempit (360px–414px) dengan jempol sebagai input utama, lalu kembangkan (*scale up*) ke layar lebar desktop.
+     b. **Anti-Clipping Viewport:** Wajib menggunakan `100dvh` (Dynamic Viewport Height) dan `padding-bottom: max(env(safe-area-inset-bottom, 0px), 24px)` untuk mencegah tombol tertelan bilah navigasi 3-tombol Android atau home bar iOS.
+     c. **Touch Target Size:** Target sentuh tombol minimal 44px–48px. Dilarang mengandalkan efek hover mouse di mobile; interaksi di mobile wajib berbasis click/tap eksplisit (menggunakan Full-Screen Sheet atau Modal).
+     d. **Off-Canvas Drawers:** Drawer mobile wajib menutup 100% lebar layar (`width: 100%; min-width: 100vw;`), dilarang keras menyisakan celah sempit di samping kanan.
 
 ---
 

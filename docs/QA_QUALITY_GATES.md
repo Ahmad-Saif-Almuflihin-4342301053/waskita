@@ -28,6 +28,11 @@ Setiap **Worker QA (Worker 3)** dan **DevOps Gatekeeper** DILARANG meluluskan Pu
    - Gunakan microcopy editorial profesional tanpa emoji yang merusak estetika antarmuka.
 3. **Boundary Kontainer:**
    - Dropdown menu titik tiga (Pin, Rename, Export, Delete) tidak boleh melebar keluar dari batas sidebar (*no horizontal overflow*).
+4. **Mandatory Mobile-First Viewport Verification (390px - 414px):**
+   - QA WAJIB menguji antarmuka pada viewport mobile (390px–414px) dan perangkat fisik Android/iOS.
+   - Drawer mobile wajib 100% full-width tanpa menyisakan celah di samping kanan.
+   - Elemen tombol/footer wajib berada aman di atas navigasi 3-tombol HP (`height: 100dvh` dan safe-area bottom minimal 28px).
+   - Seluruh interaksi menu di mobile wajib responsif terhadap sentuhan (on-tap/click), dilarang mengandalkan hover mouse.
 
 ---
 
