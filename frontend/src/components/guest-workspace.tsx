@@ -76,7 +76,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        background: COLORS.warmCream,
+        background: "var(--waskita-bg, #F7F4EB)",
         color: COLORS.deepSlate,
         overflow: "hidden",
         boxSizing: "border-box",
@@ -84,32 +84,42 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
     >
       {/* Header Mobile vs Desktop Standalone Sign In Button */}
       {isDesktop ? (
-        <div
+        <header
           style={{
             position: "absolute",
-            top: "16px",
-            right: "28px",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: "56px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            padding: "0 28px 0 20px",
             zIndex: 35,
+            pointerEvents: "none",
+            background: "var(--waskita-bg, #F7F4EB)",
           }}
         >
-          <button
-            type="button"
-            onClick={onSignIn}
-            style={{
-              background: COLORS.softPeriwinkle,
-              border: "none",
-              borderRadius: "9999px",
-              padding: "8px 20px",
-              fontSize: "13px",
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              cursor: "pointer",
-              boxShadow: "0 1px 3px rgba(30, 41, 59, 0.06)",
-            }}
-          >
-            Sign in
-          </button>
-        </div>
+          <div style={{ pointerEvents: "auto" }}>
+            <button
+              type="button"
+              onClick={onSignIn}
+              style={{
+                background: COLORS.softPeriwinkle,
+                border: "none",
+                borderRadius: "9999px",
+                padding: "8px 20px",
+                fontSize: "13px",
+                fontWeight: 600,
+                color: COLORS.deepSlate,
+                cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(30, 41, 59, 0.06)",
+              }}
+            >
+              Sign in
+            </button>
+          </div>
+        </header>
       ) : (
         <header
           style={{
@@ -120,7 +130,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             padding: "0 16px",
             borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))",
             flexShrink: 0,
-            background: COLORS.warmCream,
+            background: "var(--waskita-bg, #F7F4EB)",
             zIndex: 10,
           }}
         >

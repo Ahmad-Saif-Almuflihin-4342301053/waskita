@@ -609,6 +609,24 @@ export const IconChevronDown: React.FC<IconProps> = ({ size = 16, color = "curre
   </svg>
 );
 
+export const IconSparkles: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+  </svg>
+);
+
+
 
 // SVG Radial Semi-Circle Gauge Component
 export const SemiCircleGauge: React.FC<{
