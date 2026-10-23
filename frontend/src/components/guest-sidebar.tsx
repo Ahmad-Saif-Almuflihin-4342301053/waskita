@@ -4,7 +4,6 @@ import {
   WaskitaLogo,
   IconX,
   IconSquarePen,
-  IconInfo,
   IconSettings,
   IconSearch,
   IconUser,
@@ -15,13 +14,16 @@ import {
   IconCheck,
   IconHelpCircle,
   IconChevronRight,
+  IconSidebarClose,
 } from "./shared-ui";
 import { useTheme } from "../context/ThemeContext";
 
 export interface GuestSidebarProps {
   isDesktop?: boolean;
   isOpen?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
+  onToggleCollapse?: () => void;
   sidebarToggleId?: string;
   onSignIn?: () => void;
   onNewChat?: () => void;
@@ -31,16 +33,36 @@ export interface GuestSidebarProps {
 export const GuestSidebar: React.FC<GuestSidebarProps> = ({
   isDesktop = false,
   isOpen = false,
+  isCollapsed = false,
   onClose,
-  sidebarToggleId,
+  onToggleCollapse,
   onSignIn,
   onNewChat,
-  onToggleTheme,
 }) => {
   const { theme, setTheme } = useTheme();
   const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
   const [themeFlyoutOpen, setThemeFlyoutOpen] = useState(false);
+  const [isWLogoHovered, setIsWLogoHovered] = useState(false);
+  const themeFlyoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  const handleThemeFlyoutEnter = () => {
+    if (themeFlyoutTimerRef.current) {
+      clearTimeout(themeFlyoutTimerRef.current);
+      themeFlyoutTimerRef.current = null;
+    }
+    setThemeFlyoutOpen(true);
+  };
+
+  const handleThemeFlyoutLeave = () => {
+    if (themeFlyoutTimerRef.current) {
+      clearTimeout(themeFlyoutTimerRef.current);
+    }
+    themeFlyoutTimerRef.current = setTimeout(() => {
+      setThemeFlyoutOpen(false);
+    }, 150);
+  };
 
   // Close popover on click outside
   useEffect(() => {
@@ -52,7 +74,12 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (themeFlyoutTimerRef.current) {
+        clearTimeout(themeFlyoutTimerRef.current);
+      }
+    };
   }, []);
 
   const themeOptions: Array<{ id: "system" | "light" | "dark"; label: string; icon: React.ReactNode }> = [
@@ -73,7 +100,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
   const basePopoverStyle: React.CSSProperties = {
     position: "absolute",
     zIndex: 70,
-    width: "240px",
+    width: "220px",
     background: "var(--waskita-surface-white, #FFFFFF)",
     borderRadius: "14px",
     boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
@@ -95,6 +122,15 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
         zIndex: 100,
       };
     }
+    if (isDesktop) {
+      return {
+        ...basePopoverStyle,
+        left: "calc(100% + 8px)",
+        right: "auto",
+        bottom: 0,
+        zIndex: 100,
+      };
+    }
     return {
       ...basePopoverStyle,
       right: 0,
@@ -105,61 +141,21 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
   };
 
   const renderSettingsPopover = (collapsed: boolean = false) => {
-    const flyoutStyle: React.CSSProperties = collapsed
-      ? {
-          position: "absolute",
-          left: "calc(100% + 6px)",
-          top: "-6px",
-          width: "160px",
-          background: "var(--waskita-surface-white, #FFFFFF)",
-          borderRadius: "12px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
-          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
-          padding: "6px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-          zIndex: 110,
-        }
-      : isDesktop
-      ? {
-          position: "absolute",
-          left: "calc(100% + 6px)",
-          top: "-6px",
-          width: "160px",
-          background: "var(--waskita-surface-white, #FFFFFF)",
-          borderRadius: "12px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
-          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
-          padding: "6px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-          zIndex: 110,
-        }
-      : {
-          position: "absolute",
-          right: "0",
-          bottom: "calc(100% + 6px)",
-          width: "160px",
-          background: "var(--waskita-surface-white, #FFFFFF)",
-          borderRadius: "12px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
-          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
-          padding: "6px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-          zIndex: 110,
-        };
+    const flyoutStyle: React.CSSProperties = {
+      position: "absolute",
+      left: "100%",
+      top: "-6px",
+      paddingLeft: "8px",
+      zIndex: 110,
+    };
 
     return (
       <div style={getSettingsPopoverStyle(collapsed)} onClick={(e) => e.stopPropagation()}>
         {/* 1. Baris Tema dengan Chevron & Flyout Sub-menu */}
         <div
           style={{ position: "relative" }}
-          onMouseEnter={() => setThemeFlyoutOpen(true)}
-          onMouseLeave={() => setThemeFlyoutOpen(false)}
+          onMouseEnter={handleThemeFlyoutEnter}
+          onMouseLeave={handleThemeFlyoutLeave}
         >
           <button
             type="button"
@@ -200,54 +196,69 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
             <div
               style={flyoutStyle}
               onClick={(e) => e.stopPropagation()}
-              onMouseEnter={() => setThemeFlyoutOpen(true)}
+              onMouseEnter={handleThemeFlyoutEnter}
+              onMouseLeave={handleThemeFlyoutLeave}
             >
-              {themeOptions.map((opt) => {
-                const isActive = theme === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      setTheme(opt.id);
-                      setThemeFlyoutOpen(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: "none",
-                      cursor: "pointer",
-                      background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                      color: COLORS.deepSlate,
-                      fontSize: "12.5px",
-                      fontWeight: isActive ? 700 : 500,
-                      transition: "background 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.background = "transparent";
-                      }
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      {opt.icon}
-                      <span>{opt.label}</span>
-                    </div>
-                    {isActive && (
-                      <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
-                    )}
-                  </button>
-                );
-              })}
+              <div
+                style={{
+                  width: "160px",
+                  background: "var(--waskita-surface-white, #FFFFFF)",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
+                  border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+                  padding: "6px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                }}
+              >
+                {themeOptions.map((opt) => {
+                  const isActive = theme === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setTheme(opt.id);
+                        setThemeFlyoutOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "none",
+                        cursor: "pointer",
+                        background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                        color: COLORS.deepSlate,
+                        fontSize: "12.5px",
+                        fontWeight: isActive ? 700 : 500,
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {opt.icon}
+                        <span>{opt.label}</span>
+                      </div>
+                      {isActive && (
+                        <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -290,6 +301,149 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
     );
   };
 
+  // Jika Desktop dan dalam kondisi collapsed (Mini-Rail 68px)
+  if (isDesktop && isCollapsed) {
+    return (
+      <aside
+        className="guest-sidebar-desktop-collapsed"
+        style={{
+          width: "68px",
+          height: "100vh",
+          backgroundColor: COLORS.warmCream,
+          borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 60,
+          overflow: "visible",
+          boxSizing: "border-box",
+          padding: "12px 0",
+          justifyContent: "space-between",
+          transition: "width 0.25s ease",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", width: "100%" }}>
+          {/* Monogram 'W' (hover berubah jadi burger IconMenu, klik untuk expand) */}
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            onMouseEnter={() => setIsWLogoHovered(true)}
+            onMouseLeave={() => setIsWLogoHovered(false)}
+            aria-label="Buka Navigasi Sidebar"
+            title="Buka Navigasi Sidebar"
+            style={{
+              width: "40px",
+              height: "40px",
+              background: isWLogoHovered ? "var(--waskita-card, #E9DFCA)" : "transparent",
+              border: "none",
+              cursor: "pointer",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: COLORS.deepSlate,
+              transition: "background 0.15s ease, transform 0.15s ease",
+            }}
+          >
+            {isWLogoHovered ? (
+              <IconMenu size={22} color={COLORS.deepSlate} />
+            ) : (
+              <span
+                style={{
+                  fontFamily: "serif",
+                  fontSize: "22px",
+                  fontWeight: 900,
+                  color: "var(--waskita-logo-fill, #10B981)",
+                  lineHeight: 1,
+                  userSelect: "none",
+                }}
+              >
+                W
+              </span>
+            )}
+          </button>
+
+          {/* Bawah 'W': Icon 'Analisis Baru' (dengan background aktif di Mode Tamu) */}
+          <button
+            type="button"
+            onClick={onNewChat}
+            aria-label="Analisis Baru"
+            title="Analisis Baru"
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "12px",
+              background: "var(--waskita-card, #E9DFCA)",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: COLORS.deepSlate,
+              transition: "background 0.15s ease",
+            }}
+          >
+            <IconSquarePen size={18} color={COLORS.deepSlate} />
+          </button>
+        </div>
+
+        {/* Footer Rail: Tombol Pengaturan (IconSettings) di ATAS, dan Profil (IconUser di Tamu) di PALING BAWAH */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative" }}>
+          {/* Settings Gir Mini-Rail (DI ATAS) */}
+          <div ref={settingsRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setSettingsPopoverOpen((prev) => !prev)}
+              title="Pengaturan"
+              aria-label="Pengaturan"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: COLORS.deepSlate,
+                transition: "background 0.15s ease",
+              }}
+            >
+              <IconSettings size={18} color={COLORS.deepSlate} />
+            </button>
+            {settingsPopoverOpen && renderSettingsPopover(true)}
+          </div>
+
+          {/* Profil IconUser Mini-Rail (DI PALING BAWAH) - Klik langsung memicu onSignIn */}
+          <button
+            type="button"
+            onClick={onSignIn}
+            title="Profil / Masuk"
+            aria-label="Profil / Masuk"
+            style={{
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              background: COLORS.softPeriwinkle,
+              color: COLORS.deepSlate,
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "transform 0.15s ease",
+            }}
+          >
+            <IconUser size={18} color={COLORS.deepSlate} />
+          </button>
+        </div>
+      </aside>
+    );
+  }
+
   return (
     <>
       {!isDesktop && (
@@ -314,407 +468,59 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
       <aside
         className={isDesktop ? "guest-sidebar-desktop" : "guest-sidebar-mobile"}
         style={{
-          width: isDesktop ? "280px" : "280px",
+          width: isDesktop ? "260px" : "280px",
           height: "100vh",
           backgroundColor: COLORS.warmCream,
-          color: COLORS.deepSlate,
-          fontFamily:
-            '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+          borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
           display: "flex",
           flexDirection: "column",
+          flexShrink: 0,
           position: isDesktop ? "relative" : "fixed",
           top: 0,
           left: 0,
           bottom: 0,
-          right: isDesktop ? "auto" : "auto",
           zIndex: 60,
-          borderRight: isDesktop ? `1px solid ${COLORS.warmSand}` : "none",
-          boxSizing: "border-box",
           overflow: "visible",
-          flexShrink: 0,
-          transition: isDesktop
-            ? "width 0.25s cubic-bezier(0.16, 1, 0.3, 1)"
-            : "transform 0.28s cubic-bezier(0.16, 1, 0.3, 1)",
+          boxSizing: "border-box",
+          transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
           transform: isDesktop ? "none" : isOpen ? "translateX(0)" : "translateX(-100%)",
+          boxShadow: !isDesktop && isOpen ? "4px 0 24px rgba(0,0,0,0.2)" : "none",
         }}
       >
-      {isDesktop ? (
-        <>
-          {/* Expanded State Content (280px) */}
-          <div
-            className="guest-sidebar-expanded-content"
-            style={{
-              width: "280px",
-              height: "100%",
-              display: "flex",
-              flexDirection: "column",
-              flexShrink: 0,
-              overflow: "visible",
-            }}
-          >
-            {/* Header: Menu Toggle & Logo Waskita */}
-            <header
-              style={{
-                height: "56px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "0 16px",
-                borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))",
-                flexShrink: 0,
-                boxSizing: "border-box",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <label
-                  htmlFor={sidebarToggleId}
-                  style={{
-                    padding: "6px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    borderRadius: "8px",
-                    color: COLORS.deepSlate,
-                  }}
-                  title="Kecilkan Sidebar"
-                >
-                  <IconMenu size={20} color={COLORS.deepSlate} />
-                </label>
-                <WaskitaLogo width={120} height={26} />
-              </div>
-            </header>
-
-            {/* Konten Tengah: Jarak 30px ke tombol 'Analisis Baru', lalu kartu info */}
-            <main
-              style={{
-                flex: 1,
-                padding: "30px 18px 20px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "20px",
-                overflowY: "auto",
-                boxSizing: "border-box",
-              }}
-            >
-              {/* Tombol Analisis Baru (IconSquarePen) - transparan secara default */}
-              <button
-                type="button"
-                onClick={onNewChat}
-                style={{
-                  width: "100%",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: "12px",
-                  padding: "9px 12px",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  fontSize: "13.5px",
-                  fontWeight: 700,
-                  color: COLORS.deepSlate,
-                  cursor: "pointer",
-                  textAlign: "left",
-                  boxSizing: "border-box",
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
-              >
-                <IconSquarePen size={18} color={COLORS.deepSlate} />
-                <span>Analisis Baru</span>
-              </button>
-
-              {/* Teks Info 'Masuk untuk menyimpan riwayat analisis Anda' */}
-              <div
-                style={{
-                  fontSize: "13px",
-                  lineHeight: "18px",
-                  color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.75))",
-                  fontWeight: 500,
-                  padding: "0 6px",
-                }}
-              >
-                <span
-                  onClick={onSignIn}
-                  style={{
-                    textDecoration: "underline",
-                    fontWeight: 700,
-                    color: COLORS.deepSlate,
-                    cursor: "pointer",
-                  }}
-                >
-                  Masuk
-                </span>{" "}
-                untuk menyimpan riwayat analisis Anda
-              </div>
-            </main>
-
-            {/* Footer: Kiri tombol 'Sign In' kapsul (#C0CEE8), Kanan tombol 'Settings' (IconSettings) */}
-            <footer
-              style={{
-                height: "64px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "0 18px",
-                borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))",
-                flexShrink: 0,
-                boxSizing: "border-box",
-                position: "relative",
-                overflow: "visible",
-              }}
-            >
-              <button
-                type="button"
-                onClick={onSignIn}
-                style={{
-                  background: COLORS.softPeriwinkle,
-                  border: "none",
-                  borderRadius: "9999px",
-                  padding: "10px 24px",
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: COLORS.deepSlate,
-                  cursor: "pointer",
-                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-                }}
-              >
-                Sign In
-              </button>
-
-              <div ref={settingsRef} style={{ position: "relative" }}>
-                <button
-                  type="button"
-                  aria-label="Pengaturan / Ganti Tema"
-                  onClick={() => setSettingsPopoverOpen((prev) => !prev)}
-                  style={{
-                    background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: "8px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: COLORS.deepSlate,
-                    borderRadius: "8px",
-                    transition: "background 0.15s ease",
-                  }}
-                  title="Pengaturan"
-                >
-                  <IconSettings size={22} color={COLORS.deepSlate} />
-                </button>
-                {settingsPopoverOpen && renderSettingsPopover(false)}
-              </div>
-            </footer>
+        {/* Header Sidebar: Brand (Kiri) + Search & Tutup Sidebar (Kanan) */}
+        <header
+          style={{
+            height: "56px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 14px",
+            background: COLORS.warmCream,
+            borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+            flexShrink: 0,
+          }}
+        >
+          {/* Logo Waskita (Kiri) */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <WaskitaLogo width={124} height={26} />
           </div>
 
-          {/* Collapsed Mini Rail Content (68px) ala Gemini */}
-          <div
-            className="guest-sidebar-rail-content"
-            style={{
-              width: "68px",
-              height: "100%",
-              display: "none",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 0 16px 0",
-              boxSizing: "border-box",
-              flexShrink: 0,
-              overflow: "visible",
-              position: "relative",
-            }}
-          >
-            {/* Top Icons: Menu Toggle & Analisis Baru & Search */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", width: "100%" }}>
-              <label
-                htmlFor={sidebarToggleId}
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  borderRadius: "12px",
-                  color: COLORS.deepSlate,
-                }}
-                title="Perluas Sidebar"
-              >
-                <IconMenu size={22} color={COLORS.deepSlate} />
-              </label>
-
-              <button
-                type="button"
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
-                  background: "transparent",
-                  border: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  color: COLORS.deepSlate,
-                  transition: "background 0.15s ease",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "transparent";
-                }}
-                title="Analisis Baru"
-                onClick={onNewChat}
-              >
-                <IconSquarePen size={20} color={COLORS.deepSlate} />
-              </button>
-
-              <div
-                style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "12px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  color: COLORS.deepSlate,
-                }}
-                title="Cari"
-              >
-                <IconSearch size={20} color={COLORS.deepSlate} />
-              </div>
-            </div>
-
-            {/* Bottom Icons (Mini-Rail Urutan: Pengaturan di ATAS, Profil di PALING BAWAH ala Gemini) */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", width: "100%", position: "relative" }}>
-              {/* Settings Mini-Rail */}
-              <div ref={settingsRef} style={{ position: "relative" }}>
-                <button
-                  type="button"
-                  onClick={() => setSettingsPopoverOpen((prev) => !prev)}
-                  style={{
-                    width: "44px",
-                    height: "44px",
-                    borderRadius: "12px",
-                    background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                    border: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: COLORS.deepSlate,
-                    transition: "background 0.15s ease",
-                  }}
-                  title="Pengaturan"
-                >
-                  <IconSettings size={20} color={COLORS.deepSlate} />
-                </button>
-                {settingsPopoverOpen && renderSettingsPopover(true)}
-              </div>
-
-              {/* Avatar Profil Mini-Rail (Paling Bawah) */}
-              <button
-                type="button"
-                onClick={onSignIn}
-                style={{
-                  width: "40px",
-                  height: "40px",
-                  borderRadius: "50%",
-                  background: COLORS.softPeriwinkle,
-                  border: "none",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  color: COLORS.deepSlate,
-                }}
-                title="Profil / Sign In"
-              >
-                <IconUser size={18} color={COLORS.deepSlate} />
-              </button>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          {/* Mobile Fullscreen Drawer View */}
-          <header
-            style={{
-              height: "56px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 16px",
-              borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))",
-              flexShrink: 0,
-              boxSizing: "border-box",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <WaskitaLogo width={120} height={26} />
-            </div>
-
+          {/* Tombol Search & Tutup/Collapse Sidebar (Kanan) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
             <button
               type="button"
-              onClick={onClose}
-              aria-label="Tutup Sidebar"
+              aria-label="Cari Sesi Analisis"
+              title="Cari Sesi Analisis"
               style={{
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
-                padding: "8px",
+                padding: "6px",
+                borderRadius: "8px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: COLORS.deepSlate,
-                borderRadius: "8px",
-              }}
-              title="Tutup Sidebar"
-            >
-              <IconX size={22} color={COLORS.deepSlate} />
-            </button>
-          </header>
-
-          <main
-            style={{
-              flex: 1,
-              padding: "30px 18px 20px 18px",
-              display: "flex",
-              flexDirection: "column",
-              gap: "20px",
-              overflowY: "auto",
-              boxSizing: "border-box",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                if (onNewChat) onNewChat();
-                if (onClose) onClose();
-              }}
-              style={{
-                width: "100%",
-                background: "transparent",
-                border: "none",
-                borderRadius: "12px",
-                padding: "9px 12px",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                fontSize: "13.5px",
-                fontWeight: 700,
-                color: COLORS.deepSlate,
-                cursor: "pointer",
-                textAlign: "left",
-                boxSizing: "border-box",
                 transition: "background 0.15s ease",
               }}
               onMouseEnter={(e) => {
@@ -724,100 +530,200 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                 (e.currentTarget as HTMLElement).style.background = "transparent";
               }}
             >
-              <IconSquarePen size={18} color={COLORS.deepSlate} />
-              <span>Analisis Baru</span>
+              <IconSearch size={18} color={COLORS.deepSlate} />
             </button>
 
-            {/* Teks Info 'Masuk untuk menyimpan riwayat analisis Anda' */}
-            <div
-              style={{
-                fontSize: "13px",
-                lineHeight: "18px",
-                color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.75))",
-                fontWeight: 500,
-                padding: "0 6px",
-              }}
-            >
-              <span
-                onClick={() => {
-                  if (onSignIn) onSignIn();
-                  if (onClose) onClose();
-                }}
-                style={{
-                  textDecoration: "underline",
-                  fontWeight: 700,
-                  color: COLORS.deepSlate,
-                  cursor: "pointer",
-                }}
-              >
-                Masuk
-              </span>{" "}
-              untuk menyimpan riwayat analisis Anda
-            </div>
-          </main>
-
-          <footer
-            style={{
-              height: "64px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "0 18px",
-              borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))",
-              flexShrink: 0,
-              boxSizing: "border-box",
-              position: "relative",
-              overflow: "visible",
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                if (onSignIn) onSignIn();
-                if (onClose) onClose();
-              }}
-              style={{
-                background: COLORS.softPeriwinkle,
-                border: "none",
-                borderRadius: "9999px",
-                padding: "10px 24px",
-                fontSize: "13px",
-                fontWeight: 700,
-                color: COLORS.deepSlate,
-                cursor: "pointer",
-                boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
-              }}
-            >
-              Sign In
-            </button>
-
-            <div ref={settingsRef} style={{ position: "relative" }}>
+            {isDesktop ? (
+              onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  aria-label="Tutup Navigasi Sidebar"
+                  title="Tutup Navigasi Sidebar"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px",
+                    borderRadius: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: COLORS.deepSlate,
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  <IconSidebarClose size={18} color={COLORS.deepSlate} />
+                </button>
+              )
+            ) : (
               <button
                 type="button"
-                aria-label="Pengaturan / Ganti Tema"
-                onClick={() => setSettingsPopoverOpen((prev) => !prev)}
+                onClick={onClose}
+                aria-label="Tutup Menu"
                 style={{
-                  background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                  background: "transparent",
                   border: "none",
                   cursor: "pointer",
-                  padding: "8px",
+                  padding: "6px",
+                  borderRadius: "8px",
+                  color: COLORS.deepSlate,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: COLORS.deepSlate,
-                  borderRadius: "8px",
                   transition: "background 0.15s ease",
                 }}
-                title="Pengaturan"
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                }}
               >
-                <IconSettings size={22} color={COLORS.deepSlate} />
+                <IconX size={18} color={COLORS.deepSlate} />
               </button>
-              {settingsPopoverOpen && renderSettingsPopover(false)}
-            </div>
-          </footer>
-        </>
-      )}
-    </aside>
-  </>
+            )}
+          </div>
+        </header>
+
+        {/* Content Body: Analisis Baru & Info Masuk */}
+        <div
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "14px 12px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "12px",
+          }}
+        >
+          {/* Tombol Analisis Baru: Border none, Background aktif di Guest Mode, IconSquarePen + 'Analisis Baru' */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onNewChat) onNewChat();
+              if (!isDesktop && onClose) onClose();
+            }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              padding: "10px 14px",
+              borderRadius: "12px",
+              fontSize: "13px",
+              fontWeight: 600,
+              color: COLORS.deepSlate,
+              cursor: "pointer",
+              border: "none",
+              background: "var(--waskita-card, #E9DFCA)",
+              transition: "background 0.15s ease, opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            <IconSquarePen size={18} color={COLORS.deepSlate} />
+            <span>Analisis Baru</span>
+          </button>
+
+          {/* Teks Info 'Masuk untuk menyimpan riwayat analisis Anda' */}
+          <div
+            style={{
+              fontSize: "13px",
+              lineHeight: "18px",
+              color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.75))",
+              fontWeight: 500,
+              padding: "0 6px",
+            }}
+          >
+            <span
+              onClick={() => {
+                if (onSignIn) onSignIn();
+                if (!isDesktop && onClose) onClose();
+              }}
+              style={{
+                textDecoration: "underline",
+                fontWeight: 700,
+                color: COLORS.deepSlate,
+                cursor: "pointer",
+              }}
+            >
+              Masuk
+            </span>{" "}
+            untuk menyimpan riwayat analisis Anda
+          </div>
+        </div>
+
+        {/* Footer Sidebar: Kiri Sign In Kapsul, Kanan Ikon Pengaturan */}
+        <footer
+          style={{
+            height: "64px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "0 14px",
+            borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+            background: COLORS.warmCream,
+            flexShrink: 0,
+            gap: "10px",
+            position: "relative",
+            overflow: "visible",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (onSignIn) onSignIn();
+              if (!isDesktop && onClose) onClose();
+            }}
+            style={{
+              background: COLORS.softPeriwinkle,
+              border: "none",
+              borderRadius: "9999px",
+              padding: "9px 22px",
+              fontSize: "13px",
+              fontWeight: 700,
+              color: COLORS.deepSlate,
+              cursor: "pointer",
+              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+            }}
+          >
+            Sign In
+          </button>
+
+          {/* Ikon Settings Trigger Popover */}
+          <div ref={settingsRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setSettingsPopoverOpen((prev) => !prev)}
+              title="Pengaturan"
+              aria-label="Pengaturan"
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "rgba(30, 41, 59, 0.06)",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: COLORS.deepSlate,
+                flexShrink: 0,
+                transition: "background 0.15s ease",
+              }}
+            >
+              <IconSettings size={18} color={COLORS.deepSlate} />
+            </button>
+
+            {settingsPopoverOpen && renderSettingsPopover(false)}
+          </div>
+        </footer>
+      </aside>
+    </>
   );
 };

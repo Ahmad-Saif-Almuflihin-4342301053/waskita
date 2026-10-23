@@ -122,9 +122,27 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
   const [themeFlyoutOpen, setThemeFlyoutOpen] = useState(false);
+  const themeFlyoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const profileRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
+
+  const handleThemeFlyoutEnter = () => {
+    if (themeFlyoutTimerRef.current) {
+      clearTimeout(themeFlyoutTimerRef.current);
+      themeFlyoutTimerRef.current = null;
+    }
+    setThemeFlyoutOpen(true);
+  };
+
+  const handleThemeFlyoutLeave = () => {
+    if (themeFlyoutTimerRef.current) {
+      clearTimeout(themeFlyoutTimerRef.current);
+    }
+    themeFlyoutTimerRef.current = setTimeout(() => {
+      setThemeFlyoutOpen(false);
+    }, 150);
+  };
 
   // Close popovers on click outside
   useEffect(() => {
@@ -145,7 +163,12 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      if (themeFlyoutTimerRef.current) {
+        clearTimeout(themeFlyoutTimerRef.current);
+      }
+    };
   }, []);
 
   const handleRowClick = (sessionId: string) => {
@@ -158,6 +181,8 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     if (!a.is_pinned && b.is_pinned) return 1;
     return 0;
   });
+
+  const isNewAnalysisActive = !activeSessionId || activeSessionId === 'session-new';
 
   const userName = userProfile.name || "author_demo";
   const userPlan = userProfile.plan || "Personal Plan";
@@ -201,14 +226,26 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     if (collapsed) {
       return {
         ...basePopoverStyle,
+        width: "220px",
         left: "68px",
         right: "auto",
         bottom: "12px",
         zIndex: 100,
       };
     }
+    if (isDesktop) {
+      return {
+        ...basePopoverStyle,
+        width: "220px",
+        left: "calc(100% + 8px)",
+        right: "auto",
+        bottom: 0,
+        zIndex: 100,
+      };
+    }
     return {
       ...basePopoverStyle,
+      width: "220px",
       right: 0,
       left: "auto",
       bottom: "calc(100% + 8px)",
@@ -377,62 +414,22 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     );
 
   const renderSettingsPopover = (collapsed: boolean = false) => {
-    // Determine flyout positioning: for collapsed rail, flyout opens to the right; for wide sidebar, opens to the right or left based on available space
-    const flyoutStyle: React.CSSProperties = collapsed
-      ? {
-          position: "absolute",
-          left: "calc(100% + 6px)",
-          top: "-6px",
-          width: "160px",
-          background: "var(--waskita-surface-white, #FFFFFF)",
-          borderRadius: "12px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
-          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
-          padding: "6px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-          zIndex: 110,
-        }
-      : isDesktop
-      ? {
-          position: "absolute",
-          left: "calc(100% + 6px)",
-          top: "-6px",
-          width: "160px",
-          background: "var(--waskita-surface-white, #FFFFFF)",
-          borderRadius: "12px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
-          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
-          padding: "6px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-          zIndex: 110,
-        }
-      : {
-          position: "absolute",
-          right: "0",
-          bottom: "calc(100% + 6px)",
-          width: "160px",
-          background: "var(--waskita-surface-white, #FFFFFF)",
-          borderRadius: "12px",
-          boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
-          border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
-          padding: "6px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2px",
-          zIndex: 110,
-        };
+    // Determine flyout positioning: opens to the right with zero gap bridge
+    const flyoutStyle: React.CSSProperties = {
+      position: "absolute",
+      left: "100%",
+      top: "-6px",
+      paddingLeft: "8px",
+      zIndex: 110,
+    };
 
     return (
       <div style={getSettingsPopoverStyle(collapsed)} onClick={(e) => e.stopPropagation()}>
         {/* 1. Baris Tema dengan Chevron & Flyout Sub-menu */}
         <div
           style={{ position: "relative" }}
-          onMouseEnter={() => setThemeFlyoutOpen(true)}
-          onMouseLeave={() => setThemeFlyoutOpen(false)}
+          onMouseEnter={handleThemeFlyoutEnter}
+          onMouseLeave={handleThemeFlyoutLeave}
         >
           <button
             type="button"
@@ -468,59 +465,74 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             <IconChevronRight size={14} color="var(--waskita-text-muted, #64748B)" />
           </button>
 
-          {/* Submenu Flyout Tema */}
+          {/* Submenu Flyout Tema with transparent bridge */}
           {themeFlyoutOpen && (
             <div
               style={flyoutStyle}
               onClick={(e) => e.stopPropagation()}
-              onMouseEnter={() => setThemeFlyoutOpen(true)}
+              onMouseEnter={handleThemeFlyoutEnter}
+              onMouseLeave={handleThemeFlyoutLeave}
             >
-              {themeOptions.map((opt) => {
-                const isActive = theme === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      setTheme(opt.id);
-                      setThemeFlyoutOpen(false);
-                    }}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 10px",
-                      borderRadius: "8px",
-                      border: "none",
-                      cursor: "pointer",
-                      background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                      color: COLORS.deepSlate,
-                      fontSize: "12.5px",
-                      fontWeight: isActive ? 700 : 500,
-                      transition: "background 0.15s ease",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.background = "transparent";
-                      }
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      {opt.icon}
-                      <span>{opt.label}</span>
-                    </div>
-                    {isActive && (
-                      <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
-                    )}
-                  </button>
-                );
-              })}
+              <div
+                style={{
+                  width: "160px",
+                  background: "var(--waskita-surface-white, #FFFFFF)",
+                  borderRadius: "12px",
+                  boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
+                  border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+                  padding: "6px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                }}
+              >
+                {themeOptions.map((opt) => {
+                  const isActive = theme === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        setTheme(opt.id);
+                        setThemeFlyoutOpen(false);
+                      }}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 10px",
+                        borderRadius: "8px",
+                        border: "none",
+                        cursor: "pointer",
+                        background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                        color: COLORS.deepSlate,
+                        fontSize: "12.5px",
+                        fontWeight: isActive ? 700 : 500,
+                        transition: "background 0.15s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          (e.currentTarget as HTMLElement).style.background = "transparent";
+                        }
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        {opt.icon}
+                        <span>{opt.label}</span>
+                      </div>
+                      {isActive && (
+                        <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -639,7 +651,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               width: "40px",
               height: "40px",
               borderRadius: "12px",
-              background: "transparent",
+              background: isNewAnalysisActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
               border: "none",
               display: "flex",
               alignItems: "center",
@@ -649,10 +661,14 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               transition: "background 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              if (!isNewAnalysisActive) {
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              }
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
+              if (!isNewAnalysisActive) {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }
             }}
           >
             <IconSquarePen size={18} color={COLORS.deepSlate} />
@@ -885,7 +901,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             gap: "8px",
           }}
         >
-          {/* Tombol Analisis Baru: Border none, Background transparan, hanya hover berubah, IconSquarePen + 'Analisis Baru' */}
+          {/* Tombol Analisis Baru: Border none, Background aktif jika di analisis baru, IconSquarePen + 'Analisis Baru' */}
           <button
             type="button"
             onClick={() => {
@@ -904,14 +920,18 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               color: COLORS.deepSlate,
               cursor: "pointer",
               border: "none",
-              background: "transparent",
+              background: isNewAnalysisActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
               transition: "background 0.15s ease, opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              if (!isNewAnalysisActive) {
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              }
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "transparent";
+              if (!isNewAnalysisActive) {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }
             }}
           >
             <IconSquarePen size={18} color={COLORS.deepSlate} />
