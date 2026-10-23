@@ -22,6 +22,7 @@ import {
   IconLogOut,
   IconUsers,
   IconSidebarClose,
+  IconCheck,
 } from "./shared-ui";
 import { countPureWords, extractSmartKeyword, sanitizePastedOrUploadedDraft } from "../utils/draftSanitizer";
 import { useTheme } from "../context/ThemeContext";
@@ -159,11 +160,9 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   const userPlan = userProfile.plan || "Personal Plan";
 
   // Common Popover components
-  const popoverStyle: React.CSSProperties = {
+  const basePopoverStyle: React.CSSProperties = {
     position: "absolute",
-    bottom: "calc(100% + 8px)",
-    left: "8px",
-    zIndex: 50,
+    zIndex: 70,
     width: "240px",
     background: "var(--waskita-surface-white, #FFFFFF)",
     borderRadius: "14px",
@@ -176,8 +175,46 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     boxSizing: "border-box",
   };
 
-  const ProfilePopoverContent = (
-    <div style={popoverStyle} onClick={(e) => e.stopPropagation()}>
+  const getProfilePopoverStyle = (collapsed: boolean): React.CSSProperties => {
+    if (collapsed) {
+      return {
+        ...basePopoverStyle,
+        left: "68px",
+        right: "auto",
+        bottom: "12px",
+        zIndex: 100,
+      };
+    }
+    return {
+      ...basePopoverStyle,
+      left: 0,
+      right: "auto",
+      bottom: "calc(100% + 8px)",
+      zIndex: 70,
+    };
+  };
+
+  const getSettingsPopoverStyle = (collapsed: boolean): React.CSSProperties => {
+    if (collapsed) {
+      return {
+        ...basePopoverStyle,
+        left: "68px",
+        right: "auto",
+        bottom: "12px",
+        zIndex: 100,
+      };
+    }
+    return {
+      ...basePopoverStyle,
+      right: 0,
+      left: "auto",
+      bottom: "calc(100% + 8px)",
+      zIndex: 70,
+    };
+  };
+
+  const renderProfilePopover = (collapsed: boolean = false) => (
+    <div style={getProfilePopoverStyle(collapsed)} onClick={(e) => e.stopPropagation()}>
       {/* Kartu Profil Pengguna */}
       <div
         style={{
@@ -321,8 +358,14 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     </div>
   );
 
-  const SettingsPopoverContent = (
-    <div style={popoverStyle} onClick={(e) => e.stopPropagation()}>
+  const themeOptions: Array<{ id: "system" | "light" | "dark"; label: string; icon: React.ReactNode }> = [
+    { id: "system", label: "System", icon: <IconLaptop size={15} color={COLORS.deepSlate} /> },
+    { id: "light", label: "Light", icon: <IconSun size={15} color={COLORS.deepSlate} /> },
+    { id: "dark", label: "Dark", icon: <IconMoon size={15} color={COLORS.deepSlate} /> },
+  ];
+
+  const renderSettingsPopover = (collapsed: boolean = false) => (
+    <div style={getSettingsPopoverStyle(collapsed)} onClick={(e) => e.stopPropagation()}>
       <div
         style={{
           padding: "6px 8px 4px 8px",
@@ -336,90 +379,58 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
         Tema Aplikasi
       </div>
 
-      {/* Pilihan Tema: Light / Dark / System */}
+      {/* Menu Tema Vertikal ala Gemini Resmi dengan Centang ✓ */}
       <div
         style={{
           display: "flex",
-          gap: "4px",
-          background: "var(--waskita-card, #E9DFCA)",
-          padding: "4px",
-          borderRadius: "10px",
+          flexDirection: "column",
+          gap: "2px",
+          padding: "2px 0",
         }}
       >
-        <button
-          type="button"
-          onClick={() => setTheme("light")}
-          title="Light"
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "4px",
-            padding: "6px 4px",
-            borderRadius: "7px",
-            border: "none",
-            cursor: "pointer",
-            background: theme === "light" ? "var(--waskita-surface-white, #FFFFFF)" : "transparent",
-            boxShadow: theme === "light" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-            fontWeight: theme === "light" ? 700 : 500,
-            fontSize: "11.5px",
-            color: COLORS.deepSlate,
-          }}
-        >
-          <IconSun size={14} color={COLORS.deepSlate} />
-          <span>Light</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTheme("dark")}
-          title="Dark"
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "4px",
-            padding: "6px 4px",
-            borderRadius: "7px",
-            border: "none",
-            cursor: "pointer",
-            background: theme === "dark" ? "var(--waskita-surface-white, #FFFFFF)" : "transparent",
-            boxShadow: theme === "dark" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-            fontWeight: theme === "dark" ? 700 : 500,
-            fontSize: "11.5px",
-            color: COLORS.deepSlate,
-          }}
-        >
-          <IconMoon size={14} color={COLORS.deepSlate} />
-          <span>Dark</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setTheme("system")}
-          title="System"
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "4px",
-            padding: "6px 4px",
-            borderRadius: "7px",
-            border: "none",
-            cursor: "pointer",
-            background: theme === "system" ? "var(--waskita-surface-white, #FFFFFF)" : "transparent",
-            boxShadow: theme === "system" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-            fontWeight: theme === "system" ? 700 : 500,
-            fontSize: "11.5px",
-            color: COLORS.deepSlate,
-          }}
-        >
-          <IconLaptop size={14} color={COLORS.deepSlate} />
-          <span>System</span>
-        </button>
+        {themeOptions.map((opt) => {
+          const isActive = theme === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setTheme(opt.id)}
+              style={{
+                width: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "8px 10px",
+                borderRadius: "8px",
+                border: "none",
+                cursor: "pointer",
+                background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                color: COLORS.deepSlate,
+                fontSize: "12.5px",
+                fontWeight: isActive ? 700 : 500,
+                transition: "background 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
+                }
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                {opt.icon}
+                <span>{opt.label}</span>
+              </div>
+              {isActive && (
+                <IconCheck size={16} color="var(--waskita-emerald-accent, #059669)" />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <hr
@@ -481,7 +492,8 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           alignItems: "center",
           flexShrink: 0,
           position: "relative",
-          zIndex: 20,
+          zIndex: 60,
+          overflow: "visible",
           boxSizing: "border-box",
           padding: "12px 0",
           justifyContent: "space-between",
@@ -561,9 +573,38 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           </button>
         </div>
 
-        {/* Footer collapsed mini-rail dengan 2 Anchored Popovers */}
+        {/* Footer collapsed mini-rail: IconSettings di ATAS, Profil di PALING BAWAH (Gemini Style) */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative" }}>
-          {/* Avatar Profil Mini-Rail */}
+          {/* Settings Gir Mini-Rail (DI ATAS) */}
+          <div ref={settingsRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setProfilePopoverOpen(false);
+                setSettingsPopoverOpen((prev) => !prev);
+              }}
+              title="Pengaturan"
+              aria-label="Pengaturan"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: COLORS.deepSlate,
+                transition: "background 0.15s ease",
+              }}
+            >
+              <IconSettings size={18} color={COLORS.deepSlate} />
+            </button>
+            {settingsPopoverOpen && renderSettingsPopover(true)}
+          </div>
+
+          {/* Avatar Profil Mini-Rail (DI PALING BAWAH) */}
           <div ref={profileRef} style={{ position: "relative" }}>
             <button
               type="button"
@@ -591,36 +632,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             >
               {userName.charAt(0).toUpperCase()}
             </button>
-            {profilePopoverOpen && ProfilePopoverContent}
-          </div>
-
-          {/* Settings Gir Mini-Rail */}
-          <div ref={settingsRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              onClick={() => {
-                setProfilePopoverOpen(false);
-                setSettingsPopoverOpen((prev) => !prev);
-              }}
-              title="Pengaturan"
-              aria-label="Pengaturan"
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: COLORS.deepSlate,
-                transition: "background 0.15s ease",
-              }}
-            >
-              <IconSettings size={18} color={COLORS.deepSlate} />
-            </button>
-            {settingsPopoverOpen && SettingsPopoverContent}
+            {profilePopoverOpen && renderProfilePopover(true)}
           </div>
         </div>
       </aside>
@@ -641,7 +653,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             bottom: 0,
             background: "rgba(30, 41, 59, 0.45)",
             backdropFilter: "blur(2px)",
-            zIndex: 44,
+            zIndex: 55,
             opacity: isOpen ? 1 : 0,
             pointerEvents: isOpen ? "auto" : "none",
             transition: "opacity 0.25s ease",
@@ -663,7 +675,8 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           top: 0,
           left: 0,
           bottom: 0,
-          zIndex: isDesktop ? 20 : 45,
+          zIndex: 60,
+          overflow: "visible",
           boxSizing: "border-box",
           transition: "transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
           transform: isDesktop ? "none" : isOpen ? "translateX(0)" : "translateX(-100%)",
@@ -1068,6 +1081,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             flexShrink: 0,
             gap: "10px",
             position: "relative",
+            overflow: "visible",
           }}
         >
           {/* Avatar & Profil Trigger Popover */}
@@ -1147,7 +1161,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               </div>
             </div>
 
-            {profilePopoverOpen && ProfilePopoverContent}
+            {profilePopoverOpen && renderProfilePopover(false)}
           </div>
 
           {/* Ikon Settings Trigger Popover */}
@@ -1178,7 +1192,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               <IconSettings size={18} color={COLORS.deepSlate} />
             </button>
 
-            {settingsPopoverOpen && SettingsPopoverContent}
+            {settingsPopoverOpen && renderSettingsPopover(false)}
           </div>
         </footer>
       </aside>
