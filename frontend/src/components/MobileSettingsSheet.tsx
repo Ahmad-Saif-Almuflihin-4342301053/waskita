@@ -55,7 +55,7 @@ export const MobileSettingsSheet: React.FC<MobileSettingsSheetProps> = ({
             <div onClick={() => setAccountAccordionOpen((prev) => !prev)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0 }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
-                  <div style={{ width: "46px", height: "46px", borderRadius: "50%", background: COLORS.deepSlate, color: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "18px" }}>
+                  <div style={{ width: "46px", height: "46px", borderRadius: "50%", background: "var(--waskita-text, #1E293B)", color: "var(--waskita-bg, #FFFFFF)", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: "18px" }}>
                     {userName.charAt(0).toUpperCase()}
                   </div>
                   <div style={{ position: "absolute", bottom: "-2px", right: "-2px", width: "18px", height: "18px", borderRadius: "50%", background: "var(--waskita-surface-white, #FFFFFF)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }}>
@@ -65,7 +65,7 @@ export const MobileSettingsSheet: React.FC<MobileSettingsSheetProps> = ({
                 <div style={{ display: "flex", flexDirection: "column", minWidth: 0, overflow: "hidden" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                     <span style={{ fontSize: "15px", fontWeight: 700, color: COLORS.deepSlate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userName}</span>
-                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "9999px", background: COLORS.softPeriwinkle, color: COLORS.deepSlate, letterSpacing: "0.04em" }}>{userPlan.toUpperCase()}</span>
+                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "2px 7px", borderRadius: "9999px", background: COLORS.softPeriwinkle, color: "#0F172A", letterSpacing: "0.04em" }}>{userPlan.toUpperCase()}</span>
                   </div>
                   <span style={{ fontSize: "12px", color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.7))", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>{userEmail}</span>
                 </div>
@@ -108,7 +108,7 @@ export const MobileSettingsSheet: React.FC<MobileSettingsSheetProps> = ({
         )}
 
         {/* Zona 2: Area Pengaturan & Preferensi (Bawah) */}
-        <div style={{ borderRadius: "20px", background: "var(--waskita-surface, #FFFFFF)", border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))", padding: "8px 14px", display: "flex", flexDirection: "column", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
+        <div style={{ borderRadius: "20px", background: "var(--waskita-surface, #1A2436)", border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))", padding: "8px 14px", display: "flex", flexDirection: "column", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
           {/* Menu 'Tema' (ON-TAP / ON-CLICK) */}
           <div style={{ borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))" }}>
             <div onClick={() => setThemePickerOpen((prev) => !prev)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 6px", cursor: "pointer" }}>
@@ -129,7 +129,7 @@ export const MobileSettingsSheet: React.FC<MobileSettingsSheetProps> = ({
                 {themeOptions.map((opt) => {
                   const isSelected = theme === opt.id;
                   return (
-                    <button key={opt.id} type="button" onClick={() => setTheme(opt.id)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: "12px", border: "none", background: isSelected ? "var(--waskita-card, #E9DFCA)" : "transparent", color: COLORS.deepSlate, fontSize: "13.5px", fontWeight: isSelected ? 700 : 500, cursor: "pointer" }}>
+                    <button key={opt.id} type="button" onClick={() => setTheme(opt.id)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: "12px", border: "none", background: isSelected ? "var(--waskita-audit-bg, rgba(255, 255, 255, 0.08))" : "transparent", color: COLORS.deepSlate, fontSize: "13.5px", fontWeight: isSelected ? 700 : 500, cursor: "pointer" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         {opt.icon}
                         <span>{opt.label}</span>
