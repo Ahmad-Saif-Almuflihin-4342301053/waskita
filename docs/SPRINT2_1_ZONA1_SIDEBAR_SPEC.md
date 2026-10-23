@@ -152,3 +152,9 @@
 
 ### D. Paritas Penuh Mode Tamu di Mobile
 - `GuestSidebar.tsx` wajib mengadopsi 100% spesifikasi dimensi mobile ini (`width: 100%`, `100dvh`, padding safe-area 28px, tombol silang `(X)` header drawer berfungsi menutup sidebar, dan trigger footer membuka Mobile Sheet versi tamu).
+
+### E. Dark Mode Fidelity pada Mobile Settings Sheet
+- **Zona 2 Card Background:** Wajib menggunakan token adaptif `var(--waskita-surface-white, #FFFFFF)` (yang otomatis berubah menjadi `#1A2436` di dark mode). Daftarkan juga token `--waskita-surface: #FFFFFF;` (light) dan `--waskita-surface: #1A2436;` (dark) di `index.css`. Dilarang keras jatuh ke fallback `#FFFFFF` di mode gelap!
+- **Avatar Inisial "A":** Background menggunakan `var(--waskita-text)` dengan teks `var(--waskita-bg)` agar huruf "A" kontras tajam (huruf "A" tidak tenggelam/putih di atas putih).
+- **Badge Paket ("PERSONAL PLAN"):** Teks menggunakan warna gelap kontras `color: #0F172A` di atas latar biru pastel `COLORS.softPeriwinkle` agar terbaca tajam di semua tema.
+- **Selected Theme Option:** Tombol opsi tema yang aktif wajib memiliki latar pembeda yang jelas di dark mode (`var(--waskita-audit-bg, rgba(255, 255, 255, 0.08))`).
