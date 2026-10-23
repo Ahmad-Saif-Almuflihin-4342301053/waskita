@@ -55,7 +55,10 @@ Kombinasi ketepatan temperatur air 92°C, kontrol rasio air, dan waktu jeda peng
 export interface AuthSidebarProps {
   isDesktop?: boolean;
   isOpen?: boolean;
+  isCollapsed?: boolean;
   onClose?: () => void;
+  onToggleCollapse?: () => void;
+  onOpenSettings?: () => void;
   sidebarToggleId?: string;
   activeSessionRadioName?: string;
   sessionNewId?: string;
@@ -71,12 +74,20 @@ export interface AuthSidebarProps {
   onPinSession?: (id: string) => void;
   onDeleteSession?: (id: string) => void;
   onExportSession?: (id: string) => void;
+  userProfile?: {
+    name?: string;
+    email?: string;
+    plan?: string;
+  };
 }
 
 export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   isDesktop = false,
   isOpen = false,
+  isCollapsed = false,
   onClose,
+  onToggleCollapse,
+  onOpenSettings,
   sessions = [],
   activeSessionId,
   onSelectSession,
@@ -87,6 +98,11 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   onPinSession,
   onDeleteSession,
   onExportSession,
+  userProfile = {
+    name: "author_demo",
+    email: "author@waskita.id",
+    plan: "Personal Plan",
+  },
 }) => {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
 
@@ -100,6 +116,105 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     if (!a.is_pinned && b.is_pinned) return 1;
     return 0;
   });
+
+  const userName = userProfile.name || "author_demo";
+  const userEmail = userProfile.email || "author@waskita.id";
+
+  // Jika desktop dan dalam kondisi collapsed
+  if (isDesktop && isCollapsed) {
+    return (
+      <aside
+        className="auth-sidebar-desktop-collapsed"
+        style={{
+          width: "68px",
+          height: "100vh",
+          backgroundColor: COLORS.warmCream,
+          borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          flexShrink: 0,
+          position: "relative",
+          zIndex: 20,
+          boxSizing: "border-box",
+          padding: "12px 0",
+          justifyContent: "space-between",
+          transition: "width 0.25s ease",
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", width: "100%" }}>
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label="Buka Navigasi Sidebar"
+            title="Buka Sidebar"
+            style={{
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              padding: "8px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: COLORS.deepSlate,
+            }}
+          >
+            <IconMenu size={20} color={COLORS.deepSlate} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (onNewAnalysis) onNewAnalysis();
+            }}
+            aria-label="Analisis Baru"
+            title="Analisis Baru"
+            style={{
+              width: "40px",
+              height: "40px",
+              borderRadius: "14px",
+              background: COLORS.warmSand,
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: COLORS.deepSlate,
+              transition: "opacity 0.15s ease",
+            }}
+          >
+            <IconSquarePen size={18} color={COLORS.deepSlate} />
+          </button>
+        </div>
+
+        {/* Footer collapsed mini-rail */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            title="Pengaturan"
+            aria-label="Pengaturan"
+            style={{
+              width: "38px",
+              height: "38px",
+              borderRadius: "50%",
+              background: "transparent",
+              border: "none",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: COLORS.deepSlate,
+              transition: "background 0.15s ease",
+            }}
+          >
+            <IconSettings size={18} color={COLORS.deepSlate} />
+          </button>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <>
@@ -157,7 +272,28 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             flexShrink: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {isDesktop && onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                aria-label="Tutup Navigasi Sidebar"
+                title="Tutup Navigasi Sidebar"
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "6px",
+                  borderRadius: "8px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: COLORS.deepSlate,
+                }}
+              >
+                <IconMenu size={20} color={COLORS.deepSlate} />
+              </button>
+            )}
             <WaskitaLogo width={124} height={26} />
           </div>
 
@@ -207,14 +343,20 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               alignItems: "center",
               gap: "10px",
               padding: "10px 14px",
-              borderRadius: "12px",
+              borderRadius: "14px",
               fontSize: "13px",
               fontWeight: 600,
               color: COLORS.deepSlate,
               cursor: "pointer",
-              border: "1px solid rgba(30, 41, 59, 0.1)",
-              background: activeSessionId === "session-new" ? COLORS.warmSand : "transparent",
-              transition: "background 0.15s ease",
+              border: "none",
+              background: COLORS.warmSand,
+              transition: "opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = "0.88";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.opacity = "1";
             }}
           >
             <IconSquarePen size={18} color={COLORS.deepSlate} />
@@ -457,10 +599,10 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           </div>
         </div>
 
-        {/* Footer Sidebar: Tema & Keluar */}
+        {/* Footer Sidebar: Profil Ringkas & Ikon Pengaturan */}
         <footer
           style={{
-            height: "60px",
+            height: "64px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -468,40 +610,90 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
             background: COLORS.warmCream,
             flexShrink: 0,
+            gap: "10px",
           }}
         >
-          <button
-            type="button"
-            onClick={onToggleTheme}
+          <div
             style={{
-              background: "transparent",
-              border: "none",
-              fontSize: "12px",
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              cursor: "pointer",
-              padding: "6px 8px",
-              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              minWidth: 0,
+              flex: 1,
             }}
           >
-            🌓 Mode Tampilan
-          </button>
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: COLORS.deepSlate,
+                color: "#FFFFFF",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: "14px",
+                flexShrink: 0,
+              }}
+            >
+              {userName.charAt(0).toUpperCase()}
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 0,
+                overflow: "hidden",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  color: COLORS.deepSlate,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {userName}
+              </span>
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "var(--waskita-text-muted, #64748B)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {userEmail}
+              </span>
+            </div>
+          </div>
 
           <button
             type="button"
-            onClick={onSignOut}
+            onClick={onOpenSettings}
+            title="Pengaturan"
+            aria-label="Pengaturan"
             style={{
-              background: "transparent",
-              border: "1px solid rgba(239, 68, 68, 0.3)",
-              fontSize: "11.5px",
-              fontWeight: 600,
-              color: "#EF4444",
+              width: "36px",
+              height: "36px",
+              borderRadius: "50%",
+              background: "rgba(30, 41, 59, 0.06)",
+              border: "none",
               cursor: "pointer",
-              padding: "5px 10px",
-              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: COLORS.deepSlate,
+              flexShrink: 0,
+              transition: "background 0.15s ease",
             }}
           >
-            Keluar
+            <IconSettings size={18} color={COLORS.deepSlate} />
           </button>
         </footer>
       </aside>
@@ -511,7 +703,9 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
 
 export interface AuthHeaderProps {
   isDesktop?: boolean;
+  isSidebarCollapsed?: boolean;
   onOpenSidebar?: () => void;
+  onToggleSidebar?: () => void;
   onCopySummary?: () => void;
   onDownloadReport?: () => void;
   onCopyDraft?: () => void;
@@ -524,7 +718,9 @@ export interface AuthHeaderProps {
 
 export const AuthHeader: React.FC<AuthHeaderProps> = ({
   isDesktop = false,
+  isSidebarCollapsed = false,
   onOpenSidebar,
+  onToggleSidebar,
   onCopySummary,
   onDownloadReport,
   onCopyDraft,
@@ -757,16 +953,51 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 
   if (isDesktop) {
     return (
-      <div
+      <header
         style={{
           position: "absolute",
-          top: "16px",
-          right: "28px",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: "56px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 28px 0 20px",
           zIndex: 35,
+          pointerEvents: "none",
         }}
       >
-        {menuPopover}
-      </div>
+        <div style={{ pointerEvents: "auto", display: "flex", alignItems: "center" }}>
+          {isSidebarCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Buka Sidebar Navigasi"
+              title="Buka Navigasi Sidebar"
+              style={{
+                width: 36,
+                height: 36,
+                cursor: "pointer",
+                color: COLORS.deepSlate,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "8px",
+                border: "none",
+                background: "rgba(30, 41, 59, 0.05)",
+                transition: "background 0.15s ease",
+              }}
+            >
+              <IconMenu size={20} color={COLORS.deepSlate} />
+            </button>
+          )}
+        </div>
+
+        <div style={{ pointerEvents: "auto" }}>
+          {menuPopover}
+        </div>
+      </header>
     );
   }
 
