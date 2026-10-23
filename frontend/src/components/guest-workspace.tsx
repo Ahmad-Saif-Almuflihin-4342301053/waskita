@@ -5,9 +5,11 @@ import { countPureWords, extractSmartKeyword, sanitizePastedOrUploadedDraft } fr
 
 export interface GuestWorkspaceProps {
   isDesktop?: boolean;
+  isSidebarCollapsed?: boolean;
   plusToggleId?: string;
   sidebarToggleId?: string;
   onOpenSidebar?: () => void;
+  onToggleSidebar?: () => void;
   onOpenPlus?: () => void;
   onSignIn?: () => void;
   draftText?: string;
@@ -19,7 +21,9 @@ export interface GuestWorkspaceProps {
 
 export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
   isDesktop = false,
+  isSidebarCollapsed = false,
   onOpenSidebar,
+  onToggleSidebar,
   onOpenPlus,
   onSignIn,
   draftText = "",

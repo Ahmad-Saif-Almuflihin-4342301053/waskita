@@ -730,7 +730,9 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
           <GuestSidebar
             isDesktop={isDesktop}
             isOpen={isSidebarOpen}
+            isCollapsed={isSidebarCollapsed}
             onClose={() => setIsSidebarOpen(false)}
+            onToggleCollapse={handleToggleCollapse}
             sidebarToggleId="guest-sidebar-toggle"
             onSignIn={() => {
               setIsAuthenticated(true);
@@ -747,7 +749,9 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
 
           <GuestWorkspace
             isDesktop={isDesktop}
+            isSidebarCollapsed={isSidebarCollapsed}
             onOpenSidebar={() => setIsSidebarOpen(true)}
+            onToggleSidebar={handleToggleCollapse}
             onOpenPlus={() => setIsOptionsOpen(true)}
             onSignIn={() => {
               setIsAuthenticated(true);
