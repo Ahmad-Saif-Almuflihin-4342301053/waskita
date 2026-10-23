@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { MobileSettingsSheet } from "./MobileSettingsSheet";
 import {
   COLORS,
   WaskitaLogo,
@@ -121,6 +122,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   const [isWLogoHovered, setIsWLogoHovered] = useState(false);
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [themeFlyoutOpen, setThemeFlyoutOpen] = useState(false);
   const themeFlyoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -766,8 +768,11 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
       <aside
         className={isDesktop ? "auth-sidebar-desktop" : "auth-sidebar-mobile"}
         style={{
-          width: isDesktop ? "260px" : "280px",
-          height: "100vh",
+          width: isDesktop ? "260px" : "100%",
+          maxWidth: isDesktop ? "260px" : "100vw",
+          minWidth: isDesktop ? "auto" : "100vw",
+          height: isDesktop ? "100vh" : "100dvh",
+          maxHeight: isDesktop ? "100vh" : "100dvh",
           backgroundColor: COLORS.warmCream,
           borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
           display: "flex",
@@ -1174,28 +1179,37 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           </div>
         </div>
 
-        {/* Footer Sidebar: Profil & Ikon Pengaturan dengan 2 Anchored Popovers */}
+        {/* Footer Sidebar: Profil & Ikon Pengaturan */}
         <footer
           style={{
-            height: "64px",
+            minHeight: isDesktop ? "64px" : "76px",
+            height: isDesktop ? "64px" : "auto",
+            paddingTop: isDesktop ? "0" : "10px",
+            paddingBottom: isDesktop ? "0" : "max(env(safe-area-inset-bottom, 0px), 28px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 14px",
+            paddingLeft: "14px",
+            paddingRight: "14px",
             borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
             background: COLORS.warmCream,
             flexShrink: 0,
             gap: "10px",
             position: "relative",
             overflow: "visible",
+            boxSizing: "border-box",
           }}
         >
-          {/* Avatar & Profil Trigger Popover */}
+          {/* Avatar & Profil Trigger */}
           <div ref={profileRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
             <div
               onClick={() => {
-                setSettingsPopoverOpen(false);
-                setProfilePopoverOpen((prev) => !prev);
+                if (!isDesktop) {
+                  setMobileSettingsOpen(true);
+                } else {
+                  setSettingsPopoverOpen(false);
+                  setProfilePopoverOpen((prev) => !prev);
+                }
               }}
               style={{
                 display: "flex",
@@ -1267,16 +1281,20 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               </div>
             </div>
 
-            {profilePopoverOpen && renderProfilePopover(false)}
+            {isDesktop && profilePopoverOpen && renderProfilePopover(false)}
           </div>
 
-          {/* Ikon Settings Trigger Popover */}
+          {/* Ikon Settings Trigger */}
           <div ref={settingsRef} style={{ position: "relative" }}>
             <button
               type="button"
               onClick={() => {
-                setProfilePopoverOpen(false);
-                setSettingsPopoverOpen((prev) => !prev);
+                if (!isDesktop) {
+                  setMobileSettingsOpen(true);
+                } else {
+                  setProfilePopoverOpen(false);
+                  setSettingsPopoverOpen((prev) => !prev);
+                }
               }}
               title="Pengaturan"
               aria-label="Pengaturan"
@@ -1298,10 +1316,30 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               <IconSettings size={18} color={COLORS.deepSlate} />
             </button>
 
-            {settingsPopoverOpen && renderSettingsPopover(false)}
+            {isDesktop && settingsPopoverOpen && renderSettingsPopover(false)}
           </div>
         </footer>
       </aside>
+
+      {/* Unified Mobile Settings & Account Sheet */}
+      {!isDesktop && (
+        <MobileSettingsSheet
+          isOpen={mobileSettingsOpen}
+          onClose={() => setMobileSettingsOpen(false)}
+          isGuest={false}
+          userProfile={userProfile}
+          onSignOut={() => {
+            setMobileSettingsOpen(false);
+            if (onClose) onClose();
+            if (onSignOut) onSignOut();
+          }}
+          onSwitchAccount={() => {
+            setMobileSettingsOpen(false);
+            if (onClose) onClose();
+            if (onSwitchAccount) onSwitchAccount();
+          }}
+        />
+      )}
     </>
   );
 };

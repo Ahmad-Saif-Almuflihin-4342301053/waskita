@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { MobileSettingsSheet } from "./MobileSettingsSheet";
 import {
   COLORS,
   WaskitaLogo,
@@ -41,6 +42,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [themeFlyoutOpen, setThemeFlyoutOpen] = useState(false);
   const [isWLogoHovered, setIsWLogoHovered] = useState(false);
   const themeFlyoutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -468,8 +470,11 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
       <aside
         className={isDesktop ? "guest-sidebar-desktop" : "guest-sidebar-mobile"}
         style={{
-          width: isDesktop ? "260px" : "280px",
-          height: "100vh",
+          width: isDesktop ? "260px" : "100%",
+          maxWidth: isDesktop ? "260px" : "100vw",
+          minWidth: isDesktop ? "auto" : "100vw",
+          height: isDesktop ? "100vh" : "100dvh",
+          maxHeight: isDesktop ? "100vh" : "100dvh",
           backgroundColor: COLORS.warmCream,
           borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
           display: "flex",
@@ -661,17 +666,22 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
         {/* Footer Sidebar: Kiri Sign In Kapsul, Kanan Ikon Pengaturan */}
         <footer
           style={{
-            height: "64px",
+            minHeight: isDesktop ? "64px" : "76px",
+            height: isDesktop ? "64px" : "auto",
+            paddingTop: isDesktop ? "0" : "10px",
+            paddingBottom: isDesktop ? "0" : "max(env(safe-area-inset-bottom, 0px), 28px)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 14px",
+            paddingLeft: "14px",
+            paddingRight: "14px",
             borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
             background: COLORS.warmCream,
             flexShrink: 0,
             gap: "10px",
             position: "relative",
             overflow: "visible",
+            boxSizing: "border-box",
           }}
         >
           <button
@@ -695,11 +705,17 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
             Sign In
           </button>
 
-          {/* Ikon Settings Trigger Popover */}
+          {/* Ikon Settings Trigger */}
           <div ref={settingsRef} style={{ position: "relative" }}>
             <button
               type="button"
-              onClick={() => setSettingsPopoverOpen((prev) => !prev)}
+              onClick={() => {
+                if (!isDesktop) {
+                  setMobileSettingsOpen(true);
+                } else {
+                  setSettingsPopoverOpen((prev) => !prev);
+                }
+              }}
               title="Pengaturan"
               aria-label="Pengaturan"
               style={{
@@ -720,10 +736,24 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
               <IconSettings size={18} color={COLORS.deepSlate} />
             </button>
 
-            {settingsPopoverOpen && renderSettingsPopover(false)}
+            {isDesktop && settingsPopoverOpen && renderSettingsPopover(false)}
           </div>
         </footer>
       </aside>
+
+      {/* Unified Mobile Settings & Account Sheet (Guest Mode) */}
+      {!isDesktop && (
+        <MobileSettingsSheet
+          isOpen={mobileSettingsOpen}
+          onClose={() => setMobileSettingsOpen(false)}
+          isGuest={true}
+          onSignIn={() => {
+            setMobileSettingsOpen(false);
+            if (onClose) onClose();
+            if (onSignIn) onSignIn();
+          }}
+        />
+      )}
     </>
   );
 };
