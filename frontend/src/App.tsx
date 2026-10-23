@@ -471,6 +471,20 @@ export const App: React.FC = () => {
   };
 
   // 3. Header Action Handlers
+  const handleCopyRemediationPrompt = () => {
+    if (currentTurns.length === 0) return;
+    const latest = currentTurns[currentTurns.length - 1].auditResult;
+    const promptText = latest.remediation_prompt;
+    if (!promptText) return;
+
+    navigator.clipboard.writeText(promptText);
+    showToast({
+      type: 'success',
+      title: 'Prompt Rekomendasi Tersalin ✓',
+      message: 'Prompt remediasi perbaikan naskah disalin ke papan klip.',
+    });
+  };
+
   const handleCopySummary = () => {
     if (currentTurns.length === 0) return;
     const latest = currentTurns[currentTurns.length - 1].auditResult;
@@ -818,8 +832,11 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
             <AuthHeader
               isDesktop={isDesktop}
               isSidebarCollapsed={isSidebarCollapsed}
+              hasActiveSession={currentTurns.length > 0 && activeSessionId !== 'session-new'}
               onOpenSidebar={() => setIsSidebarOpen(true)}
               onToggleSidebar={handleToggleCollapse}
+              onNewAnalysis={handleNewAnalysis}
+              onCopyRemediationPrompt={handleCopyRemediationPrompt}
               onCopySummary={handleCopySummary}
               onDownloadReport={handleDownloadReport}
               onCopyDraft={handleCopyDraft}

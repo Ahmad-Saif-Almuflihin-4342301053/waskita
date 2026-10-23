@@ -25,6 +25,8 @@ import {
   IconSidebarClose,
   IconCheck,
   IconChevronRight,
+  IconSparkles,
+  IconFileText,
 } from "./shared-ui";
 import { countPureWords, extractSmartKeyword, sanitizePastedOrUploadedDraft } from "../utils/draftSanitizer";
 import { useTheme } from "../context/ThemeContext";
@@ -997,7 +999,9 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                     }}
                     title={s.draft_title}
                   >
-                    {s.is_pinned && <span style={{ fontSize: "11px" }}>📌</span>}
+                    {s.is_pinned && (
+                      <IconPin size={13} color="var(--waskita-emerald-accent, #059669)" style={{ flexShrink: 0 }} />
+                    )}
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
                       {s.draft_title}
                     </span>
@@ -1347,8 +1351,11 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
 export interface AuthHeaderProps {
   isDesktop?: boolean;
   isSidebarCollapsed?: boolean;
+  hasActiveSession?: boolean;
   onOpenSidebar?: () => void;
   onToggleSidebar?: () => void;
+  onNewAnalysis?: () => void;
+  onCopyRemediationPrompt?: () => void;
   onCopySummary?: () => void;
   onDownloadReport?: () => void;
   onCopyDraft?: () => void;
@@ -1362,8 +1369,11 @@ export interface AuthHeaderProps {
 export const AuthHeader: React.FC<AuthHeaderProps> = ({
   isDesktop = false,
   isSidebarCollapsed = false,
+  hasActiveSession = false,
   onOpenSidebar,
   onToggleSidebar,
+  onNewAnalysis,
+  onCopyRemediationPrompt,
   onCopySummary,
   onDownloadReport,
   onCopyDraft,
@@ -1375,7 +1385,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const menuPopover = (
+  const menuPopover = hasActiveSession ? (
     <div style={{ position: "relative" }}>
       {/* Tombol Titik Tiga Header */}
       <button
@@ -1422,18 +1432,50 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
             position: "absolute",
             top: isDesktop ? 42 : 48,
             right: 0,
-            width: 220,
-            background: "var(--waskita-surface-white, #FFFFFF)",
+            width: 230,
+            background: "var(--waskita-surface, var(--waskita-surface-white, #FFFFFF))",
+            color: "var(--waskita-text, #1E293B)",
             borderRadius: 14,
             boxShadow:
-              "0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-            border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))",
+              "0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15)",
+            border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))",
             zIndex: 50,
             padding: "8px 0",
             display: "flex",
             flexDirection: "column",
           }}
         >
+          {/* 1. Salin Prompt Rekomendasi */}
+          <button
+            type="button"
+            onClick={() => {
+              setIsMenuOpen(false);
+              if (onCopyRemediationPrompt) onCopyRemediationPrompt();
+            }}
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "9px 14px",
+              background: "none",
+              border: "none",
+              fontSize: "13px",
+              color: "inherit",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
+          >
+            <IconSparkles size={15} color="var(--waskita-emerald-accent, #059669)" /> Salin Prompt Rekomendasi
+          </button>
+
+          {/* 2. Salin Ringkasan Evaluasi */}
           <button
             type="button"
             onClick={() => {
@@ -1449,57 +1491,21 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               background: "none",
               border: "none",
               fontSize: "13px",
-              color: COLORS.deepSlate,
+              color: "inherit",
               cursor: "pointer",
               textAlign: "left",
             }}
-          >
-            <span>📋</span> Salin Ringkasan
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsMenuOpen(false);
-              if (onDownloadReport) onDownloadReport();
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
             }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "9px 14px",
-              background: "none",
-              border: "none",
-              fontSize: "13px",
-              color: COLORS.deepSlate,
-              cursor: "pointer",
-              textAlign: "left",
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
             }}
           >
-            <IconDownload size={15} color="var(--waskita-text-muted, #64748B)" /> Unduh Laporan (.md)
+            <IconFileText size={15} color="var(--waskita-text-muted, #64748B)" /> Salin Ringkasan Evaluasi
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsMenuOpen(false);
-              if (onCopyDraft) onCopyDraft();
-            }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "9px 14px",
-              background: "none",
-              border: "none",
-              fontSize: "13px",
-              color: COLORS.deepSlate,
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
-            <span>📄</span> Salin Naskah Draf
-          </button>
+
+          {/* 3. Bagikan Analisis */}
           <button
             type="button"
             onClick={() => {
@@ -1515,13 +1521,21 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               background: "none",
               border: "none",
               fontSize: "13px",
-              color: COLORS.deepSlate,
+              color: "inherit",
               cursor: "pointer",
               textAlign: "left",
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
           >
-            <IconShare2 size={15} color="var(--waskita-text-muted, #64748B)" /> Share Analisis
+            <IconShare2 size={15} color="var(--waskita-text-muted, #64748B)" /> Bagikan Analisis
           </button>
+
+          {/* 4. Sematkan Analisis / Lepas Sematan */}
           <button
             type="button"
             onClick={() => {
@@ -1537,14 +1551,22 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               background: "none",
               border: "none",
               fontSize: "13px",
-              color: isPinned ? "#059669" : COLORS.deepSlate,
+              color: isPinned ? "#059669" : "inherit",
               cursor: "pointer",
               textAlign: "left",
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
           >
             <IconPin size={15} color={isPinned ? "#059669" : "var(--waskita-text-muted, #64748B)"} />{" "}
-            {isPinned ? "Unpin Analisis" : "Pin Analisis"}
+            {isPinned ? "Lepas Sematan (Unpin)" : "Sematkan Analisis"}
           </button>
+
+          {/* 5. Ganti Judul */}
           <button
             type="button"
             onClick={() => {
@@ -1560,13 +1582,29 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               background: "none",
               border: "none",
               fontSize: "13px",
-              color: COLORS.deepSlate,
+              color: "inherit",
               cursor: "pointer",
               textAlign: "left",
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
           >
-            <IconPencil size={15} color="var(--waskita-text-muted, #64748B)" /> Ganti Judul (Rename)
+            <IconPencil size={15} color="var(--waskita-text-muted, #64748B)" /> Ganti Judul
           </button>
+
+          {/* 6. Garis divider tipis */}
+          <div
+            style={{
+              borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+              margin: "4px 0",
+            }}
+          />
+
+          {/* 7. Hapus Riwayat */}
           <button
             type="button"
             onClick={() => {
@@ -1586,13 +1624,19 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
               cursor: "pointer",
               textAlign: "left",
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(239, 68, 68, 0.08)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "none";
+            }}
           >
             <IconTrash2 size={15} color="#EF4444" /> Hapus Riwayat
           </button>
         </div>
       )}
     </div>
-  );
+  ) : null;
 
   if (isDesktop) {
     return (
@@ -1618,7 +1662,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
     );
   }
 
-  // Mobile Header: Hanya 1 tombol hamburger tunggal dengan IconMenu
+  // Mobile Header
   return (
     <header
       style={{
@@ -1629,7 +1673,7 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
         padding: "0 16px",
         position: "relative",
         zIndex: 25,
-        background: COLORS.warmCream,
+        background: "var(--waskita-bg, #F7F4EB)",
         borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
         flexShrink: 0,
         boxSizing: "border-box",
@@ -1660,7 +1704,31 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
         </div>
       </div>
 
-      {menuPopover}
+      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        {onNewAnalysis && (
+          <button
+            type="button"
+            onClick={onNewAnalysis}
+            aria-label="Analisis Baru"
+            title="Analisis Baru"
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              border: "none",
+              background: "transparent",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: COLORS.deepSlate,
+              cursor: "pointer",
+            }}
+          >
+            <IconSquarePen size={20} color={COLORS.deepSlate} />
+          </button>
+        )}
+        {menuPopover}
+      </div>
     </header>
   );
 };
