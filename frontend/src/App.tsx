@@ -13,7 +13,6 @@ import { MultiTurnAuditStreamView } from './components/MultiTurnAuditStreamView'
 import { AuditOptionsOverlay, DEFAULT_THRESHOLDS } from './components/AuditOptionsOverlay';
 import { ConfirmModal } from './components/ConfirmModal';
 import { AuthModal } from './components/AuthModal';
-import { SettingsModal } from './components/SettingsModal';
 import { ExecutiveAuditPrintReport } from './components/ExecutiveAuditPrintReport';
 import { useToast } from './context/ToastContext';
 import { useTheme } from './context/ThemeContext';
@@ -129,7 +128,6 @@ export const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState<boolean>(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
 
   const handleToggleCollapse = () => {
     setIsSidebarCollapsed((prev) => !prev);
@@ -763,7 +761,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
             isCollapsed={isSidebarCollapsed}
             onClose={() => setIsSidebarOpen(false)}
             onToggleCollapse={handleToggleCollapse}
-            onOpenSettings={() => setIsSettingsModalOpen(true)}
+            onSwitchAccount={() => setAuthModalOpen(true)}
             sessions={sessions}
             activeSessionId={activeSessionId}
             onSelectSession={handleSelectSession}
@@ -949,29 +947,6 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
         onClose={() => setAuthModalOpen(false)}
         onLoginSuccess={() => {
           setIsAuthenticated(true);
-        }}
-      />
-
-      {/* Settings Modal (Profil, Tema, dan Sesi Akun) */}
-      <SettingsModal
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        userProfile={{
-          name: 'author_demo',
-          email: 'author@waskita.id',
-          plan: 'Personal Plan',
-        }}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-        onLogout={() => {
-          setIsAuthenticated(false);
-          waskitaClient.setToken(null);
-          localStorage.removeItem('waskita_token');
-          showToast({
-            type: 'info',
-            title: 'Keluar',
-            message: 'Anda kembali ke Mode Tamu.',
-          });
         }}
       />
 

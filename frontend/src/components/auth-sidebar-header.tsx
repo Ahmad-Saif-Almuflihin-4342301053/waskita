@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   COLORS,
   WaskitaLogo,
@@ -15,8 +15,16 @@ import {
   IconTrash2,
   IconDownload,
   IconSettings,
+  IconSun,
+  IconMoon,
+  IconLaptop,
+  IconHelpCircle,
+  IconLogOut,
+  IconUsers,
+  IconSidebarClose,
 } from "./shared-ui";
 import { countPureWords, extractSmartKeyword, sanitizePastedOrUploadedDraft } from "../utils/draftSanitizer";
+import { useTheme } from "../context/ThemeContext";
 
 export const SAMPLE_DRAFTS = {
   revisionNeeded: {
@@ -59,6 +67,7 @@ export interface AuthSidebarProps {
   onClose?: () => void;
   onToggleCollapse?: () => void;
   onOpenSettings?: () => void;
+  onSwitchAccount?: () => void;
   sidebarToggleId?: string;
   activeSessionRadioName?: string;
   sessionNewId?: string;
@@ -88,6 +97,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   onClose,
   onToggleCollapse,
   onOpenSettings,
+  onSwitchAccount,
   sessions = [],
   activeSessionId,
   onSelectSession,
@@ -104,7 +114,35 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
     plan: "Personal Plan",
   },
 }) => {
+  const { theme, setTheme } = useTheme();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [isWLogoHovered, setIsWLogoHovered] = useState(false);
+  const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
+  const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
+
+  const profileRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  // Close popovers on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(target)
+      ) {
+        setProfilePopoverOpen(false);
+      }
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(target)
+      ) {
+        setSettingsPopoverOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleRowClick = (sessionId: string) => {
     if (onSelectSession) onSelectSession(sessionId);
@@ -118,9 +156,317 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   });
 
   const userName = userProfile.name || "author_demo";
-  const userEmail = userProfile.email || "author@waskita.id";
+  const userPlan = userProfile.plan || "Personal Plan";
 
-  // Jika desktop dan dalam kondisi collapsed
+  // Common Popover components
+  const popoverStyle: React.CSSProperties = {
+    position: "absolute",
+    bottom: "calc(100% + 8px)",
+    left: "8px",
+    zIndex: 50,
+    width: "240px",
+    background: "var(--waskita-surface-white, #FFFFFF)",
+    borderRadius: "14px",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.16), 0 4px 10px rgba(0, 0, 0, 0.08)",
+    border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+    padding: "8px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+    boxSizing: "border-box",
+  };
+
+  const ProfilePopoverContent = (
+    <div style={popoverStyle} onClick={(e) => e.stopPropagation()}>
+      {/* Kartu Profil Pengguna */}
+      <div
+        style={{
+          padding: "10px 12px",
+          background: "var(--waskita-card, #E9DFCA)",
+          borderRadius: "10px",
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
+        <div
+          style={{
+            width: "34px",
+            height: "34px",
+            borderRadius: "50%",
+            background: COLORS.deepSlate,
+            color: "#FFFFFF",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: "14px",
+            flexShrink: 0,
+          }}
+        >
+          {userName.charAt(0).toUpperCase()}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: COLORS.deepSlate,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {userName}
+          </div>
+          <div style={{ marginTop: "3px" }}>
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                background: "rgba(217, 119, 6, 0.15)",
+                color: "#D97706",
+                padding: "2px 7px",
+                borderRadius: "10px",
+                letterSpacing: "0.04em",
+                display: "inline-block",
+              }}
+            >
+              {userPlan}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <hr
+        style={{
+          border: "none",
+          borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+          margin: "4px 0",
+        }}
+      />
+
+      {/* Opsi Ganti Akun */}
+      <button
+        type="button"
+        onClick={() => {
+          setProfilePopoverOpen(false);
+          if (onSwitchAccount) {
+            onSwitchAccount();
+          } else if (onSignOut) {
+            onSignOut();
+          }
+        }}
+        style={{
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          borderRadius: "8px",
+          padding: "8px 10px",
+          fontSize: "12.5px",
+          fontWeight: 500,
+          textAlign: "left",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          color: COLORS.deepSlate,
+          transition: "background 0.15s ease",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+        }}
+      >
+        <IconUsers size={16} color={COLORS.deepSlate} />
+        <span>Ganti Akun</span>
+      </button>
+
+      {/* Logout */}
+      <button
+        type="button"
+        onClick={() => {
+          setProfilePopoverOpen(false);
+          if (onSignOut) onSignOut();
+        }}
+        style={{
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          borderRadius: "8px",
+          padding: "8px 10px",
+          fontSize: "12.5px",
+          fontWeight: 600,
+          textAlign: "left",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          color: "#EF4444",
+          transition: "background 0.15s ease",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "rgba(239, 68, 68, 0.08)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+        }}
+      >
+        <IconLogOut size={16} color="#EF4444" />
+        <span>Logout</span>
+      </button>
+    </div>
+  );
+
+  const SettingsPopoverContent = (
+    <div style={popoverStyle} onClick={(e) => e.stopPropagation()}>
+      <div
+        style={{
+          padding: "6px 8px 4px 8px",
+          fontSize: "11px",
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          color: "var(--waskita-text-muted, #64748B)",
+        }}
+      >
+        Tema Aplikasi
+      </div>
+
+      {/* Pilihan Tema: Light / Dark / System */}
+      <div
+        style={{
+          display: "flex",
+          gap: "4px",
+          background: "var(--waskita-card, #E9DFCA)",
+          padding: "4px",
+          borderRadius: "10px",
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setTheme("light")}
+          title="Light"
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px",
+            padding: "6px 4px",
+            borderRadius: "7px",
+            border: "none",
+            cursor: "pointer",
+            background: theme === "light" ? "var(--waskita-surface-white, #FFFFFF)" : "transparent",
+            boxShadow: theme === "light" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+            fontWeight: theme === "light" ? 700 : 500,
+            fontSize: "11.5px",
+            color: COLORS.deepSlate,
+          }}
+        >
+          <IconSun size={14} color={COLORS.deepSlate} />
+          <span>Light</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTheme("dark")}
+          title="Dark"
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px",
+            padding: "6px 4px",
+            borderRadius: "7px",
+            border: "none",
+            cursor: "pointer",
+            background: theme === "dark" ? "var(--waskita-surface-white, #FFFFFF)" : "transparent",
+            boxShadow: theme === "dark" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+            fontWeight: theme === "dark" ? 700 : 500,
+            fontSize: "11.5px",
+            color: COLORS.deepSlate,
+          }}
+        >
+          <IconMoon size={14} color={COLORS.deepSlate} />
+          <span>Dark</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTheme("system")}
+          title="System"
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "4px",
+            padding: "6px 4px",
+            borderRadius: "7px",
+            border: "none",
+            cursor: "pointer",
+            background: theme === "system" ? "var(--waskita-surface-white, #FFFFFF)" : "transparent",
+            boxShadow: theme === "system" ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+            fontWeight: theme === "system" ? 700 : 500,
+            fontSize: "11.5px",
+            color: COLORS.deepSlate,
+          }}
+        >
+          <IconLaptop size={14} color={COLORS.deepSlate} />
+          <span>System</span>
+        </button>
+      </div>
+
+      <hr
+        style={{
+          border: "none",
+          borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+          margin: "4px 0",
+        }}
+      />
+
+      {/* Menu Bantuan */}
+      <button
+        type="button"
+        onClick={() => {
+          setSettingsPopoverOpen(false);
+          window.open("https://github.com/Ahmad-Saif-Almuflihin-4342301053/waskita#readme", "_blank");
+        }}
+        style={{
+          width: "100%",
+          background: "transparent",
+          border: "none",
+          borderRadius: "8px",
+          padding: "8px 10px",
+          fontSize: "12.5px",
+          fontWeight: 500,
+          textAlign: "left",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          color: COLORS.deepSlate,
+          transition: "background 0.15s ease",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = "transparent";
+        }}
+      >
+        <IconHelpCircle size={16} color={COLORS.deepSlate} />
+        <span>Bantuan & Dokumentasi</span>
+      </button>
+    </div>
+  );
+
+  // Jika desktop dan dalam kondisi collapsed (Mini-Rail 68px)
   if (isDesktop && isCollapsed) {
     return (
       <aside
@@ -143,26 +489,47 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
         }}
       >
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", width: "100%" }}>
+          {/* Monogram 'W' yang saat di-hover berganti menjadi IconMenu, klik untuk expand */}
           <button
             type="button"
             onClick={onToggleCollapse}
+            onMouseEnter={() => setIsWLogoHovered(true)}
+            onMouseLeave={() => setIsWLogoHovered(false)}
             aria-label="Buka Navigasi Sidebar"
-            title="Buka Sidebar"
+            title="Buka Navigasi Sidebar"
             style={{
-              background: "transparent",
+              width: "40px",
+              height: "40px",
+              background: isWLogoHovered ? "var(--waskita-card, #E9DFCA)" : "transparent",
               border: "none",
               cursor: "pointer",
-              padding: "8px",
-              borderRadius: "8px",
+              borderRadius: "10px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: COLORS.deepSlate,
+              transition: "background 0.15s ease, transform 0.15s ease",
             }}
           >
-            <IconMenu size={20} color={COLORS.deepSlate} />
+            {isWLogoHovered ? (
+              <IconMenu size={22} color={COLORS.deepSlate} />
+            ) : (
+              <span
+                style={{
+                  fontFamily: "serif",
+                  fontSize: "22px",
+                  fontWeight: 900,
+                  color: "var(--waskita-logo-fill, #10B981)",
+                  lineHeight: 1,
+                  userSelect: "none",
+                }}
+              >
+                W
+              </span>
+            )}
           </button>
 
+          {/* Tombol Analisis Baru (Mini Rail) */}
           <button
             type="button"
             onClick={() => {
@@ -173,44 +540,88 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             style={{
               width: "40px",
               height: "40px",
-              borderRadius: "14px",
-              background: COLORS.warmSand,
+              borderRadius: "12px",
+              background: "transparent",
               border: "none",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
               color: COLORS.deepSlate,
-              transition: "opacity 0.15s ease",
+              transition: "background 0.15s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
             <IconSquarePen size={18} color={COLORS.deepSlate} />
           </button>
         </div>
 
-        {/* Footer collapsed mini-rail */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="Pengaturan"
-            aria-label="Pengaturan"
-            style={{
-              width: "38px",
-              height: "38px",
-              borderRadius: "50%",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: COLORS.deepSlate,
-              transition: "background 0.15s ease",
-            }}
-          >
-            <IconSettings size={18} color={COLORS.deepSlate} />
-          </button>
+        {/* Footer collapsed mini-rail dengan 2 Anchored Popovers */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative" }}>
+          {/* Avatar Profil Mini-Rail */}
+          <div ref={profileRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setSettingsPopoverOpen(false);
+                setProfilePopoverOpen((prev) => !prev);
+              }}
+              title={`Profil: ${userName}`}
+              aria-label="Menu Profil"
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: COLORS.deepSlate,
+                color: "#FFFFFF",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontWeight: 700,
+                fontSize: "14px",
+                transition: "transform 0.15s ease",
+              }}
+            >
+              {userName.charAt(0).toUpperCase()}
+            </button>
+            {profilePopoverOpen && ProfilePopoverContent}
+          </div>
+
+          {/* Settings Gir Mini-Rail */}
+          <div ref={settingsRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setProfilePopoverOpen(false);
+                setSettingsPopoverOpen((prev) => !prev);
+              }}
+              title="Pengaturan"
+              aria-label="Pengaturan"
+              style={{
+                width: "38px",
+                height: "38px",
+                borderRadius: "50%",
+                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: COLORS.deepSlate,
+                transition: "background 0.15s ease",
+              }}
+            >
+              <IconSettings size={18} color={COLORS.deepSlate} />
+            </button>
+            {settingsPopoverOpen && SettingsPopoverContent}
+          </div>
         </div>
       </aside>
     );
@@ -241,7 +652,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
       <aside
         className={isDesktop ? "auth-sidebar-desktop" : "auth-sidebar-mobile"}
         style={{
-          width: isDesktop ? "280px" : "280px",
+          width: isDesktop ? "260px" : "280px",
           height: "100vh",
           backgroundColor: COLORS.warmCream,
           borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
@@ -259,64 +670,109 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           boxShadow: !isDesktop && isOpen ? "4px 0 24px rgba(0,0,0,0.2)" : "none",
         }}
       >
-        {/* Header Sidebar: Brand + Close/New Button */}
+        {/* Header Sidebar: Brand (Kiri) + Search & Tutup Sidebar (Kanan) */}
         <header
           style={{
             height: "56px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 16px",
+            padding: "0 14px",
             background: COLORS.warmCream,
             borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
             flexShrink: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {isDesktop && onToggleCollapse && (
+          {/* Logo Waskita (Kiri) */}
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <WaskitaLogo width={124} height={26} />
+          </div>
+
+          {/* Tombol Search & Tutup Sidebar (Kanan) */}
+          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+            <button
+              type="button"
+              aria-label="Cari Sesi Analisis"
+              title="Cari Sesi Analisis"
+              style={{
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                padding: "6px",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: COLORS.deepSlate,
+                transition: "background 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }}
+            >
+              <IconSearch size={18} color={COLORS.deepSlate} />
+            </button>
+
+            {isDesktop ? (
+              onToggleCollapse && (
+                <button
+                  type="button"
+                  onClick={onToggleCollapse}
+                  aria-label="Tutup Navigasi Sidebar"
+                  title="Tutup Navigasi Sidebar"
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px",
+                    borderRadius: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: COLORS.deepSlate,
+                    transition: "background 0.15s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = "transparent";
+                  }}
+                >
+                  <IconSidebarClose size={18} color={COLORS.deepSlate} />
+                </button>
+              )
+            ) : (
               <button
                 type="button"
-                onClick={onToggleCollapse}
-                aria-label="Tutup Navigasi Sidebar"
-                title="Tutup Navigasi Sidebar"
+                onClick={onClose}
+                aria-label="Tutup Menu"
                 style={{
                   background: "transparent",
                   border: "none",
                   cursor: "pointer",
                   padding: "6px",
                   borderRadius: "8px",
+                  color: COLORS.deepSlate,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: COLORS.deepSlate,
+                  transition: "background 0.15s ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "transparent";
                 }}
               >
-                <IconMenu size={20} color={COLORS.deepSlate} />
+                <IconX size={18} color={COLORS.deepSlate} />
               </button>
             )}
-            <WaskitaLogo width={124} height={26} />
           </div>
-
-          {!isDesktop && (
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Tutup Menu"
-              style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                padding: 6,
-                borderRadius: "8px",
-                color: COLORS.deepSlate,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <IconX size={20} color={COLORS.deepSlate} />
-            </button>
-          )}
         </header>
 
         {/* Content Body: Analisis Baru & Riwayat */}
@@ -330,7 +786,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             gap: "8px",
           }}
         >
-          {/* Tombol Analisis Baru */}
+          {/* Tombol Analisis Baru: Border none, Background transparan, hanya hover berubah, IconSquarePen + 'Analisis Baru' */}
           <button
             type="button"
             onClick={() => {
@@ -343,24 +799,24 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               alignItems: "center",
               gap: "10px",
               padding: "10px 14px",
-              borderRadius: "14px",
+              borderRadius: "12px",
               fontSize: "13px",
               fontWeight: 600,
               color: COLORS.deepSlate,
               cursor: "pointer",
               border: "none",
-              background: COLORS.warmSand,
-              transition: "opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s ease",
+              background: "transparent",
+              transition: "background 0.15s ease, opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.opacity = "0.88";
+              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.opacity = "1";
+              (e.currentTarget as HTMLElement).style.background = "transparent";
             }}
           >
             <IconSquarePen size={18} color={COLORS.deepSlate} />
-            <span>+ Analisis Baru</span>
+            <span>Analisis Baru</span>
           </button>
 
           {/* Label Header Riwayat */}
@@ -599,102 +1055,131 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           </div>
         </div>
 
-        {/* Footer Sidebar: Profil Ringkas & Ikon Pengaturan */}
+        {/* Footer Sidebar: Profil & Ikon Pengaturan dengan 2 Anchored Popovers */}
         <footer
           style={{
             height: "64px",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0 16px",
+            padding: "0 14px",
             borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
             background: COLORS.warmCream,
             flexShrink: 0,
             gap: "10px",
+            position: "relative",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              minWidth: 0,
-              flex: 1,
-            }}
-          >
+          {/* Avatar & Profil Trigger Popover */}
+          <div ref={profileRef} style={{ position: "relative", flex: 1, minWidth: 0 }}>
             <div
+              onClick={() => {
+                setSettingsPopoverOpen(false);
+                setProfilePopoverOpen((prev) => !prev);
+              }}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                minWidth: 0,
+                cursor: "pointer",
+                padding: "4px 6px",
+                borderRadius: "10px",
+                transition: "background 0.15s ease",
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+              }}
+            >
+              <div
+                style={{
+                  width: "36px",
+                  height: "36px",
+                  borderRadius: "50%",
+                  background: COLORS.deepSlate,
+                  color: "#FFFFFF",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontWeight: 700,
+                  fontSize: "14px",
+                  flexShrink: 0,
+                }}
+              >
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  minWidth: 0,
+                  overflow: "hidden",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 700,
+                    color: COLORS.deepSlate,
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {userName}
+                </span>
+                <span
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 700,
+                    color: "#D97706",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {userPlan}
+                </span>
+              </div>
+            </div>
+
+            {profilePopoverOpen && ProfilePopoverContent}
+          </div>
+
+          {/* Ikon Settings Trigger Popover */}
+          <div ref={settingsRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setProfilePopoverOpen(false);
+                setSettingsPopoverOpen((prev) => !prev);
+              }}
+              title="Pengaturan"
+              aria-label="Pengaturan"
               style={{
                 width: "36px",
                 height: "36px",
                 borderRadius: "50%",
-                background: COLORS.deepSlate,
-                color: "#FFFFFF",
+                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "rgba(30, 41, 59, 0.06)",
+                border: "none",
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontWeight: 700,
-                fontSize: "14px",
+                color: COLORS.deepSlate,
                 flexShrink: 0,
+                transition: "background 0.15s ease",
               }}
             >
-              {userName.charAt(0).toUpperCase()}
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                minWidth: 0,
-                overflow: "hidden",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: COLORS.deepSlate,
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {userName}
-              </span>
-              <span
-                style={{
-                  fontSize: "11px",
-                  color: "var(--waskita-text-muted, #64748B)",
-                  whiteSpace: "nowrap",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {userEmail}
-              </span>
-            </div>
-          </div>
+              <IconSettings size={18} color={COLORS.deepSlate} />
+            </button>
 
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            title="Pengaturan"
-            aria-label="Pengaturan"
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "rgba(30, 41, 59, 0.06)",
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: COLORS.deepSlate,
-              flexShrink: 0,
-              transition: "background 0.15s ease",
-            }}
-          >
-            <IconSettings size={18} color={COLORS.deepSlate} />
-          </button>
+            {settingsPopoverOpen && SettingsPopoverContent}
+          </div>
         </footer>
       </aside>
     </>
@@ -962,38 +1447,12 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
           height: "56px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           padding: "0 28px 0 20px",
           zIndex: 35,
           pointerEvents: "none",
         }}
       >
-        <div style={{ pointerEvents: "auto", display: "flex", alignItems: "center" }}>
-          {isSidebarCollapsed && (
-            <button
-              type="button"
-              onClick={onToggleSidebar}
-              aria-label="Buka Sidebar Navigasi"
-              title="Buka Navigasi Sidebar"
-              style={{
-                width: 36,
-                height: 36,
-                cursor: "pointer",
-                color: COLORS.deepSlate,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                borderRadius: "8px",
-                border: "none",
-                background: "rgba(30, 41, 59, 0.05)",
-                transition: "background 0.15s ease",
-              }}
-            >
-              <IconMenu size={20} color={COLORS.deepSlate} />
-            </button>
-          )}
-        </div>
-
         <div style={{ pointerEvents: "auto" }}>
           {menuPopover}
         </div>
