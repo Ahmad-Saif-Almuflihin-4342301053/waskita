@@ -7,6 +7,8 @@ import {
   IconDownload,
   IconFileText,
   IconCopy,
+  IconPrinter,
+  IconExternalLink,
 } from './shared-ui';
 import { AuditExecuteResponse } from '../types/waskita';
 import {
@@ -85,7 +87,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
         border: isReady
           ? '1px solid rgba(16, 185, 129, 0.4)'
           : '1px solid var(--waskita-audit-border, rgba(192, 213, 229, 0.9))',
-        padding: isDesktop ? '24px 28px' : '20px 18px',
+        padding: isDesktop ? '24px 28px' : '16px 12px',
         boxShadow: isReady
           ? '0 4px 16px rgba(16, 185, 129, 0.08)'
           : '0 4px 16px rgba(30, 41, 59, 0.05)',
@@ -158,7 +160,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             }}
           >
-            <span>🖨️</span>
+            <IconPrinter size={14} color={COLORS.deepSlate} />
             <span>Cetak PDF</span>
           </button>
 
@@ -872,6 +874,210 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
           </div>
         )}
       </section>
+
+      {/* Seksi 6: Referensi SERP · Top 3 Google Competitor (Tabel 3.5 & Tabel 3.6 Proposal TA) */}
+      {audit.serp_competitors && audit.serp_competitors.length > 0 && (
+        <section
+          style={{
+            background: 'transparent',
+            border: 'none',
+            borderRadius: 0,
+            padding: '16px 0 0 0',
+            borderTop: '1px dashed var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+            marginTop: '14px',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '4px',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '15px',
+                fontWeight: 700,
+                margin: 0,
+                color: COLORS.deepSlate,
+              }}
+            >
+              Referensi SERP · Top 3 Google Competitor
+            </h3>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.65))',
+              }}
+            >
+              Target: "{audit.target_query}"
+            </span>
+          </div>
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.65))',
+              margin: '0 0 12px 0',
+            }}
+          >
+            Artikel kompetitor acuan hasil pencarian Google SERP untuk pembanding VSM Cosine Similarity &amp; Information Gain
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {audit.serp_competitors.slice(0, 3).map((item) => (
+              <div
+                key={item.rank_position}
+                style={{
+                  background: 'var(--waskita-surface-white, #FFFFFF)',
+                  borderRadius: '12px',
+                  padding: isDesktop ? '12px 14px' : '10px 12px',
+                  border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                }}
+              >
+                {/* Badge Rank */}
+                <span
+                  style={{
+                    background:
+                      item.rank_position === 1
+                        ? 'var(--waskita-amber-bg, #FEF3C7)'
+                        : 'var(--waskita-card, #E9DFCA)',
+                    color:
+                      item.rank_position === 1
+                        ? 'var(--waskita-amber-text, #B45309)'
+                        : COLORS.deepSlate,
+                    fontSize: '11.5px',
+                    fontWeight: 800,
+                    borderRadius: '6px',
+                    padding: '3px 8px',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                    border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+                  }}
+                >
+                  #{item.rank_position}
+                </span>
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '8px',
+                      marginBottom: '2px',
+                    }}
+                  >
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        color: COLORS.deepSlate,
+                        textDecoration: 'none',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.textDecoration = 'underline';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.textDecoration = 'none';
+                      }}
+                    >
+                      {item.page_title}
+                    </a>
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Kunjungi Dokumen Sumber"
+                      style={{
+                        color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.6))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <IconExternalLink size={13} color="currentColor" />
+                    </a>
+                  </div>
+
+                  {/* Domain & Metrics Badges */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                      marginBottom: '4px',
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color: 'var(--waskita-emerald-accent, #059669)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {item.domain_name}
+                    </span>
+                    {typeof item.cosine_similarity === 'number' && (
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          color: 'var(--waskita-text-muted, #64748B)',
+                          background: 'rgba(30, 41, 59, 0.06)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                        }}
+                      >
+                        Cosine Sim: {item.cosine_similarity.toFixed(2)}
+                      </span>
+                    )}
+                    {typeof item.word_count === 'number' && item.word_count > 0 && (
+                      <span
+                        style={{
+                          fontSize: '10.5px',
+                          color: 'var(--waskita-text-muted, #64748B)',
+                          background: 'rgba(30, 41, 59, 0.06)',
+                          padding: '1px 6px',
+                          borderRadius: '4px',
+                          fontWeight: 500,
+                        }}
+                      >
+                        ~{item.word_count} kata
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Snippet */}
+                  {item.snippet_text && (
+                    <p
+                      style={{
+                        fontSize: '11.5px',
+                        color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.7))',
+                        margin: 0,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      {item.snippet_text}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };

@@ -27,6 +27,7 @@ import {
   IconChevronRight,
   IconSparkles,
   IconFileText,
+  IconCoffee,
 } from "./shared-ui";
 import { countPureWords, extractSmartKeyword, sanitizePastedOrUploadedDraft } from "../utils/draftSanitizer";
 import { useTheme } from "../context/ThemeContext";
@@ -1750,6 +1751,9 @@ export interface FloatingComposerDockProps {
   onSelectSampleDraft?: (sampleKey: "revisionNeeded" | "approvedReady") => void;
   activeTurnNumber?: number;
   activeTargetQuery?: string;
+  targetQuery?: string;
+  onTargetQueryChange?: (query: string) => void;
+  thresholds?: { min_cds_score?: number };
 }
 
 export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
@@ -1768,12 +1772,27 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   onSelectSampleDraft,
   activeTurnNumber,
   activeTargetQuery,
+  targetQuery = "",
+  onTargetQueryChange,
+  thresholds,
 }) => {
   const isCentered = layoutMode === "centered";
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const currentWordCount =
     typeof propWordCount === "number" ? propWordCount : countPureWords(draftText);
   const isEligibleToSubmit = currentWordCount >= minWordCount;
+
+  // Auto-expanding textarea height between 52px and 180px
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      const nextHeight = Math.min(Math.max(el.scrollHeight, 52), 180);
+      el.style.height = `${nextHeight}px`;
+      el.style.overflowY = el.scrollHeight > 180 ? "auto" : "hidden";
+    }
+  }, [draftText]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -1801,37 +1820,10 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
     }
   };
 
+  const effectiveCdsThreshold = thresholds?.min_cds_score ?? 75;
+
   return (
     <>
-      <style>
-        {`
-          @keyframes plusGlowPulse {
-            0% {
-              transform: scale(1);
-              box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-            }
-            50% {
-              transform: scale(1.18);
-              box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-            }
-            100% {
-              transform: scale(1);
-              box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
-            }
-          }
-          @keyframes fadeInTooltip {
-            from {
-              opacity: 0;
-              transform: translateY(6px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
-
       <div
         className={
           isDesktop
@@ -1856,7 +1848,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
             : "12px 14px 16px 14px",
           background: isCentered
             ? "transparent"
-            : `linear-gradient(to top, ${COLORS.warmCream} 80%, transparent 100%)`,
+            : "linear-gradient(to top, var(--waskita-bg) 80%, transparent 100%)",
           zIndex: 40,
           pointerEvents: isCentered ? "auto" : "none",
           boxSizing: "border-box",
@@ -1879,7 +1871,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
             position: "relative",
           }}
         >
-          {/* Turn revision banner if active turn > 0 */}
+          {/* Turn revision banner if active turn > 0 and not session-new */}
           {activeTurnNumber && activeTurnNumber > 1 && (
             <div
               style={{
@@ -1889,163 +1881,206 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 background: "var(--waskita-emerald-bg, #D1FAE5)",
                 padding: "3px 12px",
                 borderRadius: "9999px",
-                marginBottom: "6px",
+                marginBottom: "8px",
                 pointerEvents: "auto",
               }}
             >
-              Mode Revisi Turn #{activeTurnNumber} untuk kata kunci "{activeTargetQuery || "Target"}"
+              Mode Revisi Turn #{activeTurnNumber} untuk kata kunci "{activeTargetQuery || targetQuery || "Target"}"
             </div>
           )}
 
-          {/* Indikator Tipis Jumlah Kata di Atas Kapsul */}
-          {draftText.trim().length > 0 && (
-            <div
-              style={{
-                alignSelf: "flex-start",
-                marginLeft: "18px",
-                marginBottom: "4px",
-                fontSize: "12px",
-                fontWeight: 600,
-                color: isEligibleToSubmit
-                  ? "var(--waskita-emerald-accent, #059669)"
-                  : "#D97706",
-                transition: "color 0.2s ease",
-                pointerEvents: "auto",
-              }}
-            >
-              {isEligibleToSubmit
-                ? `✓ ${currentWordCount} kata — Naskah siap diaudit`
-                : `Kata-kata belum cukup (${currentWordCount} / ${minWordCount} kata minimum)`}
-            </div>
-          )}
-
-          {/* Tooltip Deteksi Kata Kunci di Atas Tombol + */}
-          {detectedKeywordHint && (
-            <div
-              onClick={onOpenPlus}
-              style={{
-                position: "absolute",
-                top: draftText.trim().length > 0 ? "-32px" : "-36px",
-                left: "8px",
-                background: "var(--waskita-surface-white, #FFFFFF)",
-                border: "1.5px solid var(--waskita-emerald-border, #059669)",
-                color: "var(--waskita-emerald-text, #065F46)",
-                fontSize: "11.5px",
-                fontWeight: 700,
-                borderRadius: "8px",
-                padding: "4px 10px",
-                boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)",
-                zIndex: 45,
-                cursor: "pointer",
-                pointerEvents: "auto",
-                animation: "fadeInTooltip 0.3s ease",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-            >
-              <span>🔍 Kata kunci terdeteksi: "{detectedKeywordHint}" — Klik (+) untuk lihat</span>
-            </div>
-          )}
-
-          {/* Input Capsule Box */}
+          {/* 2-Tier Multi-Line Card Container */}
           <div
             style={{
               width: "100%",
               background: COLORS.warmSand,
-              borderRadius: 28,
-              padding: "6px 8px 6px 12px",
+              borderRadius: isDesktop ? "20px" : "18px",
+              padding: isDesktop ? "12px 16px" : "10px 12px",
               display: "flex",
-              alignItems: "center",
-              gap: 10,
+              flexDirection: "column",
+              gap: "8px",
               boxShadow: isCentered
                 ? "0 10px 30px rgba(30, 41, 59, 0.12)"
                 : "0 8px 24px rgba(30, 41, 59, 0.12)",
               pointerEvents: "auto",
               boxSizing: "border-box",
-              border: "1px solid rgba(30, 41, 59, 0.08)",
+              border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))",
               position: "relative",
             }}
           >
-            {/* Tombol Plus Opsi Audit */}
-            <button
-              type="button"
-              onClick={onOpenPlus}
-              aria-label="Tambah Opsi"
+            {/* Baris Atas: Input Kueri Target SERP inline + Indikator Jumlah Kata dinamis */}
+            <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: COLORS.mutedSkyBlue,
-                border: "none",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                flexShrink: 0,
-                color: COLORS.deepSlate,
-                animation: isPlusGlowing ? "plusGlowPulse 1.8s infinite" : "none",
-                transition: "all 0.2s ease",
+                justifyContent: "space-between",
+                gap: "10px",
+                borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+                paddingBottom: "8px",
               }}
-              title="Opsi Audit & Berkas"
             >
-              <IconPlus size={20} color={COLORS.deepSlate} />
-            </button>
+              {/* Input Kueri Target SERP Inline */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  flex: 1,
+                  minWidth: 0,
+                }}
+              >
+                <IconSearch
+                  size={14}
+                  color="var(--waskita-text-muted, rgba(30, 41, 59, 0.6))"
+                />
+                <input
+                  type="text"
+                  value={targetQuery}
+                  onChange={(e) => onTargetQueryChange && onTargetQueryChange(e.target.value)}
+                  placeholder="Kueri target SERP (contoh: resep kopi tubruk)"
+                  disabled={isLoading}
+                  style={{
+                    flex: 1,
+                    minWidth: 0,
+                    border: "none",
+                    outline: "none",
+                    background: "transparent",
+                    fontSize: isDesktop ? "13px" : "14px",
+                    fontWeight: 600,
+                    color: COLORS.deepSlate,
+                    padding: "2px 0",
+                    fontFamily: "inherit",
+                  }}
+                />
+              </div>
 
-            {/* Input Textarea */}
+              {/* Indikator Jumlah Kata Dinamis */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  flexShrink: 0,
+                  color: isEligibleToSubmit
+                    ? "var(--waskita-emerald-accent, #059669)"
+                    : "#D97706",
+                  background: isEligibleToSubmit
+                    ? "var(--waskita-emerald-bg, rgba(16, 185, 129, 0.12))"
+                    : "var(--waskita-amber-bg, rgba(217, 119, 6, 0.12))",
+                  padding: "3px 8px",
+                  borderRadius: "9999px",
+                  transition: "all 0.2s ease",
+                }}
+              >
+                {isEligibleToSubmit && <IconCheck size={12} color="var(--waskita-emerald-accent, #059669)" />}
+                <span>
+                  {currentWordCount} / {minWordCount} kata
+                </span>
+              </div>
+            </div>
+
+            {/* Area Tengah: <textarea> auto-expanding (min 52px, max 180px) */}
             <textarea
-              rows={isCentered ? 2 : 1}
-              placeholder="Ketik atau tempel naskah artikel Anda..."
+              ref={textareaRef}
+              placeholder="Ketik atau tempel naskah draf artikel Anda di sini (minimal 300 kata)..."
               value={draftText}
               onChange={(e) => onDraftTextChange && onDraftTextChange(e.target.value)}
               onPaste={handlePaste}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
               style={{
-                flex: 1,
+                width: "100%",
+                minHeight: "52px",
+                maxHeight: "180px",
                 border: "none",
                 background: "transparent",
-                fontSize: "14px",
+                fontSize: isDesktop ? "14px" : "16px",
                 color: COLORS.deepSlate,
                 resize: "none",
                 outline: "none",
-                padding: "8px 0",
+                padding: "4px 0",
                 fontFamily: "inherit",
                 opacity: isLoading ? 0.6 : 1,
                 lineHeight: "22px",
+                boxSizing: "border-box",
+                fieldSizing: "content" as any,
               }}
             />
 
-            {/* Tombol Kirim / Panah Kanan */}
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={isLoading || !isEligibleToSubmit}
-              aria-label="Kirim Analisis"
+            {/* Baris Bawah: Tombol Opsi Kiri & Tombol Kirim Kanan */}
+            <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: isEligibleToSubmit ? COLORS.softPeriwinkle : "rgba(30, 41, 59, 0.12)",
-                border: "none",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                cursor: isLoading || !isEligibleToSubmit ? "not-allowed" : "pointer",
-                flexShrink: 0,
-                color: COLORS.deepSlate,
-                opacity: isLoading || !isEligibleToSubmit ? 0.4 : 1,
-                pointerEvents: isLoading || !isEligibleToSubmit ? "none" : "auto",
-                transition: "all 0.2s ease",
+                justifyContent: "space-between",
+                gap: "10px",
+                paddingTop: "4px",
               }}
-              title={
-                !isEligibleToSubmit
-                  ? `Minimal ${minWordCount} kata untuk memulai audit`
-                  : "Mulai Audit Kualitas"
-              }
             >
-              <IconArrowRight size={20} color={COLORS.deepSlate} />
-            </button>
+              {/* Tombol Opsi / Berkas (Tinggi 40px) */}
+              <button
+                type="button"
+                onClick={onOpenPlus}
+                aria-label="Tambah Opsi"
+                style={{
+                  height: 40,
+                  borderRadius: "10px",
+                  background: COLORS.mutedSkyBlue,
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "0 12px",
+                  cursor: "pointer",
+                  flexShrink: 0,
+                  color: COLORS.deepSlate,
+                  fontSize: isDesktop ? "12px" : "11.5px",
+                  fontWeight: 600,
+                  animation: isPlusGlowing ? "plusGlowPulse 1.8s infinite" : "none",
+                  transition: "all 0.2s ease",
+                }}
+                title="Opsi Audit & Berkas"
+              >
+                <IconPlus size={16} color={COLORS.deepSlate} />
+                <span>+ Berkas &amp; Opsi (CDS &ge; {effectiveCdsThreshold}%)</span>
+              </button>
+
+              {/* Tombol Utama [ Mulai Audit -> ] (Tinggi 40px) */}
+              <button
+                type="button"
+                onClick={onSubmit}
+                disabled={isLoading || !isEligibleToSubmit}
+                aria-label="Kirim Analisis"
+                style={{
+                  height: 40,
+                  borderRadius: "10px",
+                  padding: isDesktop ? "0 18px" : "0 14px",
+                  background: isEligibleToSubmit ? COLORS.softPeriwinkle : "rgba(30, 41, 59, 0.12)",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  cursor: isLoading || !isEligibleToSubmit ? "not-allowed" : "pointer",
+                  flexShrink: 0,
+                  color: COLORS.deepSlate,
+                  fontSize: "13px",
+                  fontWeight: 700,
+                  opacity: isLoading || !isEligibleToSubmit ? 0.45 : 1,
+                  pointerEvents: isLoading || !isEligibleToSubmit ? "none" : "auto",
+                  transition: "all 0.2s ease",
+                }}
+                title={
+                  !isEligibleToSubmit
+                    ? `Minimal ${minWordCount} kata untuk memulai audit`
+                    : "Mulai Audit Kualitas"
+                }
+              >
+                <span>Mulai Audit</span>
+                <IconArrowRight size={16} color={COLORS.deepSlate} />
+              </button>
+            </div>
           </div>
 
           {/* ChatGPT-Style Action Pills (Hanya saat mode Centered) */}
@@ -2056,7 +2091,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "10px",
-                marginTop: "16px",
+                marginTop: "14px",
                 flexWrap: "wrap",
                 pointerEvents: "auto",
               }}
@@ -2073,10 +2108,14 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                   border: "1px solid rgba(30, 41, 59, 0.1)",
                   color: COLORS.deepSlate,
                   cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                   transition: "background 0.15s ease",
                 }}
               >
-                ☕ Coba Draf Perlu Revisi (Kopi Tubruk)
+                <IconCoffee size={14} color={COLORS.deepSlate} />
+                <span>Coba Draf Perlu Revisi (Kopi Tubruk)</span>
               </button>
 
               <button
@@ -2091,10 +2130,14 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                   border: "1px solid rgba(30, 41, 59, 0.1)",
                   color: COLORS.deepSlate,
                   cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
                   transition: "background 0.15s ease",
                 }}
               >
-                ✨ Coba Draf Layak Terbit (Robusta Dampit)
+                <IconSparkles size={14} color={COLORS.deepSlate} />
+                <span>Coba Draf Layak Terbit (Robusta Dampit)</span>
               </button>
             </div>
           )}
