@@ -193,10 +193,12 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
           boxSizing: "border-box",
         }}
       >
-        {/* Logo Resmi Waskita */}
-        <div style={{ marginBottom: "20px" }}>
-          <WaskitaLogo width={isDesktop ? 160 : 130} height={isDesktop ? 34 : 28} />
-        </div>
+        {/* Logo Resmi Waskita (Hanya Desktop, di Mobile sudah ada di Header) */}
+        {isDesktop && (
+          <div style={{ marginBottom: "20px" }}>
+            <WaskitaLogo width={160} height={34} />
+          </div>
+        )}
 
         {/* Judul Hero CTA */}
         <h1
@@ -228,6 +230,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             detectedKeywordHint={detectedKeywordHint}
             onPasteSanitized={handlePasteSanitized}
             onSelectSampleDraft={handleSelectSample}
+            showDisclaimer={true}
           />
         </div>
       </main>
