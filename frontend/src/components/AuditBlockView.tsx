@@ -4,19 +4,11 @@ import {
   SemiCircleGauge,
   IconCheck,
   IconAlertCircle,
-  IconDownload,
   IconFileText,
   IconCopy,
-  IconPrinter,
   IconExternalLink,
 } from './shared-ui';
 import { AuditExecuteResponse } from '../types/waskita';
-import {
-  exportAuditToMarkdown,
-  exportAuditToCsv,
-  exportAuditToJson,
-  triggerExecutivePdfPrint,
-} from '../utils/clientExporter';
 import { useToast } from '../context/ToastContext';
 
 export interface AuditBlockViewProps {
@@ -68,15 +60,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
       message: 'Prompt remediasi berhasil disalin ke papan klip.',
     });
     setTimeout(() => setPromptCopied(false), 2500);
-  };
-
-  const handlePrintPdf = () => {
-    if (onSelectForPrint) {
-      onSelectForPrint(audit);
-    }
-    setTimeout(() => {
-      triggerExecutivePdfPrint();
-    }, 100);
   };
 
   return (
@@ -137,101 +120,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
             })}{' '}
             WIB
           </span>
-        </div>
-
-        {/* Client-Side Action Bar: PDF, MD, CSV, JSON */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={handlePrintPdf}
-            title="Cetak Laporan Eksekutif PDF Vektor A4 (Standar PZN)"
-            style={{
-              background: 'var(--waskita-surface-white, #FFFFFF)',
-              border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))',
-              borderRadius: '8px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            }}
-          >
-            <IconPrinter size={14} color={COLORS.deepSlate} />
-            <span>Cetak PDF</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => exportAuditToMarkdown(audit, draftContent)}
-            title="Unduh Laporan Format Markdown (.md)"
-            style={{
-              background: 'var(--waskita-surface-white, #FFFFFF)',
-              border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))',
-              borderRadius: '8px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            }}
-          >
-            <IconDownload size={13} color={COLORS.deepSlate} />
-            <span>.MD</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => exportAuditToCsv(audit)}
-            title="Unduh Tabel Metrik & Celah Entitas CSV (.csv dengan UTF-8 BOM untuk Excel)"
-            style={{
-              background: 'var(--waskita-surface-white, #FFFFFF)',
-              border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))',
-              borderRadius: '8px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            }}
-          >
-            <IconDownload size={13} color={COLORS.deepSlate} />
-            <span>.CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => exportAuditToJson(audit)}
-            title="Unduh Data Mentah JSON (.json)"
-            style={{
-              background: 'var(--waskita-surface-white, #FFFFFF)',
-              border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))',
-              borderRadius: '8px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            }}
-          >
-            <IconDownload size={13} color={COLORS.deepSlate} />
-            <span>.JSON</span>
-          </button>
         </div>
       </div>
 

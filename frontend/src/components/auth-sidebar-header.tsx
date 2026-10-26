@@ -1848,7 +1848,11 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
       }
       style={{
         position: isCentered ? "relative" : "absolute",
-        bottom: isCentered ? "auto" : 0,
+        bottom: isCentered
+          ? "auto"
+          : isDesktop
+          ? "20px"
+          : "calc(16px + env(safe-area-inset-bottom, 12px))",
         left: 0,
         right: 0,
         padding: isCentered
@@ -1856,13 +1860,11 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
             ? "0 32px 32px 32px"
             : "0 16px 24px 16px"
           : isDesktop
-          ? "16px 24px 24px 24px"
-          : "12px 14px 16px 14px",
-        background: isCentered
-          ? "transparent"
-          : "linear-gradient(to top, var(--waskita-bg) 80%, transparent 100%)",
+          ? "0 24px"
+          : "0 14px",
+        background: "transparent",
         zIndex: 40,
-        pointerEvents: isCentered ? "auto" : "none",
+        pointerEvents: "none",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
@@ -1915,10 +1917,12 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               gap: "8px",
               boxShadow: isCentered
                 ? "0 10px 30px rgba(30, 41, 59, 0.1)"
-                : "0 8px 24px rgba(30, 41, 59, 0.1)",
+                : "0 12px 36px rgba(30, 41, 59, 0.16), 0 2px 8px rgba(30, 41, 59, 0.06)",
               pointerEvents: "auto",
               boxSizing: "border-box",
-              border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))",
+              border: isCentered
+                ? "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))"
+                : "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
               position: "relative",
             }}
           >
@@ -2036,10 +2040,12 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               gap: "6px",
               boxShadow: isCentered
                 ? "0 10px 30px rgba(30, 41, 59, 0.12)"
-                : "0 8px 24px rgba(30, 41, 59, 0.12)",
+                : "0 14px 40px rgba(30, 41, 59, 0.18), 0 4px 12px rgba(30, 41, 59, 0.08)",
               pointerEvents: "auto",
               boxSizing: "border-box",
-              border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))",
+              border: isCentered
+                ? "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))"
+                : "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
               position: "relative",
               transition: "all 0.25s ease",
             }}

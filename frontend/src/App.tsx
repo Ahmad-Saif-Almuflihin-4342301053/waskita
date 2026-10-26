@@ -897,6 +897,11 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                 overflowY: 'auto',
                 position: 'relative',
                 boxSizing: 'border-box',
+                paddingBottom: isComposerCentered
+                  ? '0px'
+                  : isDesktop
+                  ? '130px'
+                  : '150px',
               }}
             >
               {isComposerCentered ? (
@@ -938,41 +943,41 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                   </div>
                 </div>
               ) : (
-                <>
-                  <MultiTurnAuditStreamView
-                    isDesktop={isDesktop}
-                    historyTurns={currentTurns}
-                    isLoading={isLoading}
-                    currentStep={stepperStep}
-                    statusMessage={stepperMessage}
-                    isStepperFadingOut={isStepperFadingOut}
-                    onSelectForPrint={(aud) => setPrintAuditData(aud)}
-                  />
-
-                  {/* Floating Composer Dock Melayang di Bawah (Docked Mode) */}
-                  <FloatingComposerDock
-                    isDesktop={isDesktop}
-                    layoutMode="docked"
-                    onOpenPlus={() => setIsOptionsOpen(true)}
-                    draftText={draftInput}
-                    onDraftTextChange={setDraftInput}
-                    onSubmit={() => handleExecuteAudit()}
-                    isLoading={isLoading}
-                    wordCount={currentWordCount}
-                    minWordCount={300}
-                    isPlusGlowing={isPlusGlowing}
-                    detectedKeywordHint={detectedKeywordHint}
-                    onPasteSanitized={handlePasteSanitized}
-                    onSelectSampleDraft={handleSelectSampleDraft}
-                    activeTurnNumber={activeSessionId !== 'session-new' && currentTurns.length > 0 ? currentTurns.length + 1 : undefined}
-                    activeTargetQuery={targetQuery}
-                    targetQuery={targetQuery}
-                    onTargetQueryChange={setTargetQuery}
-                    thresholds={thresholds}
-                  />
-                </>
+                <MultiTurnAuditStreamView
+                  isDesktop={isDesktop}
+                  historyTurns={currentTurns}
+                  isLoading={isLoading}
+                  currentStep={stepperStep}
+                  statusMessage={stepperMessage}
+                  isStepperFadingOut={isStepperFadingOut}
+                  onSelectForPrint={(aud) => setPrintAuditData(aud)}
+                />
               )}
             </main>
+
+            {/* Floating Composer Dock Melayang Permanen di Bawah Viewport (Docked Mode) */}
+            {!isComposerCentered && (
+              <FloatingComposerDock
+                isDesktop={isDesktop}
+                layoutMode="docked"
+                onOpenPlus={() => setIsOptionsOpen(true)}
+                draftText={draftInput}
+                onDraftTextChange={setDraftInput}
+                onSubmit={() => handleExecuteAudit()}
+                isLoading={isLoading}
+                wordCount={currentWordCount}
+                minWordCount={300}
+                isPlusGlowing={isPlusGlowing}
+                detectedKeywordHint={detectedKeywordHint}
+                onPasteSanitized={handlePasteSanitized}
+                onSelectSampleDraft={handleSelectSampleDraft}
+                activeTurnNumber={activeSessionId !== 'session-new' && currentTurns.length > 0 ? currentTurns.length + 1 : undefined}
+                activeTargetQuery={targetQuery}
+                targetQuery={targetQuery}
+                onTargetQueryChange={setTargetQuery}
+                thresholds={thresholds}
+              />
+            )}
           </div>
         </>
       )}
