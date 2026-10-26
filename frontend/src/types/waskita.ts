@@ -46,6 +46,17 @@ export interface AuditExecuteRequest {
   thresholds?: QualityThresholds;
 }
 
+export interface SerpCompetitorItem {
+  rank_position: number;
+  page_title: string;
+  source_url: string;
+  domain_name: string;
+  snippet_text?: string | null;
+  word_count?: number;
+  cosine_similarity?: number | null;
+  fetch_status?: string;
+}
+
 export interface AuditExecuteResponse {
   session_id: string;
   parent_session_id: string | null;
@@ -63,6 +74,7 @@ export interface AuditExecuteResponse {
   annotated_spans: AnnotatedSpan[];
   overview_bullets: string[];
   remediation_prompt: string;
+  serp_competitors?: SerpCompetitorItem[];
 }
 
 export interface AuditSessionSummary {

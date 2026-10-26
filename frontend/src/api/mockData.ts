@@ -85,6 +85,38 @@ export const INITIAL_AUDIT_TURN_1: AuditExecuteResponse = {
   ],
   remediation_prompt:
     "Tolong tulis ulang paragraf pembuka artikel kopi tubruk ini agar lebih tajam dan kaya gaya stilometri.\nWajib sertakan poin penting berikut:\n1. Suhu seduh air ideal (90-94°C) dan rasio bubuk:air (1:15).\n2. Tekankan keunikan cita rasa Robusta Dampit.\n3. Hindari frasa pembuka generik 'di era saat ini' atau repetisi kata berulang.",
+  serp_competitors: [
+    {
+      rank_position: 1,
+      page_title: "Cara Membuat Kopi Tubruk yang Enak dan Pas Mantap",
+      source_url: "https://food.kompas.com/read/2023/10/cara-membuat-kopi-tubruk-enak",
+      domain_name: "kompas.com/food",
+      snippet_text: "Kunci kopi tubruk nikmat ada pada kesegaran gilingan dan air mendidih yang didiamkan sebentar sebelum diseduh.",
+      word_count: 520,
+      cosine_similarity: 0.68,
+      fetch_status: "success",
+    },
+    {
+      rank_position: 2,
+      page_title: "Resep Kopi Tubruk Tradisional Khas Nusantara",
+      source_url: "https://resepkopi.id/tubruk-tradisional",
+      domain_name: "resepkopi.id/tubruk",
+      snippet_text: "Langkah mudah menyeduh kopi hitam tubruk tanpa ampas naik ke permukaan dan takaran pas satu cangkir.",
+      word_count: 480,
+      cosine_similarity: 0.64,
+      fetch_status: "success",
+    },
+    {
+      rank_position: 3,
+      page_title: "Panduan Seduh Manual: Kopi Tubruk Sempurna",
+      source_url: "https://ottencoffee.co.id/magazine/panduan-seduh-kopi-tubruk",
+      domain_name: "ottencoffee.co.id/magazine",
+      snippet_text: "Mengenal rasio seduh 1:15 dan profil gilingan medium to fine untuk hasil tubruk dengan body tebal.",
+      word_count: 610,
+      cosine_similarity: 0.59,
+      fetch_status: "success",
+    },
+  ],
 };
 
 export const INITIAL_AUDIT_TURN_2: AuditExecuteResponse = {
@@ -161,4 +193,36 @@ export const INITIAL_AUDIT_TURN_2: AuditExecuteResponse = {
   ],
   remediation_prompt:
     "Naskah sudah memenuhi standar orisinalitas tinggi dan siap diterbitkan ke CMS editorial.",
+  serp_competitors: [
+    {
+      rank_position: 1,
+      page_title: "Cara Membuat Kopi Tubruk yang Enak dan Pas Mantap",
+      source_url: "https://food.kompas.com/read/2023/10/cara-membuat-kopi-tubruk-enak",
+      domain_name: "kompas.com/food",
+      snippet_text: "Kunci kopi tubruk nikmat ada pada kesegaran gilingan dan air mendidih yang didiamkan sebentar sebelum diseduh.",
+      word_count: 520,
+      cosine_similarity: 0.52,
+      fetch_status: "success",
+    },
+    {
+      rank_position: 2,
+      page_title: "Resep Kopi Tubruk Tradisional Khas Nusantara",
+      source_url: "https://resepkopi.id/tubruk-tradisional",
+      domain_name: "resepkopi.id/tubruk",
+      snippet_text: "Langkah mudah menyeduh kopi hitam tubruk tanpa ampas naik ke permukaan dan takaran pas satu cangkir.",
+      word_count: 480,
+      cosine_similarity: 0.49,
+      fetch_status: "success",
+    },
+    {
+      rank_position: 3,
+      page_title: "Panduan Seduh Manual: Kopi Tubruk Sempurna",
+      source_url: "https://ottencoffee.co.id/magazine/panduan-seduh-kopi-tubruk",
+      domain_name: "ottencoffee.co.id/magazine",
+      snippet_text: "Mengenal rasio seduh 1:15 dan profil gilingan medium to fine untuk hasil tubruk dengan body tebal.",
+      word_count: 610,
+      cosine_similarity: 0.45,
+      fetch_status: "success",
+    },
+  ],
 };

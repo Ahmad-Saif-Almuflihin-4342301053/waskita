@@ -1764,25 +1764,24 @@ export const NewAnalysisEmptyView: React.FC<AuditStreamProps> = ({
   return (
     <div
       style={{
-        flex: 1,
         width: "100%",
-        minHeight: "100%",
-        height: "100%",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: isDesktop ? "0 32px 48px 32px" : "0 24px 96px 24px",
+        padding: isDesktop ? "32px 24px" : "16px 14px",
         textAlign: "center",
         maxWidth: isDesktop ? "760px" : "100%",
         margin: "0 auto",
         boxSizing: "border-box",
       }}
     >
-      {/* Logo Resmi Waskita di atas Judul CTA */}
-      <div style={{ marginBottom: isDesktop ? "24px" : "18px" }}>
-        <WaskitaLogo width={isDesktop ? 160 : 140} height={isDesktop ? 34 : 30} />
-      </div>
+      {/* Logo Resmi Waskita hanya di desktop, disembunyikan di mobile (!isDesktop) */}
+      {isDesktop && (
+        <div style={{ marginBottom: "20px" }}>
+          <WaskitaLogo width={160} height={34} />
+        </div>
+      )}
 
       <h1
         style={{

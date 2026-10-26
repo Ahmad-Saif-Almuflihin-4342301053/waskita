@@ -367,6 +367,38 @@ export const App: React.FC = () => {
               : 'Disarankan memperkaya variasi kosakata dan menutup celah defisit topik.',
           ],
           remediation_prompt: `Perbaiki gaya bahasa naskah '${targetQuery}' dengan memprioritaskan entitas unik.`,
+          serp_competitors: [
+            {
+              rank_position: 1,
+              page_title: `Panduan Terlengkap: ${targetQuery}`,
+              source_url: `https://kompas.com/top-guide-${encodeURIComponent(targetQuery)}`,
+              domain_name: 'kompas.com',
+              snippet_text: `Ulasan komprehensif mengenai ${targetQuery} dengan tips praktis langsung dari pakar industri...`,
+              word_count: 540,
+              cosine_similarity: newScore >= thresholds.min_cds_score ? 0.48 : 0.68,
+              fetch_status: 'success',
+            },
+            {
+              rank_position: 2,
+              page_title: `Trik & Solusi Praktis ${targetQuery}`,
+              source_url: `https://detik.com/panduan/${encodeURIComponent(targetQuery)}`,
+              domain_name: 'detik.com',
+              snippet_text: `Langkah mudah memahami ${targetQuery} secara mendalam untuk pemula hingga profesional...`,
+              word_count: 480,
+              cosine_similarity: newScore >= thresholds.min_cds_score ? 0.44 : 0.62,
+              fetch_status: 'success',
+            },
+            {
+              rank_position: 3,
+              page_title: `Rangkuman Referensi Utama ${targetQuery}`,
+              source_url: `https://medium.com/artikel-${encodeURIComponent(targetQuery)}`,
+              domain_name: 'medium.com',
+              snippet_text: `Analisis mendalam seputar ${targetQuery} dan berbagai sudut pandang komparatif...`,
+              word_count: 620,
+              cosine_similarity: newScore >= thresholds.min_cds_score ? 0.40 : 0.58,
+              fetch_status: 'success',
+            },
+          ],
         };
       }
 
@@ -665,6 +697,10 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
 
   const handleSelectSession = async (sessionId: string) => {
     setActiveSessionId(sessionId);
+    const sessionObj = sessions.find((s) => s.session_id === sessionId);
+    if (sessionObj && sessionObj.target_query) {
+      setTargetQuery(sessionObj.target_query);
+    }
     try {
       const thread = await waskitaClient.getSessionThread(sessionId);
       if (thread && thread.length > 0) {
@@ -675,6 +711,9 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
             auditResult: t,
           }))
         );
+        if (thread[0]?.target_query) {
+          setTargetQuery(thread[0].target_query);
+        }
         return;
       }
     } catch (e) {
@@ -682,6 +721,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     }
 
     if (sessionId === 'session-1') {
+      setTargetQuery('resep kopi tubruk tradisional');
       setCurrentTurns([
         {
           draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
@@ -695,6 +735,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
         },
       ]);
     } else if (sessionId === 'session-2') {
+      setTargetQuery('restorasi vespa klasik px150');
       setCurrentTurns([
         {
           draftTitle: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
@@ -702,6 +743,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
           auditResult: {
             ...INITIAL_AUDIT_TURN_2,
             session_id: 'session-2',
+            target_query: 'restorasi vespa klasik px150',
             draft_title: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
             metrics: {
               ...INITIAL_AUDIT_TURN_2.metrics,
@@ -716,6 +758,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
   const handleNewAnalysis = () => {
     setActiveSessionId('session-new');
     setCurrentTurns([]);
+    setTargetQuery('');
     setDraftInput('');
   };
 
@@ -884,8 +927,11 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                       detectedKeywordHint={detectedKeywordHint}
                       onPasteSanitized={handlePasteSanitized}
                       onSelectSampleDraft={handleSelectSampleDraft}
-                      activeTurnNumber={currentTurns.length + 1}
+                      activeTurnNumber={activeSessionId !== 'session-new' && currentTurns.length > 0 ? currentTurns.length + 1 : undefined}
                       activeTargetQuery={targetQuery}
+                      targetQuery={targetQuery}
+                      onTargetQueryChange={setTargetQuery}
+                      thresholds={thresholds}
                     />
                   </div>
                 </div>
@@ -916,8 +962,11 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                     detectedKeywordHint={detectedKeywordHint}
                     onPasteSanitized={handlePasteSanitized}
                     onSelectSampleDraft={handleSelectSampleDraft}
-                    activeTurnNumber={currentTurns.length + 1}
+                    activeTurnNumber={activeSessionId !== 'session-new' && currentTurns.length > 0 ? currentTurns.length + 1 : undefined}
                     activeTargetQuery={targetQuery}
+                    targetQuery={targetQuery}
+                    onTargetQueryChange={setTargetQuery}
+                    thresholds={thresholds}
                   />
                 </>
               )}
