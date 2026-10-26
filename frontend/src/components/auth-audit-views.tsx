@@ -1776,12 +1776,10 @@ export const NewAnalysisEmptyView: React.FC<AuditStreamProps> = ({
         boxSizing: "border-box",
       }}
     >
-      {/* Logo Resmi Waskita hanya di desktop, disembunyikan di mobile (!isDesktop) */}
-      {isDesktop && (
-        <div style={{ marginBottom: "20px" }}>
-          <WaskitaLogo width={160} height={34} />
-        </div>
-      )}
+      {/* Logo Resmi Waskita di Tengah Layar (Desktop & Mobile) */}
+      <div style={{ marginBottom: isDesktop ? "20px" : "16px" }}>
+        <WaskitaLogo width={isDesktop ? 160 : 130} height={isDesktop ? 34 : 28} />
+      </div>
 
       <h1
         style={{

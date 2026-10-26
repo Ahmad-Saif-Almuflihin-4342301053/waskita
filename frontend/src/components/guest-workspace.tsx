@@ -185,7 +185,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          padding: isDesktop ? "0 32px 48px 32px" : "0 16px 80px 16px",
+          padding: isDesktop ? "0 32px 48px 32px" : "16px 16px 32px 16px",
           textAlign: "center",
           maxWidth: "800px",
           width: "100%",
@@ -193,12 +193,10 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
           boxSizing: "border-box",
         }}
       >
-        {/* Logo Resmi Waskita (Hanya Desktop, di Mobile sudah ada di Header) */}
-        {isDesktop && (
-          <div style={{ marginBottom: "20px" }}>
-            <WaskitaLogo width={160} height={34} />
-          </div>
-        )}
+        {/* Logo Resmi Waskita di Tengah Layar (Desktop & Mobile) */}
+        <div style={{ marginBottom: isDesktop ? "20px" : "16px" }}>
+          <WaskitaLogo width={isDesktop ? 160 : 130} height={isDesktop ? 34 : 28} />
+        </div>
 
         {/* Judul Hero CTA */}
         <h1

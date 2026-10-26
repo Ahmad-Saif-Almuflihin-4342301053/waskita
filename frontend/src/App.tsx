@@ -908,11 +908,13 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
+                    padding: isDesktop ? '0 24px 32px 24px' : '16px 14px 24px 14px',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <NewAnalysisEmptyView isDesktop={isDesktop} />
                   {/* Komposer Terpadu mode centered di bawah hero */}
-                  <div style={{ width: '100%', maxWidth: '800px', padding: '0 20px' }}>
+                  <div style={{ width: '100%', maxWidth: '820px' }}>
                     <FloatingComposerDock
                       isDesktop={isDesktop}
                       layoutMode="centered"

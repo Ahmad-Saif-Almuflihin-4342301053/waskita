@@ -2232,17 +2232,17 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 alignItems: "center",
                 justifyContent: "flex-start",
                 gap: "12px",
-                padding: "10px 14px",
+                padding: isDesktop ? "10px 14px" : "8px 12px",
                 borderRadius: "14px",
                 background:
                   hoveredSample === "rev"
                     ? "var(--waskita-card, rgba(30, 41, 59, 0.08))"
                     : "transparent",
-                border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+                border: "none",
                 color: COLORS.deepSlate,
                 cursor: "pointer",
                 textAlign: "left",
-                transition: "background 0.15s ease, border-color 0.15s ease",
+                transition: "background 0.15s ease",
               }}
               onMouseEnter={() => setHoveredSample("rev")}
               onMouseLeave={() => setHoveredSample(null)}
@@ -2265,15 +2265,17 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.deepSlate }}>
                   Coba Draf Perlu Revisi — Resep Kopi Tubruk Tradisional
                 </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.65))",
-                    marginTop: "1px",
-                  }}
-                >
-                  Contoh artikel umum dengan defisit takaran suhu seduh dan rasio air
-                </div>
+                {isDesktop && (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.65))",
+                      marginTop: "1px",
+                    }}
+                  >
+                    Contoh artikel umum dengan defisit takaran suhu seduh dan rasio air
+                  </div>
+                )}
               </div>
             </button>
 
@@ -2287,17 +2289,17 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 alignItems: "center",
                 justifyContent: "flex-start",
                 gap: "12px",
-                padding: "10px 14px",
+                padding: isDesktop ? "10px 14px" : "8px 12px",
                 borderRadius: "14px",
                 background:
                   hoveredSample === "ready"
                     ? "var(--waskita-card, rgba(30, 41, 59, 0.08))"
                     : "transparent",
-                border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
+                border: "none",
                 color: COLORS.deepSlate,
                 cursor: "pointer",
                 textAlign: "left",
-                transition: "background 0.15s ease, border-color 0.15s ease",
+                transition: "background 0.15s ease",
               }}
               onMouseEnter={() => setHoveredSample("ready")}
               onMouseLeave={() => setHoveredSample(null)}
@@ -2320,15 +2322,17 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.deepSlate }}>
                   Coba Draf Layak Terbit — Robusta Dampit &amp; Takaran Seduh Presisi
                 </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.65))",
-                    marginTop: "1px",
-                  }}
-                >
-                  Contoh artikel dengan entitas unik lokal (CDS 85% Siap Terbit)
-                </div>
+                {isDesktop && (
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "var(--waskita-text-muted, rgba(30, 41, 59, 0.65))",
+                      marginTop: "1px",
+                    }}
+                  >
+                    Contoh artikel dengan entitas unik lokal (CDS 85% Siap Terbit)
+                  </div>
+                )}
               </div>
             </button>
 
