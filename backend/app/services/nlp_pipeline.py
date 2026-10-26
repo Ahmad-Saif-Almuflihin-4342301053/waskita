@@ -1,9 +1,22 @@
 import asyncio
 import functools
 import re
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+
+# Regex pembersih placeholder media [gambar 1], [video 2], [tabel 1], dsb.
+MEDIA_PLACEHOLDER_REGEX = re.compile(
+    r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]",
+    re.IGNORECASE,
+)
+
+
+def strip_media_placeholders(text: str) -> str:
+    """Hapus placeholder media seperti [gambar 1], [video 2], [tabel 1], dsb. dari naskah."""
+    if not text:
+        return ""
+    return MEDIA_PLACEHOLDER_REGEX.sub(" ", text)
 
 # Inisialisasi pabrik Sastrawi sekali secara singleton di modul
 _stemmer_factory = StemmerFactory()
@@ -50,8 +63,9 @@ def stem_word(word: str) -> str:
 
 
 def _sync_clean_and_tokenize(text: str) -> List[str]:
-    """Tokenisasi dan pembersihan regex sederhana (huruf kecil dan alfanumerik)."""
-    text_clean = re.sub(r"[^\w\s]", " ", text.lower())
+    """Tokenisasi dan pembersihan regex sederhana (huruf kecil dan alfanumerik) setelah menghapus placeholder media."""
+    text_without_media = strip_media_placeholders(text)
+    text_clean = re.sub(r"[^\w\s]", " ", text_without_media.lower())
     tokens = [t.strip() for t in text_clean.split() if t.strip()]
     return tokens
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { COLORS, WaskitaLogo, IconX, IconUser } from './shared-ui';
+import { COLORS, WaskitaLogo, IconX, IconUser, IconZap } from './shared-ui';
 import { waskitaClient } from '../api/waskitaClient';
 import { useToast } from '../context/ToastContext';
 
@@ -23,30 +23,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const handleDemoLogin = async () => {
     setIsSubmitting(true);
     try {
-      // Panggil POST /api/v1/auth/login
-      const res = await fetch('/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: 'author_demo',
-          password: 'password123',
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data.access_token) {
-          waskitaClient.setToken(data.access_token);
-          localStorage.setItem('waskita_token', data.access_token);
-        }
-        onLoginSuccess(data.user || { username: 'author_demo' });
-      } else {
-        // Fallback demo local login
-        waskitaClient.setToken('demo-token-author-demo');
-        localStorage.setItem('waskita_token', 'demo-token-author-demo');
-        onLoginSuccess({ username: 'author_demo', full_name: 'Penulis Demo' });
-      }
-
+      const data = await waskitaClient.login('author_demo', 'password123');
+      onLoginSuccess(data.user || { username: 'author_demo' });
       showToast({
         type: 'success',
         title: 'Masuk Berhasil',
@@ -74,40 +52,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
     setIsSubmitting(true);
 
     try {
-      const endpoint = tab === 'login' ? '/api/v1/auth/login' : '/api/v1/auth/register';
-      const payload =
-        tab === 'login'
-          ? { username, password }
-          : { username, password, email, full_name: fullName };
+      if (tab === 'login') {
+        const data = await waskitaClient.login(username, password);
+        onLoginSuccess(data.user || { username });
+        showToast({
+          type: 'success',
+          title: 'Masuk Berhasil',
+          message: `Selamat datang, ${data.user?.username || username}!`,
+        });
+        onClose();
+      } else {
+        const res = await fetch('/api/v1/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username,
+            password,
+            email,
+          }),
+        });
 
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.detail || 'Pendaftaran gagal. Silakan periksa kembali data Anda.');
+        }
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Autentikasi gagal. Silakan periksa kembali kredensial Anda.');
+        const data = await res.json();
+        if (data.access_token) {
+          waskitaClient.setToken(data.access_token);
+          localStorage.setItem('waskita_token', data.access_token);
+        }
+        onLoginSuccess(data.user || { username });
+        showToast({
+          type: 'success',
+          title: 'Pendaftaran Berhasil',
+          message: `Selamat datang, ${data.user?.username || username}!`,
+        });
+        onClose();
       }
-
-      const data = await res.json();
-      if (data.access_token) {
-        waskitaClient.setToken(data.access_token);
-        localStorage.setItem('waskita_token', data.access_token);
-      }
-      onLoginSuccess(data.user || { username });
-      showToast({
-        type: 'success',
-        title: tab === 'login' ? 'Masuk Berhasil' : 'Pendaftaran Berhasil',
-        message: `Selamat datang, ${data.user?.full_name || username}!`,
-      });
-      onClose();
     } catch (err: any) {
       showToast({
         type: 'error',
         title: 'Gagal',
-        message: err.message,
+        message: err.message || 'Terjadi kesalahan sistem.',
       });
     } finally {
       setIsSubmitting(false);
@@ -212,7 +199,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             boxShadow: '0 2px 6px rgba(16, 185, 129, 0.12)',
           }}
         >
-          <span>⚡</span>
+          <IconZap size={14} color="var(--waskita-emerald-text, #065F46)" />
           <span>Masuk Cepat (Akun Demo Penulis)</span>
         </button>
 

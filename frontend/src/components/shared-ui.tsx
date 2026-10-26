@@ -685,6 +685,23 @@ export const IconSparkles: React.FC<IconProps> = ({ size = 16, color = "currentC
   </svg>
 );
 
+export const IconZap: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={color}
+    stroke={color}
+    strokeWidth="1"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
 export const IconMaximize2: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
   <svg
     width={size}

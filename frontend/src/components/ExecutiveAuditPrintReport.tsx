@@ -1,5 +1,6 @@
 import React from 'react';
 import { AuditExecuteResponse } from '../types/waskita';
+import { IconCheck, IconAlertCircle, IconAlertTriangle } from './shared-ui';
 
 interface ExecutiveAuditPrintReportProps {
   auditData: AuditExecuteResponse | null;
@@ -64,8 +65,9 @@ export const ExecutiveAuditPrintReport: React.FC<ExecutiveAuditPrintReportProps>
         </div>
 
         {auditData.degradation_warning && (
-          <div className="print-alert-box">
-            ⚠️ <strong>Peringatan Degradasi Kualitas:</strong> {auditData.degradation_warning}
+          <div className="print-alert-box" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <IconAlertTriangle size={16} color="#d97706" />
+            <span><strong>Peringatan Degradasi Kualitas:</strong> {auditData.degradation_warning}</span>
           </div>
         )}
       </div>
@@ -90,9 +92,15 @@ export const ExecutiveAuditPrintReport: React.FC<ExecutiveAuditPrintReportProps>
               <td><strong>{auditData.metrics.content_differentiation_score.toFixed(1)}</strong></td>
               <td>&gt;= {auditData.thresholds.min_cds_score}</td>
               <td>
-                {auditData.metrics.content_differentiation_score >= auditData.thresholds.min_cds_score
-                  ? '✅ Lolos Syarat'
-                  : '❌ Gagal'}
+                {auditData.metrics.content_differentiation_score >= auditData.thresholds.min_cds_score ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600 }}>
+                    <IconCheck size={13} color="#059669" /> Lolos Syarat
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontWeight: 600 }}>
+                    <IconAlertCircle size={13} color="#dc2626" /> Gagal
+                  </span>
+                )}
               </td>
             </tr>
             <tr>
@@ -100,9 +108,15 @@ export const ExecutiveAuditPrintReport: React.FC<ExecutiveAuditPrintReportProps>
               <td>{(auditData.metrics.max_cosine_similarity * 100).toFixed(1)}%</td>
               <td>&lt;= {(auditData.thresholds.max_cosine_similarity * 100).toFixed(0)}%</td>
               <td>
-                {auditData.metrics.max_cosine_similarity <= auditData.thresholds.max_cosine_similarity
-                  ? '✅ Lolos'
-                  : '❌ Redundan / Terlalu Mirip'}
+                {auditData.metrics.max_cosine_similarity <= auditData.thresholds.max_cosine_similarity ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600 }}>
+                    <IconCheck size={13} color="#059669" /> Lolos
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontWeight: 600 }}>
+                    <IconAlertCircle size={13} color="#dc2626" /> Redundan / Terlalu Mirip
+                  </span>
+                )}
               </td>
             </tr>
             <tr>
@@ -122,19 +136,31 @@ export const ExecutiveAuditPrintReport: React.FC<ExecutiveAuditPrintReportProps>
               <td>{(auditData.metrics.mattr_score * 100).toFixed(1)}%</td>
               <td>&gt;= {(auditData.thresholds.min_mattr * 100).toFixed(0)}%</td>
               <td>
-                {auditData.metrics.mattr_score >= auditData.thresholds.min_mattr
-                  ? '✅ Lolos'
-                  : '❌ Kosakata Monoton'}
+                {auditData.metrics.mattr_score >= auditData.thresholds.min_mattr ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600 }}>
+                    <IconCheck size={13} color="#059669" /> Lolos
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontWeight: 600 }}>
+                    <IconAlertCircle size={13} color="#dc2626" /> Kosakata Monoton
+                  </span>
+                )}
               </td>
             </tr>
             <tr>
-              <td>HKO (Hapax Legomena Ratio)</td>
-              <td>{(auditData.metrics.hko_percentage * 100).toFixed(1)}%</td>
-              <td>&lt;= {(auditData.thresholds.max_hko_percentage * 100).toFixed(0)}%</td>
+              <td>Heading-Keyword Overlap (HKO)</td>
+              <td>{auditData.metrics.hko_percentage.toFixed(1)}%</td>
+              <td>&lt;= {auditData.thresholds.max_hko_percentage.toFixed(0)}%</td>
               <td>
-                {auditData.metrics.hko_percentage <= auditData.thresholds.max_hko_percentage
-                  ? '✅ Lolos'
-                  : '❌ Terlalu Banyak Kata Langka'}
+                {auditData.metrics.hko_percentage <= auditData.thresholds.max_hko_percentage ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#059669', fontWeight: 600 }}>
+                    <IconCheck size={13} color="#059669" /> Lolos
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#dc2626', fontWeight: 600 }}>
+                    <IconAlertCircle size={13} color="#dc2626" /> Heading Berlebih
+                  </span>
+                )}
               </td>
             </tr>
             <tr>

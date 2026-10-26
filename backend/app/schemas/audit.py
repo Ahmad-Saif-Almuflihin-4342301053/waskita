@@ -1,6 +1,6 @@
 import re
 from typing import Dict, List, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 def sanitize_xss(text: str) -> str:
@@ -48,11 +48,17 @@ class AuditExecuteRequest(BaseModel):
     @field_validator("draft_content")
     @classmethod
     def validate_word_count(cls, v: str) -> str:
-        # Menghitung jumlah kata bersih
-        words = re.findall(r"\b\w+\b", v)
+        # Menghitung jumlah kata murni (mengabaikan placeholder media [gambar N], [video N], dsb)
+        cleaned_pure = re.sub(
+            r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]",
+            " ",
+            v,
+            flags=re.IGNORECASE,
+        )
+        words = re.findall(r"\b\w+\b", cleaned_pure)
         if len(words) < 300:
             raise ValueError(
-                f"Draf artikel Anda hanya memuat {len(words)} kata. "
+                f"Draf artikel Anda hanya memuat {len(words)} kata murni. "
                 "Sesuai standar audit WASKITA (FR-02), panjang naskah minimal adalah 300 kata "
                 "agar analisis semantik IR dan stilometri dapat dihitung secara valid."
             )
@@ -155,8 +161,20 @@ class AuthTokenResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username_or_email: str
+    username_or_email: Optional[str] = None
+    username: Optional[str] = None
     password: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_username_fields(cls, data):
+        if isinstance(data, dict):
+            u = data.get("username_or_email") or data.get("username")
+            if not u:
+                raise ValueError("Username atau email wajib diisi.")
+            data["username_or_email"] = u
+            data["username"] = u
+        return data
 
 
 class RegisterRequest(BaseModel):

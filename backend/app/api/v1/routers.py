@@ -6,7 +6,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
@@ -56,6 +56,7 @@ from app.services.information_gain import calculate_information_gain
 from app.services.nlp_pipeline import (
     extract_candidate_entities,
     preprocess_text_async,
+    strip_media_placeholders,
 )
 from app.services.serp_scraper import search_and_scrape_competitors
 from app.services.stylometrics import calculate_stylometrics
@@ -210,7 +211,8 @@ async def execute_audit(
     draft_content = req.draft_content.strip()
     thresholds = req.thresholds or ThresholdConfig()
 
-    words = draft_content.split()
+    clean_text_for_count = strip_media_placeholders(draft_content)
+    words = clean_text_for_count.split()
     draft_word_count = len(words)
 
     # 1. Tentukan nomor turn jika revisi berulang (Multi-Turn)
@@ -220,8 +222,35 @@ async def execute_audit(
         if parent:
             turn_number = parent.turn_number + 1
 
-    # 2. Akuisisi Top 3 SERP Competitors (Scraper / Fallback)
-    competitor_docs = await search_and_scrape_competitors(target_query)
+    # 2. Akuisisi Top 3 SERP Competitors (Scraper / Snapshot Cache / Fallback)
+    competitor_docs = None
+    if req.use_cached_serp and req.parent_session_id:
+        # Gunakan snapshot kompetitor dari parent session agar perbandingan multi-turn konsisten & instan
+        parent_session = (
+            db.query(AuditSession)
+            .filter(AuditSession.session_id == req.parent_session_id)
+            .first()
+        )
+        if parent_session and parent_session.snapshot and parent_session.snapshot.documents:
+            valid_docs = [
+                {
+                    "rank": d.rank_position,
+                    "title": d.page_title,
+                    "url": d.source_url,
+                    "domain": d.domain_name,
+                    "snippet": d.snippet_text or "",
+                    "clean_text": d.clean_text or "",
+                    "word_count": d.word_count,
+                    "fetch_status": d.fetch_status,
+                }
+                for d in parent_session.snapshot.documents
+                if d.clean_text
+            ]
+            if len(valid_docs) >= 2:
+                competitor_docs = valid_docs
+
+    if not competitor_docs:
+        competitor_docs = await search_and_scrape_competitors(target_query)
 
     # FR-13: Graceful Degradation check
     k_docs = len(competitor_docs)
@@ -541,12 +570,18 @@ def _build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse
 def list_user_sessions(
     q: Optional[str] = None,
     is_pinned: Optional[bool] = None,
+    pinned: Optional[bool] = None,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(AuditSession).filter(AuditSession.user_id == current_user.user_id)
-    if is_pinned is not None:
-        query = query.filter(AuditSession.is_pinned == is_pinned)
+    query = (
+        db.query(AuditSession)
+        .options(joinedload(AuditSession.metrics))
+        .filter(AuditSession.user_id == current_user.user_id)
+    )
+    filter_pinned = is_pinned if is_pinned is not None else pinned
+    if filter_pinned is not None:
+        query = query.filter(AuditSession.is_pinned == filter_pinned)
     if q:
         query = query.filter(
             (AuditSession.draft_title.ilike(f"%{q}%")) | (AuditSession.target_query.ilike(f"%{q}%"))
@@ -606,18 +641,27 @@ def list_user_sessions(
 @api_router.get("/sessions/{session_id}/thread", response_model=List[AuditExecuteResponse])
 def get_session_thread(
     session_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     """
     Menelusuri ke atas hingga root session (parent_session_id is None),
     kumpulkan seluruh rangkaian turn secara berurutan (turn_number = 1, 2, ...),
     dan kembalikan List[AuditExecuteResponse].
+    Dilengkapi verifikasi kepemilikan sesi (Anti-IDOR).
     """
     target_session = db.query(AuditSession).filter(AuditSession.session_id == session_id).first()
     if not target_session:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Sesi audit dengan ID {session_id} tidak ditemukan.",
+        )
+
+    # Validasi kepemilikan sesi jika sesi terikat dengan user
+    if current_user and target_session.user_id and target_session.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak ke sesi audit ini.",
         )
 
     # 1. Telusuri ke atas hingga root
@@ -655,6 +699,7 @@ def get_session_thread(
 @api_router.get("/sessions/{session_id}", response_model=AuditExecuteResponse)
 def get_session_detail(
     session_id: str,
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ):
     session = db.query(AuditSession).filter(AuditSession.session_id == session_id).first()
@@ -662,6 +707,11 @@ def get_session_detail(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Sesi audit dengan ID {session_id} tidak ditemukan.",
+        )
+    if current_user and session.user_id and session.user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Akses ditolak ke sesi audit ini.",
         )
     return _build_audit_execute_response(session)
 
