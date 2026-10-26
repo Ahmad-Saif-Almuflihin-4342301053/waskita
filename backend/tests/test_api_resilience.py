@@ -408,3 +408,49 @@ class TestSprint2BackendContractAndThread:
             db.commit()
             db.close()
 
+
+# =====================================================================
+# 5. PENGUJIAN FASE 1 & FASE 3: CACHING & UPLOAD GUARDRAILS
+# =====================================================================
+
+class TestPhase1AndPhase3ProductionGuardrails:
+    """Pengujian Caching Multi-Tier (Fase 1) dan Guardrail Ukuran Berkas 5MB (Fase 3)."""
+
+    def test_upload_file_exceeding_5mb_rejected_http_413(self, client):
+        # Buat payload berukuran 5.5 MB (melebihi limit 5 MB)
+        oversized_bytes = b"A" * (5 * 1024 * 1024 + 500_000)
+        files = {"file": ("big_draft.txt", oversized_bytes, "text/plain")}
+        res = client.post("/api/v1/audit/extract-file", files=files)
+        assert res.status_code == 413
+        assert "melebihi batas maksimal 5 MB" in res.json()["detail"]
+
+    def test_upload_valid_markdown_under_limit_accepted(self, client):
+        normal_bytes = b"# Resep Kopi\n\nKopi tubruk enak sekali diseduh di pagi hari."
+        files = {"file": ("draft.md", normal_bytes, "text/markdown")}
+        res = client.post("/api/v1/audit/extract-file", files=files)
+        assert res.status_code == 200
+        assert "Resep Kopi" in res.json()["extracted_text"]
+
+    @pytest.mark.asyncio
+    async def test_multi_tier_serp_cache_store_and_retrieve(self):
+        from app.core.cache import get_serp_cache, set_serp_cache
+        dummy_query = "uji coba redis multi tier cache 2026"
+        dummy_docs = [{"rank_position": 1, "page_title": "Doc 1", "clean_text": "Isi"}]
+
+        await set_serp_cache(dummy_query, dummy_docs, ttl_seconds=60)
+        retrieved = await get_serp_cache(dummy_query)
+        assert retrieved is not None
+        assert len(retrieved) == 1
+        assert retrieved[0]["page_title"] == "Doc 1"
+
+    @pytest.mark.asyncio
+    async def test_multi_tier_nlp_preproc_cache_store_and_retrieve(self):
+        from app.core.cache import get_nlp_preproc_cache, set_nlp_preproc_cache
+        raw_text = "Menikmati secangkir kopi tubruk hangat"
+        stemmed_text = "nikmat cangkir kopi tubruk hangat"
+
+        await set_nlp_preproc_cache(raw_text, stemmed_text, ttl_seconds=60)
+        retrieved = await get_nlp_preproc_cache(raw_text)
+        assert retrieved == stemmed_text
+
+

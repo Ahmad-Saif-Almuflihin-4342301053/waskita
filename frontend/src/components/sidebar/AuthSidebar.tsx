@@ -3,20 +3,16 @@ import { MobileSettingsSheet } from "../MobileSettingsSheet";
 import {
   COLORS,
   WaskitaLogo,
-  IconMenu,
-  IconMoreVertical,
   IconSearch,
   IconX,
   IconSquarePen,
-  IconPin,
-  IconPencil,
-  IconTrash2,
-  IconDownload,
   IconSettings,
   IconSidebarClose,
 } from "../shared-ui";
 import { useTheme } from "../../context/ThemeContext";
 import { SidebarProfilePopover, SidebarSettingsPopover } from "./SidebarPopovers";
+import { SidebarMiniRail } from "./SidebarMiniRail";
+import { SidebarSessionItem } from "./SidebarSessionItem";
 
 export interface AuthSidebarProps {
   isDesktop?: boolean;
@@ -72,7 +68,6 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const [isWLogoHovered, setIsWLogoHovered] = useState(false);
   const [profilePopoverOpen, setProfilePopoverOpen] = useState(false);
   const [settingsPopoverOpen, setSettingsPopoverOpen] = useState(false);
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
@@ -135,191 +130,20 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   const userName = userProfile.name || "author_demo";
   const userPlan = userProfile.plan || "Personal Plan";
 
-  // Jika desktop dan dalam kondisi collapsed (Mini-Rail 68px)
+  // Desktop Mini-Rail (Collapsed 68px)
   if (isDesktop && isCollapsed) {
     return (
-      <aside
-        className="auth-sidebar-desktop-collapsed"
-        style={{
-          width: "68px",
-          height: "100vh",
-          backgroundColor: COLORS.warmCream,
-          borderRight: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          flexShrink: 0,
-          position: "relative",
-          zIndex: 60,
-          overflow: "visible",
-          boxSizing: "border-box",
-          padding: "12px 0",
-          justifyContent: "space-between",
-          transition: "width 0.25s ease",
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", width: "100%" }}>
-          {/* Monogram 'W' yang saat di-hover berganti menjadi IconMenu, klik untuk expand */}
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            onMouseEnter={() => setIsWLogoHovered(true)}
-            onMouseLeave={() => setIsWLogoHovered(false)}
-            aria-label="Buka Navigasi Sidebar"
-            title="Buka Navigasi Sidebar"
-            style={{
-              width: "40px",
-              height: "40px",
-              background: isWLogoHovered ? "var(--waskita-card, #E9DFCA)" : "transparent",
-              border: "none",
-              cursor: "pointer",
-              borderRadius: "10px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: COLORS.deepSlate,
-              transition: "background 0.15s ease, transform 0.15s ease",
-            }}
-          >
-            {isWLogoHovered ? (
-              <IconMenu size={22} color={COLORS.deepSlate} />
-            ) : (
-              <span
-                style={{
-                  fontFamily: "serif",
-                  fontSize: "22px",
-                  fontWeight: 900,
-                  color: "var(--waskita-logo-fill, #10B981)",
-                  lineHeight: 1,
-                  userSelect: "none",
-                }}
-              >
-                W
-              </span>
-            )}
-          </button>
-
-          {/* Tombol Analisis Baru (Mini Rail) */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onNewAnalysis) onNewAnalysis();
-            }}
-            aria-label="Analisis Baru"
-            title="Analisis Baru"
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "12px",
-              background: isNewAnalysisActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
-              border: "none",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: COLORS.deepSlate,
-              transition: "background 0.15s ease",
-            }}
-            onMouseEnter={(e) => {
-              if (!isNewAnalysisActive) {
-                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isNewAnalysisActive) {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-              }
-            }}
-          >
-            <IconSquarePen size={18} color={COLORS.deepSlate} />
-          </button>
-        </div>
-
-        {/* Footer collapsed mini-rail: IconSettings di ATAS, Profil di PALING BAWAH */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", position: "relative" }}>
-          <div ref={settingsRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              onClick={() => {
-                setProfilePopoverOpen(false);
-                setSettingsPopoverOpen((prev) => !prev);
-              }}
-              title="Pengaturan"
-              aria-label="Pengaturan"
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "50%",
-                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: COLORS.deepSlate,
-                transition: "background 0.15s ease",
-              }}
-            >
-              <IconSettings size={18} color={COLORS.deepSlate} />
-            </button>
-            {settingsPopoverOpen && (
-              <SidebarSettingsPopover
-                collapsed={true}
-                isDesktop={isDesktop}
-                theme={theme}
-                setTheme={setTheme}
-                themeFlyoutOpen={themeFlyoutOpen}
-                setThemeFlyoutOpen={setThemeFlyoutOpen}
-                onThemeFlyoutEnter={handleThemeFlyoutEnter}
-                onThemeFlyoutLeave={handleThemeFlyoutLeave}
-                onClosePopover={() => {
-                  setSettingsPopoverOpen(false);
-                  setThemeFlyoutOpen(false);
-                }}
-              />
-            )}
-          </div>
-
-          <div ref={profileRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              onClick={() => {
-                setSettingsPopoverOpen(false);
-                setProfilePopoverOpen((prev) => !prev);
-              }}
-              title={`Profil: ${userName}`}
-              aria-label="Menu Profil"
-              style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                background: COLORS.deepSlate,
-                color: "#FFFFFF",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 700,
-                fontSize: "14px",
-                transition: "transform 0.15s ease",
-              }}
-            >
-              {userName.charAt(0).toUpperCase()}
-            </button>
-            {profilePopoverOpen && (
-              <SidebarProfilePopover
-                collapsed={true}
-                userName={userName}
-                userPlan={userPlan}
-                onClosePopover={() => setProfilePopoverOpen(false)}
-                onSwitchAccount={onSwitchAccount}
-                onSignOut={onSignOut}
-              />
-            )}
-          </div>
-        </div>
-      </aside>
+      <SidebarMiniRail
+        userName={userName}
+        userPlan={userPlan}
+        isNewAnalysisActive={isNewAnalysisActive}
+        theme={theme}
+        setTheme={setTheme}
+        onToggleCollapse={onToggleCollapse}
+        onNewAnalysis={onNewAnalysis}
+        onSwitchAccount={onSwitchAccount}
+        onSignOut={onSignOut}
+      />
     );
   }
 
@@ -370,7 +194,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           boxShadow: !isDesktop && isOpen ? "4px 0 24px rgba(0,0,0,0.2)" : "none",
         }}
       >
-        {/* Header Sidebar: Brand (Kiri) + Search & Tutup Sidebar (Kanan) */}
+        {/* Header Sidebar: Brand + Search & Close */}
         <header
           style={{
             height: "56px",
@@ -534,222 +358,23 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {sortedSessions.map((s) => {
-              const isActive = activeSessionId === s.session_id;
-              const isMenuOpen = activeMenuId === s.session_id;
-
-              return (
-                <div
-                  key={s.session_id}
-                  style={{
-                    position: "relative",
-                    display: "flex",
-                    alignItems: "center",
-                    borderRadius: "10px",
-                    background: isActive ? COLORS.warmSand : "transparent",
-                    transition: "background 0.15s ease",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleRowClick(s.session_id)}
-                    style={{
-                      flex: 1,
-                      textAlign: "left",
-                      background: "transparent",
-                      border: "none",
-                      padding: "8px 10px",
-                      fontSize: "12.5px",
-                      fontWeight: isActive ? 700 : 500,
-                      color: COLORS.deepSlate,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                    title={s.draft_title}
-                  >
-                    {s.is_pinned && (
-                      <IconPin size={13} color="var(--waskita-emerald-accent, #059669)" style={{ flexShrink: 0 }} />
-                    )}
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {s.draft_title}
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(isMenuOpen ? null : s.session_id);
-                    }}
-                    aria-label="Opsi Sesi"
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      padding: "6px 8px",
-                      cursor: "pointer",
-                      borderRadius: "6px",
-                      color: COLORS.deepSlate,
-                      opacity: isActive || isMenuOpen ? 1 : 0.6,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <IconMoreVertical size={16} color={COLORS.deepSlate} />
-                  </button>
-
-                  {isMenuOpen && (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveMenuId(null);
-                      }}
-                      style={{
-                        position: "fixed",
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 55,
-                      }}
-                    />
-                  )}
-
-                  {isMenuOpen && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        right: "4px",
-                        width: "180px",
-                        background: "var(--waskita-surface-white, #FFFFFF)",
-                        borderRadius: "12px",
-                        boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
-                        border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))",
-                        zIndex: 60,
-                        padding: "6px",
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: "2px",
-                      }}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveMenuId(null);
-                          if (onPinSession) onPinSession(s.session_id);
-                        }}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "7px 10px",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          textAlign: "left",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          color: COLORS.deepSlate,
-                        }}
-                      >
-                        <IconPin size={14} color={s.is_pinned ? "#059669" : COLORS.deepSlate} />
-                        <span>{s.is_pinned ? "Lepas Sematan (Unpin)" : "Sematkan (Pin)"}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveMenuId(null);
-                          if (onRenameSession) onRenameSession(s.session_id, s.draft_title);
-                        }}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "7px 10px",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          textAlign: "left",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          color: COLORS.deepSlate,
-                        }}
-                      >
-                        <IconPencil size={14} color={COLORS.deepSlate} />
-                        <span>Ganti Nama (Rename)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveMenuId(null);
-                          if (onExportSession) onExportSession(s.session_id);
-                        }}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "7px 10px",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          textAlign: "left",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          color: COLORS.deepSlate,
-                        }}
-                      >
-                        <IconDownload size={14} color={COLORS.deepSlate} />
-                        <span>Ekspor Laporan (.MD)</span>
-                      </button>
-
-                      <hr
-                        style={{
-                          border: "none",
-                          borderTop: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
-                          margin: "2px 0",
-                        }}
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveMenuId(null);
-                          if (onDeleteSession) onDeleteSession(s.session_id);
-                        }}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "7px 10px",
-                          fontSize: "12px",
-                          fontWeight: 500,
-                          textAlign: "left",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          color: "#EF4444",
-                        }}
-                      >
-                        <IconTrash2 size={14} color="#EF4444" />
-                        <span>Hapus Sesi</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {sortedSessions.map((s) => (
+              <SidebarSessionItem
+                key={s.session_id}
+                sessionId={s.session_id}
+                draftTitle={s.draft_title}
+                isPinned={s.is_pinned}
+                isActive={activeSessionId === s.session_id}
+                isMenuOpen={activeMenuId === s.session_id}
+                onSelect={handleRowClick}
+                onToggleMenu={(id) => setActiveMenuId(activeMenuId === id ? null : id)}
+                onCloseMenu={() => setActiveMenuId(null)}
+                onPin={onPinSession}
+                onRename={onRenameSession}
+                onExport={onExportSession}
+                onDelete={onDeleteSession}
+              />
+            ))}
           </div>
         </div>
 

@@ -11,6 +11,7 @@ import trafilatura
 from lxml import etree
 
 from app.core.config import settings
+from app.core.cache import get_serp_cache, set_serp_cache
 from app.fixtures.benchmark_corpus import get_fallback_corpus
 
 logger = logging.getLogger(__name__)
@@ -191,9 +192,17 @@ async def search_and_scrape_competitors(target_query: str) -> List[Dict[str, Any
     3. Mengunduh secara paralel (asyncio.gather timeout 7s) via HTTPX + fallback curl_cffi.
     4. Jika SERPER_API_KEY tidak ada atau gagal, gunakan Fallback Korpus Lokal (FR-13 & NFR-06).
     """
+    # 0. Cache-Aside Check (Fase 1 Production Roadmap - Redis / Multi-Tier)
+    cached_serp = await get_serp_cache(target_query)
+    if cached_serp and len(cached_serp) >= 2:
+        logger.info(f"Cache-Aside HIT: SERP snapshot for query '{target_query}' resolved in < 5ms.")
+        return cached_serp
+
     if not settings.SERPER_API_KEY:
         logger.info(f"Using offline benchmark fallback corpus for query: {target_query}")
-        return get_fallback_corpus(target_query)
+        fallback_docs = get_fallback_corpus(target_query)
+        await set_serp_cache(target_query, fallback_docs)
+        return fallback_docs
 
     try:
         url = "https://google.serper.dev/search"
@@ -253,11 +262,16 @@ async def search_and_scrape_competitors(target_query: str) -> List[Dict[str, Any
             scraped_docs.append(doc)
 
         if len(scraped_docs) >= 2:
+            await set_serp_cache(target_query, scraped_docs)
             return scraped_docs
         else:
             logger.warning("Scraping live articles yielded < 2 usable documents. Reverting to fallback corpus.")
-            return get_fallback_corpus(target_query)
+            fallback_docs = get_fallback_corpus(target_query)
+            await set_serp_cache(target_query, fallback_docs)
+            return fallback_docs
 
     except Exception as e:
         logger.error(f"Error in search_and_scrape_competitors: {e}. Reverting to fallback corpus.")
-        return get_fallback_corpus(target_query)
+        fallback_docs = get_fallback_corpus(target_query)
+        await set_serp_cache(target_query, fallback_docs)
+        return fallback_docs

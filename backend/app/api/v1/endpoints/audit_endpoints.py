@@ -130,6 +130,14 @@ async def extract_draft_from_file(file: UploadFile = File(...)):
     filename = file.filename.lower() if file.filename else ""
     content_bytes = await file.read()
 
+    # Guardrail Ukuran Berkas Maksimal 5 MB (Fase 3 Production Roadmap)
+    MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
+    if len(content_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Ukuran berkas melebihi batas maksimal 5 MB. Mohon unggah dokumen naskah artikel yang lebih ringkas.",
+        )
+
     extracted_text = ""
     if filename.endswith(".txt") or filename.endswith(".md"):
         try:
