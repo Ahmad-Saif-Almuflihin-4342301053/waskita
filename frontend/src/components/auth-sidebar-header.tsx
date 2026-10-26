@@ -1785,6 +1785,38 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   const [hoveredSample, setHoveredSample] = useState<"rev" | "ready" | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Virtual Keyboard Detection via Visual Viewport API (Auto-adjust bottom offset above keyboard)
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleVisualResize = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      // Calculate viewport shrinkage difference when keyboard opens
+      const diff = Math.max(0, window.innerHeight - (vv.height + (vv.offsetTop || 0)));
+      if (diff > 60) {
+        setKeyboardOffset(diff);
+      } else {
+        setKeyboardOffset(0);
+      }
+    };
+
+    window.visualViewport?.addEventListener("resize", handleVisualResize);
+    window.visualViewport?.addEventListener("scroll", handleVisualResize);
+    window.addEventListener("resize", handleVisualResize);
+    return () => {
+      window.visualViewport?.removeEventListener("resize", handleVisualResize);
+      window.visualViewport?.removeEventListener("scroll", handleVisualResize);
+      window.removeEventListener("resize", handleVisualResize);
+    };
+  }, []);
+
+  const effectiveMobileBottom = keyboardOffset > 0
+    ? `${keyboardOffset + 12}px`
+    : "calc(32px + env(safe-area-inset-bottom, 16px))";
+
   const currentWordCount =
     typeof propWordCount === "number" ? propWordCount : countPureWords(draftText);
   const isEligibleToSubmit = currentWordCount >= minWordCount;
@@ -1847,12 +1879,12 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
           : "auth-floating-composer-dock-mobile"
       }
       style={{
-        position: isCentered ? "relative" : "absolute",
+        position: isCentered ? "relative" : isDesktop ? "absolute" : "fixed",
         bottom: isCentered
           ? "auto"
           : isDesktop
           ? "20px"
-          : "calc(16px + env(safe-area-inset-bottom, 12px))",
+          : effectiveMobileBottom,
         left: 0,
         right: 0,
         padding: isCentered
@@ -1871,7 +1903,9 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
         alignItems: "center",
         justifyContent: isCentered ? "center" : "flex-end",
         transition:
-          "transform 0.45s cubic-bezier(0.16, 1, 0.3, 1), top 0.45s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.45s cubic-bezier(0.16, 1, 0.3, 1)",
+          keyboardOffset > 0
+            ? "bottom 0.15s ease-out"
+            : "bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)",
       }}
     >
       <div
@@ -1958,6 +1992,13 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               placeholder="Ketik atau tempel naskah artikel Anda..."
               value={draftText}
               onChange={(e) => onDraftTextChange && onDraftTextChange(e.target.value)}
+              onFocus={() => {
+                if (!isDesktop) {
+                  setTimeout(() => {
+                    textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                  }, 120);
+                }
+              }}
               onPaste={handlePaste}
               onKeyDown={handleKeyDown}
               disabled={isLoading}
@@ -2106,6 +2147,13 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               placeholder="Ketik atau tempel naskah artikel Anda..."
               value={draftText}
               onChange={(e) => onDraftTextChange && onDraftTextChange(e.target.value)}
+              onFocus={() => {
+                if (!isDesktop) {
+                  setTimeout(() => {
+                    textareaRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                  }, 120);
+                }
+              }}
               onPaste={handlePaste}
               onKeyDown={handleKeyDown}
               disabled={isLoading}

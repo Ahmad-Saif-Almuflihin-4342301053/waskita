@@ -772,7 +772,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     <div
       style={{
         width: '100vw',
-        height: '100vh',
+        height: isDesktop ? '100vh' : '100%',
+        maxHeight: isDesktop ? '100vh' : '100dvh',
         overflow: 'hidden',
         position: 'relative',
         background: COLORS.warmCream,
@@ -863,7 +864,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
           <div
             style={{
               flex: 1,
-              height: '100vh',
+              height: isDesktop ? '100vh' : '100%',
+              maxHeight: isDesktop ? '100vh' : '100dvh',
               overflow: 'hidden',
               position: 'relative',
               display: 'flex',

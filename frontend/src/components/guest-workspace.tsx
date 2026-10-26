@@ -72,7 +72,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
       style={{
         flex: 1,
         width: "100%",
-        height: "100vh",
+        height: isDesktop ? "100vh" : "100dvh",
         display: "flex",
         flexDirection: "column",
         position: "relative",
