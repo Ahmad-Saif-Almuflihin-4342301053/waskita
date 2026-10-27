@@ -165,7 +165,7 @@ def _generate_synthetic_indonesian_corpus(query: str) -> List[Dict[str, Any]]:
             {"level": "H2", "text": f"Konsep Dasar dan Prinsip {main_kw.title()}"},
             {"level": "H2", "text": f"Strategi Pelaksanaan Praktis"},
         ],
-        "fetch_status": "success",
+        "fetch_status": "offline_synthetic",
         "http_status_code": 200,
     }
 
@@ -181,7 +181,7 @@ def _generate_synthetic_indonesian_corpus(query: str) -> List[Dict[str, Any]]:
             {"level": "H2", "text": f"Tantangan Implementasi {main_kw.title()}"},
             {"level": "H3", "text": f"Solusi Taktis dan Langkah Mitigasi"},
         ],
-        "fetch_status": "success",
+        "fetch_status": "offline_synthetic",
         "http_status_code": 200,
     }
 
@@ -197,7 +197,7 @@ def _generate_synthetic_indonesian_corpus(query: str) -> List[Dict[str, Any]]:
             {"level": "H2", "text": f"Langkah Awal Pemetaan Masalah"},
             {"level": "H2", "text": f"Evaluasi dan Peningkatan Berkelanjutan"},
         ],
-        "fetch_status": "success",
+        "fetch_status": "offline_synthetic",
         "http_status_code": 200,
     }
 
@@ -205,9 +205,13 @@ def _generate_synthetic_indonesian_corpus(query: str) -> List[Dict[str, Any]]:
 
 
 def get_fallback_corpus(query: str) -> List[Dict[str, Any]]:
-    """Mengambil korpus fallback deterministik berdasarkan kueri (topik benchmark atau generator sintetis)."""
+    """Mengambil salinan korpus fallback deterministik berdasarkan kueri (topik benchmark atau generator sintetis)."""
+    import copy
     q_low = query.lower().strip()
     for key, docs in CURATED_FALLBACK_BENCHMARKS.items():
         if key in q_low or q_low in key:
-            return docs
+            copied = copy.deepcopy(docs)
+            for d in copied:
+                d["fetch_status"] = "offline_curated"
+            return copied
     return _generate_synthetic_indonesian_corpus(query)

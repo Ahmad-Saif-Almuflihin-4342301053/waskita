@@ -107,7 +107,7 @@ def _hash_key(prefix: str, text: str) -> str:
 async def get_serp_cache(target_query: str) -> Optional[List[Dict[str, Any]]]:
     if not settings.FEATURE_SERP_CACHE:
         return None
-    key = _hash_key("serp:v1", target_query)
+    key = _hash_key(f"serp:v2:k{settings.SERP_TOP_K}", target_query)
     cached = await cache.get(key)
     if cached and isinstance(cached, list):
         return cached
@@ -118,7 +118,7 @@ async def set_serp_cache(target_query: str, docs: List[Dict[str, Any]], ttl_seco
     if not settings.FEATURE_SERP_CACHE or not docs:
         return
     ttl = ttl_seconds or settings.CACHE_TTL_SERP_SECONDS
-    key = _hash_key("serp:v1", target_query)
+    key = _hash_key(f"serp:v2:k{settings.SERP_TOP_K}", target_query)
     await cache.set(key, docs, ttl_seconds=ttl)
 
 

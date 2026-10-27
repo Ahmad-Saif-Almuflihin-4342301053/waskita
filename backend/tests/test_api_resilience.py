@@ -454,3 +454,95 @@ class TestPhase1AndPhase3ProductionGuardrails:
         assert retrieved == stemmed_text
 
 
+# =====================================================================
+# 6. PENGUJIAN SPRINT 3.0: SERP LIVE INTEGRITY, AUDIT SUMMARY & T7 BUG
+# =====================================================================
+
+class TestSprint3SerpLiveIntegrity:
+    """Pengujian SERP Top 10, audit summary breakdown, perbaikan T7, dan mode demo offline."""
+
+    def test_serp_audit_summary_and_source_in_response(self, client):
+        """Memastikan response memuat serp_source dan serp_audit_summary breakdown."""
+        draft = (
+            "Kopi tubruk tradisional Indonesia diseduh air mendidih bermutu tinggi dengan rasio satu banding lima belas. "
+        ) * 25  # ~375 kata
+
+        payload = {
+            "target_query": "cara membuat kopi tubruk nikmat",
+            "draft_title": "Uji SERP Audit Summary",
+            "draft_content": draft,
+        }
+        res = client.post("/api/v1/audit/execute", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert "serp_source" in data
+        assert data["serp_source"] in ("live", "offline_curated", "offline_synthetic")
+        assert "serp_audit_summary" in data
+        summary = data["serp_audit_summary"]
+        assert summary is not None
+        assert "skipped_video_social_count" in summary
+        assert "skipped_pdf_doc_count" in summary
+        assert "skipped_short_text_count" in summary
+        assert "skipped_bot_protect_count" in summary
+        assert "total_candidates_evaluated" in summary
+
+    def test_synthetic_corpus_produces_mode_demo_verdict(self, client):
+        """Kueri asing yang memicu korpus sintetis offline harus menghasilkan verdict_status 'Mode Demo'."""
+        draft = (
+            "Kueri antariksa topik asing yang sangat spesifik dan belum pernah terindeks di sistem lokal WASKITA. "
+        ) * 25  # ~375 kata
+
+        payload = {
+            "target_query": "kueri antariksa asing xyz 9988",
+            "draft_title": "Uji Mode Demo Sintetis",
+            "draft_content": draft,
+        }
+        res = client.post("/api/v1/audit/execute", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert data["serp_source"] == "offline_synthetic"
+        assert data["verdict_status"] == "Mode Demo"
+
+    def test_turn_2_parent_snapshot_t7_fix(self, client):
+        """Bug T7: turn >= 2 memakai snapshot induk harus mempertahankan rank_position, domain_name, source_url, page_title."""
+        draft = (
+            "Kopi tubruk tradisional Indonesia diseduh air mendidih bermutu tinggi dengan rasio satu banding lima belas. "
+        ) * 25
+
+        # Turn 1
+        payload1 = {
+            "target_query": "kopi tubruk",
+            "draft_title": "Turn 1 Kopi",
+            "draft_content": draft,
+        }
+        res1 = client.post("/api/v1/audit/execute", json=payload1)
+        assert res1.status_code == 200
+        data1 = res1.json()
+        turn1_id = data1["session_id"]
+
+        # Turn 2 memakai parent_session_id
+        payload2 = {
+            "target_query": "kopi tubruk",
+            "draft_title": "Turn 2 Kopi Revisi",
+            "draft_content": draft + " Tambahan sudut pandang unik barista lokal nusantara.",
+            "parent_session_id": turn1_id,
+            "use_cached_serp": True,
+        }
+        res2 = client.post("/api/v1/audit/execute", json=payload2)
+        assert res2.status_code == 200
+        data2 = res2.json()
+
+        assert data2["turn_number"] == 2
+        assert len(data2["serp_competitors"]) >= 2
+        for comp in data2["serp_competitors"]:
+            assert comp["rank_position"] > 0
+            assert comp["page_title"] != ""
+            assert comp["page_title"] is not None
+            assert comp["source_url"] != ""
+            assert comp["source_url"] is not None
+            assert comp["domain_name"] != ""
+            assert comp["domain_name"] is not None
+
+

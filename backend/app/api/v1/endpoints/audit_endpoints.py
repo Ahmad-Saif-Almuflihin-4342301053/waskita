@@ -25,6 +25,7 @@ from app.schemas.audit import (
     EntityGapItem,
     EntityGapsGroup,
     MetricResultSchema,
+    SerpAuditSummary,
     SerpCompetitorItem,
     ThresholdConfig,
 )
@@ -43,6 +44,36 @@ from app.services.stylometrics import calculate_stylometrics
 from app.services.vsm_calculator import compute_vsm_similarity
 
 router = APIRouter(tags=["audit"])
+
+
+def normalize_competitor_doc(doc: dict, default_rank: int = 1) -> dict:
+    """Menormalisasi dict dokumen kompetitor agar seragam baik dari scraper maupun snapshot database (T7)."""
+    return {
+        "rank_position": doc.get("rank_position") or doc.get("rank") or default_rank,
+        "page_title": doc.get("page_title") or doc.get("title") or f"Kompetitor {default_rank}",
+        "source_url": doc.get("source_url") or doc.get("url") or "",
+        "domain_name": doc.get("domain_name") or doc.get("domain") or "",
+        "snippet_text": doc.get("snippet_text") or doc.get("snippet") or "",
+        "clean_text": doc.get("clean_text") or "",
+        "word_count": doc.get("word_count") or 0,
+        "headings": doc.get("headings") or [],
+        "fetch_status": doc.get("fetch_status") or "success",
+        "http_status_code": doc.get("http_status_code") or 200,
+        "main_text_hash": doc.get("main_text_hash") or "",
+        "cosine_similarity": doc.get("cosine_similarity"),
+    }
+
+
+def determine_serp_source(docs: list) -> str:
+    """Menentukan sumber SERP berdasarkan fetch_status dokumen."""
+    if not docs:
+        return "live"
+    statuses = [d.get("fetch_status") for d in docs if isinstance(d, dict)]
+    if any(s == "offline_synthetic" for s in statuses):
+        return "offline_synthetic"
+    if any(s == "offline_curated" for s in statuses):
+        return "offline_curated"
+    return "live"
 
 
 def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
@@ -70,6 +101,7 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
             gain_items.append(item)
 
     serp_items = []
+    raw_docs_for_source = []
     if session.snapshot:
         for doc in session.snapshot.documents:
             serp_items.append(
@@ -84,6 +116,9 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
                     fetch_status=doc.fetch_status,
                 )
             )
+            raw_docs_for_source.append({"fetch_status": doc.fetch_status})
+
+    serp_source = determine_serp_source(raw_docs_for_source)
 
     m = session.metrics
     metrics_schema = MetricResultSchema(
@@ -121,6 +156,8 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         overview_bullets=overview_bullets,
         remediation_prompt=session.remediation_prompt or "",
         serp_competitors=serp_items,
+        serp_source=serp_source,
+        serp_audit_summary=None,
     )
 
 
@@ -205,8 +242,16 @@ async def execute_audit(
         if parent:
             turn_number = parent.turn_number + 1
 
-    # 2. Akuisisi Top 3 SERP Competitors (Scraper / Snapshot Cache / Fallback)
+    # 2. Akuisisi SERP Competitors (Scraper / Snapshot Cache / Fallback)
     competitor_docs = None
+    serp_audit_summary_dict = {
+        "skipped_video_social_count": 0,
+        "skipped_pdf_doc_count": 0,
+        "skipped_short_text_count": 0,
+        "skipped_bot_protect_count": 0,
+        "total_candidates_evaluated": 0,
+    }
+
     if req.use_cached_serp and req.parent_session_id:
         parent_session = (
             db.query(AuditSession)
@@ -215,24 +260,35 @@ async def execute_audit(
         )
         if parent_session and parent_session.snapshot and parent_session.snapshot.documents:
             valid_docs = [
-                {
-                    "rank": d.rank_position,
-                    "title": d.page_title,
-                    "url": d.source_url,
-                    "domain": d.domain_name,
-                    "snippet": d.snippet_text or "",
-                    "clean_text": d.clean_text or "",
-                    "word_count": d.word_count,
-                    "fetch_status": d.fetch_status,
-                }
-                for d in parent_session.snapshot.documents
+                normalize_competitor_doc(
+                    {
+                        "rank_position": d.rank_position,
+                        "page_title": d.page_title,
+                        "source_url": d.source_url,
+                        "domain_name": d.domain_name,
+                        "snippet_text": d.snippet_text or "",
+                        "clean_text": d.clean_text or "",
+                        "word_count": d.word_count,
+                        "fetch_status": d.fetch_status,
+                        "http_status_code": d.http_status_code,
+                        "main_text_hash": d.main_text_hash,
+                    },
+                    default_rank=idx,
+                )
+                for idx, d in enumerate(parent_session.snapshot.documents, start=1)
                 if d.clean_text
             ]
             if len(valid_docs) >= 2:
                 competitor_docs = valid_docs
 
     if not competitor_docs:
-        competitor_docs = await routers_contract.search_and_scrape_competitors(target_query)
+        raw_competitor_docs = await routers_contract.search_and_scrape_competitors(
+            target_query, audit_summary=serp_audit_summary_dict
+        )
+        competitor_docs = [
+            normalize_competitor_doc(doc, default_rank=idx)
+            for idx, doc in enumerate(raw_competitor_docs, start=1)
+        ]
 
     # FR-13: Graceful Degradation check
     k_docs = len(competitor_docs)
@@ -302,6 +358,9 @@ async def execute_audit(
         thresholds=thresholds,
     )
 
+    serp_source = determine_serp_source(competitor_docs)
+    final_verdict_status = "Mode Demo" if serp_source == "offline_synthetic" else cds_decision["verdict_status"]
+
     # 8. Anotasi Stabilo 4-Warna (Tabel 3.6 Proposal TA)
     annotated_spans = generate_annotated_spans(
         draft_content=draft_content,
@@ -338,7 +397,7 @@ async def execute_audit(
         draft_content=draft_content,
         draft_word_count=draft_word_count,
         audit_timestamp=now_dt,
-        verdict_status=cds_decision["verdict_status"],
+        verdict_status=final_verdict_status,
         is_pinned=False,
         degradation_warning=degradation_warning,
         annotated_spans_json=json.dumps([s.model_dump() for s in annotated_spans]),
@@ -439,7 +498,7 @@ async def execute_audit(
         draft_content=draft_content,
         draft_word_count=draft_word_count,
         audit_timestamp=now_dt.isoformat(),
-        verdict_status=cds_decision["verdict_status"],
+        verdict_status=final_verdict_status,
         degradation_warning=degradation_warning,
         thresholds=thresholds,
         metrics=MetricResultSchema(
@@ -458,4 +517,6 @@ async def execute_audit(
         overview_bullets=overview_remediation["overview_bullets"],
         remediation_prompt=overview_remediation["remediation_prompt"],
         serp_competitors=serp_competitor_items,
+        serp_source=serp_source,
+        serp_audit_summary=SerpAuditSummary(**serp_audit_summary_dict),
     )
