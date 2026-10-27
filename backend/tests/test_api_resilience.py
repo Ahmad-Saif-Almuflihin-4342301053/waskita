@@ -408,3 +408,141 @@ class TestSprint2BackendContractAndThread:
             db.commit()
             db.close()
 
+
+# =====================================================================
+# 5. PENGUJIAN FASE 1 & FASE 3: CACHING & UPLOAD GUARDRAILS
+# =====================================================================
+
+class TestPhase1AndPhase3ProductionGuardrails:
+    """Pengujian Caching Multi-Tier (Fase 1) dan Guardrail Ukuran Berkas 5MB (Fase 3)."""
+
+    def test_upload_file_exceeding_5mb_rejected_http_413(self, client):
+        # Buat payload berukuran 5.5 MB (melebihi limit 5 MB)
+        oversized_bytes = b"A" * (5 * 1024 * 1024 + 500_000)
+        files = {"file": ("big_draft.txt", oversized_bytes, "text/plain")}
+        res = client.post("/api/v1/audit/extract-file", files=files)
+        assert res.status_code == 413
+        assert "melebihi batas maksimal 5 MB" in res.json()["detail"]
+
+    def test_upload_valid_markdown_under_limit_accepted(self, client):
+        normal_bytes = b"# Resep Kopi\n\nKopi tubruk enak sekali diseduh di pagi hari."
+        files = {"file": ("draft.md", normal_bytes, "text/markdown")}
+        res = client.post("/api/v1/audit/extract-file", files=files)
+        assert res.status_code == 200
+        assert "Resep Kopi" in res.json()["extracted_text"]
+
+    @pytest.mark.asyncio
+    async def test_multi_tier_serp_cache_store_and_retrieve(self):
+        from app.core.cache import get_serp_cache, set_serp_cache
+        dummy_query = "uji coba redis multi tier cache 2026"
+        dummy_docs = [{"rank_position": 1, "page_title": "Doc 1", "clean_text": "Isi"}]
+
+        await set_serp_cache(dummy_query, dummy_docs, ttl_seconds=60)
+        retrieved = await get_serp_cache(dummy_query)
+        assert retrieved is not None
+        assert len(retrieved) == 1
+        assert retrieved[0]["page_title"] == "Doc 1"
+
+    @pytest.mark.asyncio
+    async def test_multi_tier_nlp_preproc_cache_store_and_retrieve(self):
+        from app.core.cache import get_nlp_preproc_cache, set_nlp_preproc_cache
+        raw_text = "Menikmati secangkir kopi tubruk hangat"
+        stemmed_text = "nikmat cangkir kopi tubruk hangat"
+
+        await set_nlp_preproc_cache(raw_text, stemmed_text, ttl_seconds=60)
+        retrieved = await get_nlp_preproc_cache(raw_text)
+        assert retrieved == stemmed_text
+
+
+# =====================================================================
+# 6. PENGUJIAN SPRINT 3.0: SERP LIVE INTEGRITY, AUDIT SUMMARY & T7 BUG
+# =====================================================================
+
+class TestSprint3SerpLiveIntegrity:
+    """Pengujian SERP Top 10, audit summary breakdown, perbaikan T7, dan mode demo offline."""
+
+    def test_serp_audit_summary_and_source_in_response(self, client):
+        """Memastikan response memuat serp_source dan serp_audit_summary breakdown."""
+        draft = (
+            "Kopi tubruk tradisional Indonesia diseduh air mendidih bermutu tinggi dengan rasio satu banding lima belas. "
+        ) * 25  # ~375 kata
+
+        payload = {
+            "target_query": "cara membuat kopi tubruk nikmat",
+            "draft_title": "Uji SERP Audit Summary",
+            "draft_content": draft,
+        }
+        res = client.post("/api/v1/audit/execute", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert "serp_source" in data
+        assert data["serp_source"] in ("live", "offline_curated", "offline_synthetic")
+        assert "serp_audit_summary" in data
+        summary = data["serp_audit_summary"]
+        assert summary is not None
+        assert "skipped_video_social_count" in summary
+        assert "skipped_pdf_doc_count" in summary
+        assert "skipped_short_text_count" in summary
+        assert "skipped_bot_protect_count" in summary
+        assert "total_candidates_evaluated" in summary
+
+    def test_synthetic_corpus_produces_mode_demo_verdict(self, client):
+        """Kueri asing yang memicu korpus sintetis offline harus menghasilkan verdict_status 'Mode Demo'."""
+        draft = (
+            "Kueri antariksa topik asing yang sangat spesifik dan belum pernah terindeks di sistem lokal WASKITA. "
+        ) * 25  # ~375 kata
+
+        payload = {
+            "target_query": "kueri antariksa asing xyz 9988",
+            "draft_title": "Uji Mode Demo Sintetis",
+            "draft_content": draft,
+        }
+        res = client.post("/api/v1/audit/execute", json=payload)
+        assert res.status_code == 200
+        data = res.json()
+
+        assert data["serp_source"] == "offline_synthetic"
+        assert data["verdict_status"] == "Mode Demo"
+
+    def test_turn_2_parent_snapshot_t7_fix(self, client):
+        """Bug T7: turn >= 2 memakai snapshot induk harus mempertahankan rank_position, domain_name, source_url, page_title."""
+        draft = (
+            "Kopi tubruk tradisional Indonesia diseduh air mendidih bermutu tinggi dengan rasio satu banding lima belas. "
+        ) * 25
+
+        # Turn 1
+        payload1 = {
+            "target_query": "kopi tubruk",
+            "draft_title": "Turn 1 Kopi",
+            "draft_content": draft,
+        }
+        res1 = client.post("/api/v1/audit/execute", json=payload1)
+        assert res1.status_code == 200
+        data1 = res1.json()
+        turn1_id = data1["session_id"]
+
+        # Turn 2 memakai parent_session_id
+        payload2 = {
+            "target_query": "kopi tubruk",
+            "draft_title": "Turn 2 Kopi Revisi",
+            "draft_content": draft + " Tambahan sudut pandang unik barista lokal nusantara.",
+            "parent_session_id": turn1_id,
+            "use_cached_serp": True,
+        }
+        res2 = client.post("/api/v1/audit/execute", json=payload2)
+        assert res2.status_code == 200
+        data2 = res2.json()
+
+        assert data2["turn_number"] == 2
+        assert len(data2["serp_competitors"]) >= 2
+        for comp in data2["serp_competitors"]:
+            assert comp["rank_position"] > 0
+            assert comp["page_title"] != ""
+            assert comp["page_title"] is not None
+            assert comp["source_url"] != ""
+            assert comp["source_url"] is not None
+            assert comp["domain_name"] != ""
+            assert comp["domain_name"] is not None
+
+

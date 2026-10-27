@@ -14,6 +14,40 @@ class WaskitaApiClient {
     this.token = token;
   }
 
+  getToken(): string | null {
+    return this.token;
+  }
+
+  /**
+   * POST /api/v1/auth/login
+   * Masuk menggunakan username atau email
+   */
+  async login(usernameOrEmail: string, password: string): Promise<any> {
+    const res = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username_or_email: usernameOrEmail,
+        username: usernameOrEmail,
+        password,
+      }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail || `Autentikasi gagal (HTTP ${res.status}: ${res.statusText})`
+      );
+    }
+
+    const data = await res.json();
+    if (data.access_token) {
+      this.setToken(data.access_token);
+      localStorage.setItem('waskita_token', data.access_token);
+    }
+    return data;
+  }
+
   private getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
     const headers: Record<string, string> = {
       ...extraHeaders,
@@ -86,7 +120,10 @@ class WaskitaApiClient {
   async getSessions(query?: string, pinned?: boolean): Promise<AuditSessionSummary[]> {
     const params = new URLSearchParams();
     if (query) params.append('q', query);
-    if (pinned !== undefined) params.append('pinned', String(pinned));
+    if (pinned !== undefined) {
+      params.append('is_pinned', String(pinned));
+      params.append('pinned', String(pinned));
+    }
 
     const res = await fetch(`${BASE_URL}/api/v1/sessions?${params.toString()}`, {
       headers: this.getHeaders(),

@@ -17,7 +17,14 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./waskita.db"
 
+    # Redis & Multi-Tier Caching (Fase 1 Production Roadmap)
+    REDIS_URL: Optional[str] = None
+    CACHE_TTL_SERP_SECONDS: int = 86400  # 24 Jam
+    CACHE_TTL_NLP_SECONDS: int = 604800  # 7 Hari
+
     # Scraper & Engine Feature Flags
+    SERP_TOP_K: int = 10
+    SERP_MIN_DOC_WORDS: int = 150
     MAX_CRAWL_DEPTH: int = 1
     REQUEST_TIMEOUT: int = 15
     USER_AGENT: str = "Waskita-Auditor/1.0"

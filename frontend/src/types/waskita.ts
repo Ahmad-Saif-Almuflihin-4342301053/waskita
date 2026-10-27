@@ -57,6 +57,25 @@ export interface SerpCompetitorItem {
   fetch_status?: string;
 }
 
+export type SerpSource = 'live' | 'offline_curated' | 'offline_synthetic';
+
+export interface SerpAuditSummary {
+  total_google_results?: number;
+  passed_articles_count?: number;
+  skipped_total?: number;
+  skipped_video_social?: number;
+  skipped_pdf_doc?: number;
+  skipped_bot_protected?: number;
+  skipped_short_text?: number;
+  reasons?: {
+    video_social?: number;
+    pdf_doc?: number;
+    bot_protected?: number;
+    short_text?: number;
+    [key: string]: number | undefined;
+  };
+}
+
 export interface AuditExecuteResponse {
   session_id: string;
   parent_session_id: string | null;
@@ -66,7 +85,7 @@ export interface AuditExecuteResponse {
   draft_content?: string;
   draft_word_count: number;
   audit_timestamp: string;
-  verdict_status: 'Layak Terbit' | 'Perlu Revisi';
+  verdict_status: 'Layak Terbit' | 'Perlu Revisi' | 'Mode Demo';
   degradation_warning: string | null;
   thresholds: QualityThresholds;
   metrics: AuditMetrics;
@@ -75,6 +94,8 @@ export interface AuditExecuteResponse {
   overview_bullets: string[];
   remediation_prompt: string;
   serp_competitors?: SerpCompetitorItem[];
+  serp_source?: SerpSource;
+  serp_audit_summary?: SerpAuditSummary;
 }
 
 export interface AuditSessionSummary {
@@ -84,9 +105,10 @@ export interface AuditSessionSummary {
   target_query: string;
   draft_title: string;
   audit_timestamp: string;
-  verdict_status: 'Layak Terbit' | 'Perlu Revisi';
+  verdict_status: 'Layak Terbit' | 'Perlu Revisi' | 'Mode Demo';
   score_cds: number;
   is_pinned?: boolean;
+  serp_source?: SerpSource;
 }
 
 export interface ExtractFileResponse {

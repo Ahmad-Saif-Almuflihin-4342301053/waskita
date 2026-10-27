@@ -1,9 +1,24 @@
 import asyncio
 import functools
 import re
-from typing import Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
+
+from app.core.cache import get_nlp_preproc_cache, set_nlp_preproc_cache
+
+# Regex pembersih placeholder media [gambar 1], [video 2], [tabel 1], dsb.
+MEDIA_PLACEHOLDER_REGEX = re.compile(
+    r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]",
+    re.IGNORECASE,
+)
+
+
+def strip_media_placeholders(text: str) -> str:
+    """Hapus placeholder media seperti [gambar 1], [video 2], [tabel 1], dsb. dari naskah."""
+    if not text:
+        return ""
+    return MEDIA_PLACEHOLDER_REGEX.sub(" ", text)
 
 # Inisialisasi pabrik Sastrawi sekali secara singleton di modul
 _stemmer_factory = StemmerFactory()
@@ -50,8 +65,9 @@ def stem_word(word: str) -> str:
 
 
 def _sync_clean_and_tokenize(text: str) -> List[str]:
-    """Tokenisasi dan pembersihan regex sederhana (huruf kecil dan alfanumerik)."""
-    text_clean = re.sub(r"[^\w\s]", " ", text.lower())
+    """Tokenisasi dan pembersihan regex sederhana (huruf kecil dan alfanumerik) setelah menghapus placeholder media."""
+    text_without_media = strip_media_placeholders(text)
+    text_clean = re.sub(r"[^\w\s]", " ", text_without_media.lower())
     tokens = [t.strip() for t in text_clean.split() if t.strip()]
     return tokens
 
@@ -73,9 +89,18 @@ def _sync_preprocess_corpus(text: str) -> str:
 
 async def preprocess_text_async(text: str) -> str:
     """
-    Operasi CPU berat #2 dibungkus dengan asyncio.to_thread untuk mencegah event-loop blocking.
+    Operasi CPU berat #2 dibungkus dengan asyncio.to_thread untuk mencegah event-loop blocking,
+    dilengkapi Multi-Tier Cache-Aside (Fase 1 Production Roadmap) untuk eliminasi redundansi stemming.
     """
-    return await asyncio.to_thread(_sync_preprocess_corpus, text)
+    if not text:
+        return ""
+    cached = await get_nlp_preproc_cache(text)
+    if cached is not None:
+        return cached
+
+    result = await asyncio.to_thread(_sync_preprocess_corpus, text)
+    await set_nlp_preproc_cache(text, result)
+    return result
 
 
 def extract_candidate_entities(text: str, top_n: int = 30) -> List[Tuple[str, str, int]]:

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   COLORS,
   IconX,
@@ -73,6 +73,67 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
   onClose,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Gemini-Style Bottom Sheet Expansion & Drag Handle Gestures
+  const [isExpandedSheet, setIsExpandedSheet] = useState(false);
+  const [dragOffsetY, setDragOffsetY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchStartYRef = useRef<number>(0);
+  const touchCurrentYRef = useRef<number>(0);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsExpandedSheet(false);
+      setDragOffsetY(0);
+      setIsDragging(false);
+    }
+  }, [isOpen]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+    touchCurrentYRef.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    touchCurrentYRef.current = e.touches[0].clientY;
+    const deltaY = touchCurrentYRef.current - touchStartYRef.current;
+    if (deltaY > 0) {
+      // Dragging downward: slide down
+      setDragOffsetY(deltaY);
+    } else if (deltaY < -25 && !isExpandedSheet) {
+      // Dragging upward: expand sheet!
+      setIsExpandedSheet(true);
+      setDragOffsetY(0);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const deltaY = touchCurrentYRef.current - touchStartYRef.current;
+    if (deltaY > 75) {
+      // Swipe down threshold reached -> close
+      setDragOffsetY(0);
+      setIsExpandedSheet(false);
+      if (onClose) onClose();
+    } else if (deltaY < -20) {
+      setIsExpandedSheet(true);
+      setDragOffsetY(0);
+    } else {
+      // Snap back to normal position
+      setDragOffsetY(0);
+    }
+  };
+
+  const handleBodyScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!isDesktop) {
+      if (e.currentTarget.scrollTop > 15 && !isExpandedSheet) {
+        setIsExpandedSheet(true);
+      }
+    }
+  };
 
   const handleSliderChange = (key: keyof QualityThresholds, val: number) => {
     if (onThresholdsChange) {
@@ -179,7 +240,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
         }}
       />
 
-      {/* Container Overlay: Desktop centered floating card or Mobile bottom sheet */}
+      {/* Container Overlay: Desktop centered floating card or Mobile Gemini-style bottom sheet */}
       <div
         style={{
           position: 'fixed',
@@ -187,32 +248,73 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           top: isDesktop ? '50%' : 'auto',
           left: isDesktop ? '50%' : 0,
           right: isDesktop ? 'auto' : 0,
-          transform: isDesktop ? 'translate(-50%, -50%)' : 'none',
+          transform: isDesktop
+            ? 'translate(-50%, -50%)'
+            : `translateY(${dragOffsetY}px)`,
           width: isDesktop ? '460px' : '100%',
-          maxHeight: isDesktop ? '86vh' : '82vh',
+          maxHeight: isDesktop ? '86vh' : isExpandedSheet ? '94vh' : '76vh',
+          height: isDesktop ? 'auto' : isExpandedSheet ? '94vh' : 'auto',
           background: COLORS.warmCream,
-          borderRadius: isDesktop ? '24px' : '28px 28px 0 0',
+          borderRadius: isDesktop ? '24px' : '26px 26px 0 0',
           boxShadow: '0 20px 50px rgba(30, 41, 59, 0.28)',
           zIndex: 50,
-          overflowY: 'auto',
+          overflow: 'hidden',
           boxSizing: 'border-box',
           display: 'flex',
           flexDirection: 'column',
-          paddingBottom: 'calc(24px + env(safe-area-inset-bottom, 20px))',
+          transition: isDragging
+            ? 'none'
+            : 'max-height 0.32s cubic-bezier(0.16, 1, 0.3, 1), height 0.32s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s ease',
         }}
       >
+        {/* Mobile Drag Handle Bar ("Talenan Handle" ala Gemini) */}
+        {!isDesktop && (
+          <div
+            onClick={() => setIsExpandedSheet((prev) => !prev)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '10px 0 4px 0',
+              cursor: 'grab',
+              touchAction: 'none',
+              background: COLORS.warmCream,
+              flexShrink: 0,
+              userSelect: 'none',
+            }}
+            title="Tarik ke bawah untuk menutup, atau geser ke atas untuk memperluas"
+          >
+            <div
+              style={{
+                width: isExpandedSheet ? '48px' : '38px',
+                height: '4.5px',
+                borderRadius: '9999px',
+                background: 'rgba(30, 41, 59, 0.28)',
+                transition: 'width 0.2s ease, background 0.2s ease',
+              }}
+            />
+          </div>
+        )}
+
         {/* Header Overlay */}
         <div
+          onTouchStart={!isDesktop ? handleTouchStart : undefined}
+          onTouchMove={!isDesktop ? handleTouchMove : undefined}
+          onTouchEnd={!isDesktop ? handleTouchEnd : undefined}
           style={{
-            padding: '16px 20px 12px 20px',
+            padding: isDesktop ? '16px 20px 12px 20px' : '4px 20px 10px 20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-            position: 'sticky',
-            top: 0,
             background: COLORS.warmCream,
             zIndex: 10,
+            flexShrink: 0,
+            cursor: !isDesktop ? 'grab' : 'default',
           }}
         >
           <div style={{ fontSize: '15px', fontWeight: 700, color: COLORS.deepSlate }}>
@@ -240,12 +342,14 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
 
         {/* Content Body */}
         <div
+          onScroll={handleBodyScroll}
           style={{
             padding: '16px 20px 16px 20px',
             display: 'flex',
             flexDirection: 'column',
             gap: '16px',
             flex: 1,
+            overflowY: 'auto',
           }}
         >
           {/* 1. Unggah Berkas */}
@@ -568,9 +672,12 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             position: 'sticky',
             bottom: 0,
             background: COLORS.warmCream,
-            padding: '12px 20px',
+            padding: isDesktop
+              ? '12px 20px'
+              : '10px 16px calc(14px + env(safe-area-inset-bottom, 12px)) 16px',
             borderTop: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
             zIndex: 10,
+            flexShrink: 0,
           }}
         >
           <button

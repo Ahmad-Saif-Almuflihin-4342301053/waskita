@@ -156,23 +156,9 @@ export const App: React.FC = () => {
       if (token) {
         waskitaClient.setToken(token);
       } else {
-        // Auto-authenticate as author_demo
+        // Auto-authenticate as author_demo via API client
         try {
-          const res = await fetch('/api/v1/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              username: 'author_demo',
-              password: 'password123',
-            }),
-          });
-          if (res.ok) {
-            const data = await res.json();
-            if (data.access_token) {
-              waskitaClient.setToken(data.access_token);
-              localStorage.setItem('waskita_token', data.access_token);
-            }
-          }
+          await waskitaClient.login('author_demo', 'password123');
         } catch (e) {
           // Dev fallback
           waskitaClient.setToken('demo-token-author-demo');
@@ -184,6 +170,25 @@ export const App: React.FC = () => {
         const fetchedSessions = await waskitaClient.getSessions();
         if (fetchedSessions && fetchedSessions.length > 0) {
           setSessions(fetchedSessions);
+          const first = fetchedSessions[0];
+          setActiveSessionId(first.session_id);
+          if (first.target_query) {
+            setTargetQuery(first.target_query);
+          }
+          try {
+            const thread = await waskitaClient.getSessionThread(first.session_id);
+            if (thread && thread.length > 0) {
+              setCurrentTurns(
+                thread.map((t) => ({
+                  draftTitle: t.draft_title,
+                  draftContent: t.draft_content || '',
+                  auditResult: t,
+                }))
+              );
+            }
+          } catch (threadErr) {
+            console.warn('Gagal memuat thread sesi pertama:', threadErr);
+          }
         }
       } catch (e) {
         // Keep initial sessions state
@@ -772,7 +777,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     <div
       style={{
         width: '100vw',
-        height: '100vh',
+        height: isDesktop ? '100vh' : '100%',
+        maxHeight: isDesktop ? '100vh' : '100dvh',
         overflow: 'hidden',
         position: 'relative',
         background: COLORS.warmCream,
@@ -863,7 +869,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
           <div
             style={{
               flex: 1,
-              height: '100vh',
+              height: isDesktop ? '100vh' : '100%',
+              maxHeight: isDesktop ? '100vh' : '100dvh',
               overflow: 'hidden',
               position: 'relative',
               display: 'flex',
@@ -897,6 +904,11 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                 overflowY: 'auto',
                 position: 'relative',
                 boxSizing: 'border-box',
+                paddingBottom: isComposerCentered
+                  ? '0px'
+                  : isDesktop
+                  ? '130px'
+                  : '150px',
               }}
             >
               {isComposerCentered ? (
@@ -908,11 +920,13 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                     alignItems: 'center',
                     justifyContent: 'center',
                     position: 'relative',
+                    padding: isDesktop ? '0 24px 32px 24px' : '16px 14px 24px 14px',
+                    boxSizing: 'border-box',
                   }}
                 >
                   <NewAnalysisEmptyView isDesktop={isDesktop} />
                   {/* Komposer Terpadu mode centered di bawah hero */}
-                  <div style={{ width: '100%', maxWidth: '800px', padding: '0 20px' }}>
+                  <div style={{ width: '100%', maxWidth: '820px' }}>
                     <FloatingComposerDock
                       isDesktop={isDesktop}
                       layoutMode="centered"
@@ -936,41 +950,41 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                   </div>
                 </div>
               ) : (
-                <>
-                  <MultiTurnAuditStreamView
-                    isDesktop={isDesktop}
-                    historyTurns={currentTurns}
-                    isLoading={isLoading}
-                    currentStep={stepperStep}
-                    statusMessage={stepperMessage}
-                    isStepperFadingOut={isStepperFadingOut}
-                    onSelectForPrint={(aud) => setPrintAuditData(aud)}
-                  />
-
-                  {/* Floating Composer Dock Melayang di Bawah (Docked Mode) */}
-                  <FloatingComposerDock
-                    isDesktop={isDesktop}
-                    layoutMode="docked"
-                    onOpenPlus={() => setIsOptionsOpen(true)}
-                    draftText={draftInput}
-                    onDraftTextChange={setDraftInput}
-                    onSubmit={() => handleExecuteAudit()}
-                    isLoading={isLoading}
-                    wordCount={currentWordCount}
-                    minWordCount={300}
-                    isPlusGlowing={isPlusGlowing}
-                    detectedKeywordHint={detectedKeywordHint}
-                    onPasteSanitized={handlePasteSanitized}
-                    onSelectSampleDraft={handleSelectSampleDraft}
-                    activeTurnNumber={activeSessionId !== 'session-new' && currentTurns.length > 0 ? currentTurns.length + 1 : undefined}
-                    activeTargetQuery={targetQuery}
-                    targetQuery={targetQuery}
-                    onTargetQueryChange={setTargetQuery}
-                    thresholds={thresholds}
-                  />
-                </>
+                <MultiTurnAuditStreamView
+                  isDesktop={isDesktop}
+                  historyTurns={currentTurns}
+                  isLoading={isLoading}
+                  currentStep={stepperStep}
+                  statusMessage={stepperMessage}
+                  isStepperFadingOut={isStepperFadingOut}
+                  onSelectForPrint={(aud) => setPrintAuditData(aud)}
+                />
               )}
             </main>
+
+            {/* Floating Composer Dock Melayang Permanen di Bawah Viewport (Docked Mode) */}
+            {!isComposerCentered && (
+              <FloatingComposerDock
+                isDesktop={isDesktop}
+                layoutMode="docked"
+                onOpenPlus={() => setIsOptionsOpen(true)}
+                draftText={draftInput}
+                onDraftTextChange={setDraftInput}
+                onSubmit={() => handleExecuteAudit()}
+                isLoading={isLoading}
+                wordCount={currentWordCount}
+                minWordCount={300}
+                isPlusGlowing={isPlusGlowing}
+                detectedKeywordHint={detectedKeywordHint}
+                onPasteSanitized={handlePasteSanitized}
+                onSelectSampleDraft={handleSelectSampleDraft}
+                activeTurnNumber={activeSessionId !== 'session-new' && currentTurns.length > 0 ? currentTurns.length + 1 : undefined}
+                activeTargetQuery={targetQuery}
+                targetQuery={targetQuery}
+                onTargetQueryChange={setTargetQuery}
+                thresholds={thresholds}
+              />
+            )}
           </div>
         </>
       )}
