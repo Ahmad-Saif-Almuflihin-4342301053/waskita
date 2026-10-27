@@ -99,6 +99,14 @@ class AnnotatedSpan(BaseModel):
     label: Optional[str] = None
 
 
+class SerpAuditSummary(BaseModel):
+    skipped_video_social_count: int = 0
+    skipped_pdf_doc_count: int = 0
+    skipped_short_text_count: int = 0
+    skipped_bot_protect_count: int = 0
+    total_candidates_evaluated: int = 0
+
+
 class SerpCompetitorItem(BaseModel):
     rank_position: int
     page_title: str
@@ -128,6 +136,8 @@ class AuditExecuteResponse(BaseModel):
     overview_bullets: List[str]
     remediation_prompt: str
     serp_competitors: List[SerpCompetitorItem]
+    serp_source: Optional[Literal["live", "offline_curated", "offline_synthetic"]] = "live"
+    serp_audit_summary: Optional[SerpAuditSummary] = None
 
 
 class SessionListItem(BaseModel):

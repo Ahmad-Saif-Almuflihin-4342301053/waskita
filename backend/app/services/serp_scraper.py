@@ -16,8 +16,8 @@ from app.fixtures.benchmark_corpus import get_fallback_corpus
 
 logger = logging.getLogger(__name__)
 
-# FR-04: Domain yang dilarang/bukan artikel blog/informasional
-BLOCKED_DOMAINS = {
+# FR-04: Domain video, sosmed, ecommerce
+VIDEO_SOCIAL_DOMAINS = {
     "youtube.com",
     "www.youtube.com",
     "m.youtube.com",
@@ -42,35 +42,58 @@ BLOCKED_DOMAINS = {
     "www.lazada.co.id",
     "blibli.com",
     "www.blibli.com",
+    "pinterest.com",
+    "www.pinterest.com",
+    "linkedin.com",
+    "www.linkedin.com",
 }
 
-BLOCKED_EXTENSIONS = (".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip", ".rar")
+DOC_EXTENSIONS = (
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip", ".rar"
+)
+DOC_DOMAINS = {
+    "scribd.com", "www.scribd.com", "academia.edu", "www.academia.edu"
+}
+
+BLOCKED_DOMAINS = VIDEO_SOCIAL_DOMAINS
+BLOCKED_EXTENSIONS = DOC_EXTENSIONS
+
+
+def classify_url_skip_reason(url: str) -> Optional[str]:
+    """
+    Mengklasifikasikan alasan URL dilewati sebelum fetch:
+    - 'video_social'
+    - 'pdf_doc'
+    - None jika lolos
+    """
+    if not url or not url.startswith("http"):
+        return "invalid_url"
+    try:
+        parsed = urlparse(url.lower())
+        domain = parsed.netloc
+        domain_no_www = domain[4:] if domain.startswith("www.") else domain
+
+        for blocked in VIDEO_SOCIAL_DOMAINS:
+            if domain == blocked or domain.endswith("." + blocked) or domain_no_www == blocked:
+                return "video_social"
+
+        for doc_dom in DOC_DOMAINS:
+            if domain == doc_dom or domain.endswith("." + doc_dom) or domain_no_www == doc_dom:
+                return "pdf_doc"
+
+        path = parsed.path
+        for ext in DOC_EXTENSIONS:
+            if path.endswith(ext):
+                return "pdf_doc"
+
+        return None
+    except Exception:
+        return "invalid_url"
 
 
 def is_valid_article_url(url: str) -> bool:
     """FR-04: Memvalidasi apakah URL merupakan artikel web dan bukan video/sosmed/ecommerce/dokumen."""
-    if not url or not url.startswith("http"):
-        return False
-    try:
-        parsed = urlparse(url.lower())
-        domain = parsed.netloc
-        if domain.startswith("www."):
-            domain_no_www = domain[4:]
-        else:
-            domain_no_www = domain
-
-        for blocked in BLOCKED_DOMAINS:
-            if domain == blocked or domain.endswith("." + blocked) or domain_no_www == blocked:
-                return False
-
-        path = parsed.path
-        for ext in BLOCKED_EXTENSIONS:
-            if path.endswith(ext):
-                return False
-
-        return True
-    except Exception:
-        return False
+    return classify_url_skip_reason(url) is None
 
 
 def _extract_headings_from_html(html_str: str) -> List[Dict[str, str]]:
@@ -117,7 +140,8 @@ def _heavy_trafilatura_extract(html_str: str) -> str:
 async def fetch_page_content(url: str) -> Dict[str, Any]:
     """
     Mengunduh konten HTML halaman URL dengan httpx HTTP/2.
-    Jika status >= 400 atau timeout, fallback ke curl_cffi AsyncSession (chrome120 impersonation).
+    Jika status >= 400 (khususnya 403, 401), timeout, atau teks kosong,
+    langsung fallback seketika ke curl_cffi AsyncSession (chrome120 impersonation).
     """
     result = {
         "source_url": url,
@@ -132,6 +156,7 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
     html_content = ""
     fetch_method = "success"
     status_code = 0
+    trigger_curl_fallback = False
 
     # Attempt 1: httpx HTTP/2
     try:
@@ -145,21 +170,29 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
             if resp.status_code == 200:
                 html_content = resp.text
                 fetch_method = "success"
-            else:
-                logger.warning(f"HTTPX failed with status {resp.status_code} on {url}")
+            elif resp.status_code in (401, 403) or resp.status_code >= 400:
+                logger.warning(f"HTTPX blocked/failed with status {resp.status_code} on {url}, falling back to curl_cffi")
+                trigger_curl_fallback = True
+    except (httpx.TimeoutException, httpx.RequestError) as e:
+        logger.warning(f"HTTPX timeout or request error on {url}: {e}, falling back to curl_cffi")
+        trigger_curl_fallback = True
     except Exception as e:
         logger.warning(f"HTTPX fetch error on {url}: {e}")
+        trigger_curl_fallback = True
 
-    # Attempt 2: Fallback curl_cffi chrome120
-    if (not html_content or status_code >= 400) and settings.FEATURE_CURL_CFFI_FALLBACK:
+    # Attempt 2: Fallback curl_cffi chrome120 seketika saat HTTPX 403/401/timeout/gagal/kosong
+    if (trigger_curl_fallback or not html_content or status_code >= 400) and settings.FEATURE_CURL_CFFI_FALLBACK:
         try:
             from curl_cffi.requests import AsyncSession
             async with AsyncSession(impersonate="chrome120") as s:
                 resp = await s.get(url, timeout=8.0)
                 status_code = resp.status_code
-                if resp.status_code == 200:
+                if resp.status_code == 200 and resp.text:
                     html_content = resp.text
                     fetch_method = "fallback_curl_cffi"
+                    logger.info(f"curl_cffi impersonate=chrome120 succeeded on {url}")
+                else:
+                    logger.warning(f"curl_cffi returned status {resp.status_code} on {url}")
         except Exception as e:
             logger.warning(f"curl_cffi fallback error on {url}: {e}")
 
@@ -184,14 +217,28 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
     return result
 
 
-async def search_and_scrape_competitors(target_query: str) -> List[Dict[str, Any]]:
+async def search_and_scrape_competitors(
+    target_query: str,
+    audit_summary: Optional[Dict[str, int]] = None,
+) -> List[Dict[str, Any]]:
     """
-    Mengambil Top 3 artikel kompetitor:
-    1. Mencari lewat Serper.dev API (gl='id', hl='id', num=10) jika ada SERPER_API_KEY.
-    2. Memfilter domain non-artikel (FR-04).
-    3. Mengunduh secara paralel (asyncio.gather timeout 7s) via HTTPX + fallback curl_cffi.
-    4. Jika SERPER_API_KEY tidak ada atau gagal, gunakan Fallback Korpus Lokal (FR-13 & NFR-06).
+    Mengambil Top K artikel kompetitor (default SERP_TOP_K=10):
+    1. Mencari lewat Serper.dev API (gl='id', hl='id', num=15) jika ada SERPER_API_KEY.
+    2. Memfilter domain non-artikel (video, sosmed, ecommerce, PDF/dokumen).
+    3. Seleksi kandidat: maksimal 1 dokumen per domain unik.
+    4. Mengunduh secara paralel via HTTPX + fallback curl_cffi seketika.
+    5. Menyaring dokumen dengan kata < SERP_MIN_DOC_WORDS (150 kata).
+    6. Mengumpulkan metrik ke audit_summary (serp_audit_summary).
+    7. Graceful degradation: >=2 dokumen valid -> success; jika gagal dan fallback aktif -> fallback; jika tidak -> raises/returns.
     """
+    summary = audit_summary if audit_summary is not None else {
+        "skipped_video_social_count": 0,
+        "skipped_pdf_doc_count": 0,
+        "skipped_short_text_count": 0,
+        "skipped_bot_protect_count": 0,
+        "total_candidates_evaluated": 0,
+    }
+
     # 0. Cache-Aside Check (Fase 1 Production Roadmap - Redis / Multi-Tier)
     cached_serp = await get_serp_cache(target_query)
     if cached_serp and len(cached_serp) >= 2:
@@ -199,9 +246,12 @@ async def search_and_scrape_competitors(target_query: str) -> List[Dict[str, Any
         return cached_serp
 
     if not settings.SERPER_API_KEY:
-        logger.info(f"Using offline benchmark fallback corpus for query: {target_query}")
+        if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+            logger.warning("SERPER_API_KEY is not configured and FEATURE_OFFLINE_CORPUS_FALLBACK is disabled.")
+            return []
+        logger.info(f"SERPER_API_KEY is not set. Using offline fallback corpus for query: {target_query}")
         fallback_docs = get_fallback_corpus(target_query)
-        await set_serp_cache(target_query, fallback_docs)
+        # SPRINT 3.0: Dokumen offline TIDAK di-cache sebagai data live
         return fallback_docs
 
     try:
@@ -214,64 +264,111 @@ async def search_and_scrape_competitors(target_query: str) -> List[Dict[str, Any
             "q": target_query,
             "gl": "id",
             "hl": "id",
-            "num": 10,
+            "num": 15,
         }
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
             if resp.status_code != 200:
-                logger.warning(f"Serper.dev returned {resp.status_code}, falling back to curated corpus.")
+                logger.warning(f"Serper.dev returned {resp.status_code}")
+                if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                    return []
                 return get_fallback_corpus(target_query)
             data = resp.json()
 
         organic_results = data.get("organic", [])
+        summary["total_candidates_evaluated"] = len(organic_results)
+
         candidate_urls = []
+        seen_domains = set()
+
         for item in organic_results:
             link = item.get("link", "")
-            if is_valid_article_url(link):
-                candidate_urls.append(item)
-                if len(candidate_urls) == 3:
-                    break
+            skip_reason = classify_url_skip_reason(link)
+            if skip_reason == "video_social":
+                summary["skipped_video_social_count"] += 1
+                continue
+            elif skip_reason == "pdf_doc":
+                summary["skipped_pdf_doc_count"] += 1
+                continue
+            elif skip_reason is not None:
+                continue
+
+            parsed_url = urlparse(link.lower())
+            domain = parsed_url.netloc
+            if domain.startswith("www."):
+                domain = domain[4:]
+
+            # Seleksi kandidat: maks 1 dokumen per domain unik
+            if domain in seen_domains:
+                continue
+            seen_domains.add(domain)
+
+            candidate_urls.append(item)
 
         if len(candidate_urls) < 2:
-            logger.warning("Fewer than 2 valid organic article URLs found from SERP. Using curated corpus.")
+            logger.warning("Fewer than 2 valid candidate URLs found from SERP.")
+            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                return []
             return get_fallback_corpus(target_query)
 
-        # Scrape paralel maksimal 3 artikel kandidat
+        # Scrape paralel seluruh kandidat URL unik
         tasks = [fetch_page_content(item["link"]) for item in candidate_urls]
         fetched_results = await asyncio.gather(*tasks, return_exceptions=True)
 
         scraped_docs = []
-        for rank, (meta, res) in enumerate(zip(candidate_urls, fetched_results), start=1):
-            if isinstance(res, Exception) or not isinstance(res, dict) or res.get("fetch_status") == "failed":
+        current_rank = 1
+        min_words = settings.SERP_MIN_DOC_WORDS
+
+        for meta, res in zip(candidate_urls, fetched_results):
+            if isinstance(res, Exception) or not isinstance(res, dict):
+                summary["skipped_bot_protect_count"] += 1
+                continue
+
+            fetch_st = res.get("fetch_status", "failed")
+            http_st = res.get("http_status_code", 0)
+
+            if fetch_st == "failed" or not res.get("clean_text"):
+                # Gagal fetch atau terkena proteksi bot / firewall
+                summary["skipped_bot_protect_count"] += 1
+                continue
+
+            word_count = res.get("word_count", 0)
+            if word_count < min_words:
+                # Teks terlalu pendek (< SERP_MIN_DOC_WORDS)
+                summary["skipped_short_text_count"] += 1
                 continue
 
             domain = urlparse(meta.get("link", "")).netloc
             doc = {
-                "rank_position": rank,
-                "page_title": meta.get("title", f"Kompetitor {rank}"),
+                "rank_position": current_rank,
+                "page_title": meta.get("title", f"Kompetitor {current_rank}"),
                 "source_url": meta.get("link", ""),
                 "domain_name": domain,
                 "snippet_text": meta.get("snippet", ""),
                 "clean_text": res.get("clean_text", ""),
                 "headings": res.get("headings", []),
-                "word_count": res.get("word_count", 0),
-                "fetch_status": res.get("fetch_status", "success"),
-                "http_status_code": res.get("http_status_code", 200),
+                "word_count": word_count,
+                "fetch_status": fetch_st,
+                "http_status_code": http_st,
                 "main_text_hash": res.get("main_text_hash", ""),
             }
             scraped_docs.append(doc)
+            current_rank += 1
+
+            if len(scraped_docs) >= settings.SERP_TOP_K:
+                break
 
         if len(scraped_docs) >= 2:
             await set_serp_cache(target_query, scraped_docs)
             return scraped_docs
         else:
-            logger.warning("Scraping live articles yielded < 2 usable documents. Reverting to fallback corpus.")
-            fallback_docs = get_fallback_corpus(target_query)
-            await set_serp_cache(target_query, fallback_docs)
-            return fallback_docs
+            logger.warning(f"Scraping live articles yielded {len(scraped_docs)} usable documents (< 2).")
+            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                return scraped_docs
+            return get_fallback_corpus(target_query)
 
     except Exception as e:
-        logger.error(f"Error in search_and_scrape_competitors: {e}. Reverting to fallback corpus.")
-        fallback_docs = get_fallback_corpus(target_query)
-        await set_serp_cache(target_query, fallback_docs)
-        return fallback_docs
+        logger.error(f"Error in search_and_scrape_competitors: {e}")
+        if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+            return []
+        return get_fallback_corpus(target_query)
