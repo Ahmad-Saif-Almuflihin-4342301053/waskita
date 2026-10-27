@@ -64,6 +64,19 @@ export function exportAuditToMarkdown(turn: AuditExecuteResponse, draftContent?:
   md += `- **Jumlah Kata:** ${turn.draft_word_count} kata\n`;
   md += `- **Skor CDS (Content Differentiation Score):** **${turn.metrics.content_differentiation_score.toFixed(1)}/100**\n`;
   md += `- **Vonis Mutu:** **${turn.verdict_status.toUpperCase()}**\n`;
+  if (turn.serp_source && turn.serp_source !== 'live') {
+    const srcLabel = turn.serp_source === 'offline_curated' ? 'Korpus Uji Internal' : 'Mode Demo (Sintetis)';
+    md += `- **Sumber SERP:** *${srcLabel} (Bukan hasil Google langsung)*\n`;
+  }
+  const serpCount = turn.serp_competitors?.length || 0;
+  const summary = turn.serp_audit_summary;
+  const skippedVideo = summary?.skipped_video_social ?? summary?.reasons?.video_social ?? 0;
+  const skippedPdf = summary?.skipped_pdf_doc ?? summary?.reasons?.pdf_doc ?? 0;
+  const skippedBot = summary?.skipped_bot_protected ?? summary?.reasons?.bot_protected ?? 0;
+  const skippedShort = summary?.skipped_short_text ?? summary?.reasons?.short_text ?? 0;
+  const skippedTotal = summary?.skipped_total ?? (skippedVideo + skippedPdf + skippedBot + skippedShort);
+  md += `- **Ringkasan SERP:** Menampilkan ${serpCount} artikel acuan (${skippedTotal} dilewati: ${skippedVideo} video/sosmed, ${skippedPdf} PDF/dokumen)\n`;
+
   if (turn.degradation_warning) {
     md += `- **Peringatan Degradasi:** *${turn.degradation_warning}*\n`;
   }
@@ -129,6 +142,14 @@ export function exportAuditToMarkdown(turn: AuditExecuteResponse, draftContent?:
 export function exportAuditToCsv(turn: AuditExecuteResponse): void {
   const slug = turn.target_query.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'audit';
 
+  const serpCount = turn.serp_competitors?.length || 0;
+  const summary = turn.serp_audit_summary;
+  const skippedVideo = summary?.skipped_video_social ?? summary?.reasons?.video_social ?? 0;
+  const skippedPdf = summary?.skipped_pdf_doc ?? summary?.reasons?.pdf_doc ?? 0;
+  const skippedBot = summary?.skipped_bot_protected ?? summary?.reasons?.bot_protected ?? 0;
+  const skippedShort = summary?.skipped_short_text ?? summary?.reasons?.short_text ?? 0;
+  const skippedTotal = summary?.skipped_total ?? (skippedVideo + skippedPdf + skippedBot + skippedShort);
+
   const rows: string[][] = [
     ['Kategori', 'Parameter / Entitas', 'Nilai / Bobot', 'Ambang Batas', 'Status'],
     ['Metadata', 'Judul Artikel', `"${(turn.draft_title || '').replace(/"/g, '""')}"`, '', ''],
@@ -136,6 +157,8 @@ export function exportAuditToCsv(turn: AuditExecuteResponse): void {
     ['Metadata', 'Turn Ke', String(turn.turn_number), '', ''],
     ['Metadata', 'Waktu Audit', turn.audit_timestamp, '', ''],
     ['Metadata', 'Jumlah Kata', String(turn.draft_word_count), '>= 300', turn.draft_word_count >= 300 ? 'Lolos' : 'Gagal'],
+    ['Metadata', 'Sumber SERP', turn.serp_source || 'live', '', ''],
+    ['Metadata', 'Ringkasan SERP', `"${serpCount} acuan (${skippedTotal} dilewati: ${skippedVideo} video/sosmed, ${skippedPdf} PDF)"`, '', ''],
     ['Vonis', 'Vonis Akhir', turn.verdict_status, '', ''],
     ['Metrik IR', 'Content Differentiation Score (CDS)', turn.metrics.content_differentiation_score.toFixed(1), `>= ${turn.thresholds.min_cds_score}`, turn.metrics.content_differentiation_score >= turn.thresholds.min_cds_score ? 'Lolos' : 'Gagal'],
     ['Metrik IR', 'Max Cosine Similarity', (turn.metrics.max_cosine_similarity * 100).toFixed(1) + '%', `<= ${(turn.thresholds.max_cosine_similarity * 100).toFixed(0)}%`, turn.metrics.max_cosine_similarity <= turn.thresholds.max_cosine_similarity ? 'Lolos' : 'Gagal'],
