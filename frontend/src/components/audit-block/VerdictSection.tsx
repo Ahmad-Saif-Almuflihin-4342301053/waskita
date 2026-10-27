@@ -1,5 +1,5 @@
 import React from 'react';
-import { SemiCircleGauge, IconCheck, IconAlertCircle } from '../shared-ui';
+import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
 
 export interface VerdictSectionProps {
@@ -8,10 +8,12 @@ export interface VerdictSectionProps {
 }
 
 export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop = false }) => {
+  const isDemo = audit.verdict_status === 'Mode Demo' || audit.serp_source === 'offline_synthetic';
   const isReady =
-    audit.verdict_status === 'Layak Terbit' ||
-    audit.metrics.content_differentiation_score >=
-      (audit.thresholds?.min_cds_score ?? 75);
+    !isDemo &&
+    (audit.verdict_status === 'Layak Terbit' ||
+      audit.metrics.content_differentiation_score >=
+        (audit.thresholds?.min_cds_score ?? 75));
 
   const cdsScore = Math.round(audit.metrics.content_differentiation_score);
   const thresholdCds = Math.round(audit.thresholds?.min_cds_score ?? 75);
@@ -51,10 +53,14 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             gap: '8px',
             padding: '6px 16px',
             borderRadius: '9999px',
-            background: isReady
+            background: isDemo
+              ? 'var(--waskita-card, #E9DFCA)'
+              : isReady
               ? 'var(--waskita-emerald-bg, #D1FAE5)'
               : 'var(--waskita-amber-bg, #FEF3C7)',
-            color: isReady
+            color: isDemo
+              ? 'var(--waskita-text, #1E293B)'
+              : isReady
               ? 'var(--waskita-emerald-text, #065F46)'
               : 'var(--waskita-amber-text, #B45309)',
             fontWeight: 800,
@@ -62,8 +68,14 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             marginBottom: '10px',
           }}
         >
-          {isReady ? <IconCheck size={18} /> : <IconAlertCircle size={18} />}
-          <span>{audit.verdict_status}</span>
+          {isDemo ? (
+            <IconInfo size={18} />
+          ) : isReady ? (
+            <IconCheck size={18} />
+          ) : (
+            <IconAlertCircle size={18} />
+          )}
+          <span>{isDemo ? 'Mode Demo' : audit.verdict_status}</span>
         </div>
 
         <p
@@ -74,14 +86,39 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             color: 'var(--waskita-text-body, #334155)',
           }}
         >
-          {isReady
+          {isDemo
+            ? 'Hasil analisis dihitung menggunakan data sintetis / korpus uji lokal offline (bukan hasil Google SERP langsung). Vonis kelayakan publikasi dinonaktifkan dalam mode ini.'
+            : isReady
             ? `Selamat! Skor diferensiasi ${cdsScore}% melampaui ambang batas ${thresholdCds}%. Draf telah memiliki entitas baru bernilai tambah dan aman dari risiko kanibalisasi konten.`
             : `Naskah memperoleh skor ${cdsScore}% (di bawah batas ${thresholdCds}%). Diperlukan penguatan informasi unik dan reduksi kalimat generik sebelum diterbitkan.`}
         </p>
       </div>
 
       <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-        <SemiCircleGauge score={cdsScore} threshold={thresholdCds} />
+        {isDemo ? (
+          <div
+            style={{
+              padding: '16px 20px',
+              borderRadius: '12px',
+              background: 'var(--waskita-bg, #F7F4EB)',
+              border: '1px dashed var(--waskita-border-strong, rgba(30, 41, 59, 0.2))',
+              textAlign: 'center',
+              maxWidth: '180px',
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--waskita-text-muted, #64748B)' }}>
+              Metrik Relatif
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--waskita-text, #1E293B)', margin: '4px 0' }}>
+              {cdsScore}%
+            </div>
+            <div style={{ fontSize: '10.5px', color: 'var(--waskita-text-muted, #64748B)' }}>
+              (Korpus Sintetis)
+            </div>
+          </div>
+        ) : (
+          <SemiCircleGauge score={cdsScore} threshold={thresholdCds} />
+        )}
       </div>
     </section>
   );
