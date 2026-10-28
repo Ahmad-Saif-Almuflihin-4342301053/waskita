@@ -76,6 +76,7 @@ class MetricResultSchema(BaseModel):
     is_redundant: bool
     is_keyword_stuffed: bool
     is_out_of_domain: bool = False
+    topic_shift_detected: bool = False
 
 
 class EntityGapItem(BaseModel):
@@ -130,6 +131,7 @@ class AuditExecuteResponse(BaseModel):
     audit_timestamp: str
     verdict_status: str
     degradation_warning: Optional[str] = None
+    topic_shift_detected: bool = False
     thresholds: ThresholdConfig
     metrics: MetricResultSchema
     entity_gaps: EntityGapsGroup

@@ -502,3 +502,34 @@ class TestRemediationPromptAndCommercialFilter:
         deficit_stems = [d.term_string for d in gaps.deficit]
         assert "colorbond" not in deficit_stems
         assert "entablatur" in deficit_stems
+
+
+# =====================================================================
+# 7. UJI SPRINT 3.4: TOPIC SHIFT & PENALTI OUT-OF-DOMAIN CDS <= 20%
+# =====================================================================
+
+class TestTopicShiftAndOutOfDomainPenalty:
+    """Verifikasi penalti CDS <= 20% dan vonis Topic Shift / Out of Domain."""
+
+    def test_out_of_domain_caps_cds_to_20_percent(self):
+        from app.services.gatekeeper import calculate_composite_cds
+        from app.schemas.audit import ThresholdConfig
+
+        thresholds = ThresholdConfig(min_cds_score=75.0, min_mattr=0.55, max_hko_percentage=40.0)
+
+        # Kondisi metrik bagus TETAPI avg_cosine_sim < 0.05 (Out-of-Domain)
+        decision = calculate_composite_cds(
+            max_cosine_sim=0.04,
+            draft_entities_count=20,
+            serp_entities_count=10,
+            shared_entities_count=1,
+            gain_count=5,
+            mattr_score=0.70,
+            hko_percentage=10.0,
+            thresholds=thresholds,
+            avg_cosine_sim=0.02,  # < 0.05
+        )
+
+        assert decision["is_out_of_domain"] is True
+        assert decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan"
+        assert decision["content_differentiation_score"] <= 20.0

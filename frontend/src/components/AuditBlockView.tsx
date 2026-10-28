@@ -18,16 +18,24 @@ export interface AuditBlockViewProps {
   draftContent?: string;
   isNewArrival?: boolean;
   onSelectForPrint?: (audit: AuditExecuteResponse) => void;
+  onStartNewSessionWithDraft?: (draft: string) => void;
 }
 
 export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   audit,
   turnLabel,
   isDesktop = false,
+  draftContent,
   isNewArrival = false,
+  onStartNewSessionWithDraft,
 }) => {
   const [revealStage, setRevealStage] = useState<number>(isNewArrival ? 1 : 4);
   const [dots, setDots] = useState('.');
+
+  const isTopicShift =
+    audit.verdict_status === 'Perlu Revisi - Topik Tidak Relevan' ||
+    audit.metrics?.is_out_of_domain ||
+    audit.topic_shift_detected;
 
   useEffect(() => {
     if (!isNewArrival || revealStage >= 4) return;
@@ -90,6 +98,84 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Topic Shift / Out-of-Domain Warning Banner (Sprint 3.4) */}
+      {isTopicShift && (
+        <div
+          style={{
+            background: 'var(--waskita-rose-bg, #FEE2E2)',
+            border: '1.5px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.4))',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            flexDirection: isDesktop ? 'row' : 'column',
+            alignItems: isDesktop ? 'center' : 'flex-start',
+            justifyContent: 'space-between',
+            gap: '12px',
+            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.08)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+            <span style={{ fontSize: '18px', lineHeight: 1.2 }}>⚠️</span>
+            <div>
+              <div
+                style={{
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: 'var(--waskita-rose-text, #991B1B)',
+                }}
+              >
+                Topik Revisi Tidak Sesuai dengan Sesi Ini
+              </div>
+              <div
+                style={{
+                  fontSize: '11.5px',
+                  color: 'var(--waskita-rose-text, #991B1B)',
+                  opacity: 0.9,
+                  marginTop: '2px',
+                  lineHeight: 1.4,
+                }}
+              >
+                Draf ini memiliki relevansi sangat rendah (&lt; 5%) terhadap kompetitor sesi. Skor CDS dipangkas ke batas revisi. Disarankan membuka sesi baru.
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const textToTransfer = audit.draft_content || draftContent || '';
+              if (onStartNewSessionWithDraft) {
+                onStartNewSessionWithDraft(textToTransfer);
+              }
+            }}
+            style={{
+              background: '#DC2626',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 14px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)',
+              alignSelf: isDesktop ? 'center' : 'stretch',
+              textAlign: 'center',
+              transition: 'background 0.15s ease',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#B91C1C';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#DC2626';
+            }}
+          >
+            Mulai Sesi Baru dengan Draf Ini →
+          </button>
+        </div>
+      )}
 
       {/* Degradation Warning Banner (FR-13) */}
       {audit.degradation_warning && (

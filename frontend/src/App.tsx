@@ -283,6 +283,8 @@ export const App: React.FC = () => {
       setStepperMessage('Menyusun evaluasi stilometri (MATTR, HKO) & vonis CDS...');
     }, 3600);
 
+    const auditStartTime = Date.now();
+
     try {
       const parentSession =
         currentTurns.length > 0
@@ -318,6 +320,14 @@ export const App: React.FC = () => {
         setIsStepperFadingOut(false);
         setIsTransitioningToDock(false);
         return;
+      }
+
+      // Berikan jeda minimum 1.0s pada revisi agar animasi menunggu tidak berkedip hilang sekejap (Sprint 3.4)
+      if (currentTurns.length > 0) {
+        const elapsed = Date.now() - auditStartTime;
+        if (elapsed < 1000) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
+        }
       }
 
       clearTimeout(stepTimer1);
@@ -682,6 +692,24 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     setIsTransitioningToDock(false);
   };
 
+  const handleNewAnalysisWithDraft = (draft: string) => {
+    setActiveSessionId('session-new');
+    setCurrentTurns([]);
+    setDraftInput(draft);
+    const smartKey = extractSmartKeyword(draft);
+    if (smartKey) {
+      setTargetQuery(smartKey);
+    } else {
+      setTargetQuery('');
+    }
+    setIsTransitioningToDock(false);
+    showToast({
+      type: 'info',
+      title: 'Sesi Baru Disiapkan',
+      message: 'Draf dipindahkan ke sesi baru dengan rekomendasi kata kunci. Silakan verifikasi dan mulai audit.',
+    });
+  };
+
   const isCurrentPinned =
     sessions.find((s) => s.session_id === activeSessionId)?.is_pinned ?? false;
 
@@ -874,6 +902,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                   statusMessage={stepperMessage}
                   isStepperFadingOut={isStepperFadingOut}
                   onSelectForPrint={(aud) => setPrintAuditData(aud)}
+                  onStartNewSessionWithDraft={handleNewAnalysisWithDraft}
                 />
               )}
             </main>

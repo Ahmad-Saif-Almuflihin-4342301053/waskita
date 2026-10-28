@@ -324,6 +324,17 @@ async def execute_audit(
         if idx < len(competitor_docs):
             competitor_docs[idx]["cosine_similarity"] = sim
 
+    # Topic Shift Guard (Sprint 3.4):
+    # Jika draf revisi memiliki kemiripan < 0.05 terhadap kompetitor parent, tolak cache parent dan tandai pergantian topik.
+    avg_cosine_sim = vsm_results.get("avg_cosine_similarity", 0.0)
+    topic_shift_detected = False
+    if req.parent_session_id and (avg_cosine_sim is not None and avg_cosine_sim < 0.05):
+        topic_shift_detected = True
+        degradation_warning = (
+            "Perhatian: Terdeteksi pergantian topik dari sesi induk. "
+            "Korpus acuan sesi lama tidak relevan dengan draf revisi ini."
+        )
+
     # 5. Ekstraksi Entitas & Information Gain (Persamaan 2.4 - 2.5)
     draft_entities = extract_candidate_entities(draft_content, top_n=30)
     competitor_entities_list = [
@@ -360,7 +371,12 @@ async def execute_audit(
     )
 
     serp_source = determine_serp_source(competitor_docs)
-    final_verdict_status = "Mode Demo" if serp_source == "offline_synthetic" else cds_decision["verdict_status"]
+    if cds_decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan":
+        final_verdict_status = "Perlu Revisi - Topik Tidak Relevan"
+    elif serp_source == "offline_synthetic":
+        final_verdict_status = "Mode Demo"
+    else:
+        final_verdict_status = cds_decision["verdict_status"]
 
     # 8. Anotasi Stabilo 4-Warna (Tabel 3.6 Proposal TA)
     annotated_spans = generate_annotated_spans(
@@ -510,6 +526,7 @@ async def execute_audit(
         audit_timestamp=now_dt.isoformat(),
         verdict_status=final_verdict_status,
         degradation_warning=degradation_warning,
+        topic_shift_detected=topic_shift_detected,
         thresholds=thresholds,
         metrics=MetricResultSchema(
             content_differentiation_score=cds_decision["content_differentiation_score"],
@@ -522,6 +539,7 @@ async def execute_audit(
             is_redundant=cds_decision["is_redundant"],
             is_keyword_stuffed=cds_decision["is_keyword_stuffed"],
             is_out_of_domain=cds_decision.get("is_out_of_domain", False),
+            topic_shift_detected=topic_shift_detected,
         ),
         entity_gaps=entity_gaps,
         annotated_spans=annotated_spans,
