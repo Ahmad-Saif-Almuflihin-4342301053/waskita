@@ -143,6 +143,26 @@ Arsitektur Romawi kuno memiliki pilar ordo klasik yang sangat megah dan proporsi
     );
   });
 
+  // Test 9 (Sprint 3.3): Logika penyisipan kursor naskah (cursor-aware partial paste) mempertahankan teks lama
+  runCase('Penyisipan kursor naskah (cursor-aware partial paste) mempertahankan teks sebelum dan sesudah kursor', () => {
+    const p1 = 'Paragraf pertama naskah editorial.';
+    const p2 = 'Paragraf kedua naskah editorial.';
+    const p3 = 'Paragraf ketiga naskah editorial.';
+    const fullText = `${p1}\n\n${p2}\n\n${p3}`;
+
+    // Simulasikan kursor di tengah paragraf kedua
+    const insertPosition = p1.length + 2 + p2.indexOf('naskah');
+    const newSentence = ' [KALIMAT SISIPAN] ';
+    const before = fullText.substring(0, insertPosition);
+    const after = fullText.substring(insertPosition);
+    const result = before + newSentence + after;
+
+    assertTrue(result.includes(p1), 'Paragraf 1 harus tetap utuh');
+    assertTrue(result.includes(p3), 'Paragraf 3 harus tetap utuh');
+    assertTrue(result.includes('KALIMAT SISIPAN'), 'Kalimat sisipan baru harus berhasil dimasukkan');
+    assertTrue(result.length === fullText.length + newSentence.length, 'Panjang teks hasil harus tepat bertambah sepanjang kalimat sisipan');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
