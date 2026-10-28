@@ -425,3 +425,80 @@ class TestAnnotatedSpans:
         assert "red" in colors_present
         # Wajib ada hijau untuk kalimat yang memuat entitas gain 'dampit'
         assert "green" in colors_present
+
+
+# =====================================================================
+# 6. UJI SPRINT 3.3: REMEDIATION PROMPT & FILTER SPONSOR KOMERSIAL
+# =====================================================================
+
+class TestRemediationPromptAndCommercialFilter:
+    """Verifikasi sitasi kompetitor eksplisit, cuplikan teks jiplak, dan filter merk komersial."""
+
+    def test_remediation_prompt_cites_highest_competitor_and_snippets(self):
+        from app.services.gatekeeper import generate_overview_and_remediation
+
+        highest_comp = {
+            "title": "Mengenal Arsitektur Klasik Lebih Dekat",
+            "domain": "arsitag.com",
+            "url": "https://www.arsitag.com/article/mengenal-arsitektur-klasik",
+            "cosine_similarity": 0.9712,
+        }
+
+        snippets = [
+            "Aturan proporsi ordo Dorik, Ionik, dan Korintia mengatur setiap elemen dari pedestal.",
+            "Rasio ketinggian kolom terhadap diameter bawah tiang sangat presisi.",
+        ]
+
+        entity_gaps = EntityGapsGroup(
+            deficit=[
+                EntityGapItem(term_string="colorbond", term_surface_form="Colorbond", tfidf_weight=0.85, competitor_consensus_count=2),
+                EntityGapItem(term_string="kolom ionik", term_surface_form="Kolom Ionik", tfidf_weight=0.80, competitor_consensus_count=2),
+            ],
+            gain=[],
+        )
+
+        res = generate_overview_and_remediation(
+            verdict_status="Perlu Revisi",
+            cds_score=42.5,
+            is_redundant=True,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.9712,
+            mattr_score=0.62,
+            hko_percentage=20.0,
+            entity_gaps=entity_gaps,
+            target_query="ordo klasik arsitektur",
+            highest_competitor=highest_comp,
+            redundant_snippets=snippets,
+        )
+
+        prompt = res["remediation_prompt"]
+
+        # 1. Wajib menyebut nama kompetitor arsitag.com dan judul artikel
+        assert "arsitag.com" in prompt
+        assert "Mengenal Arsitektur Klasik" in prompt
+        assert "97.1%" in prompt
+
+        # 2. Wajib menyertakan cuplikan kalimat yang terindikasi plagiasi
+        assert "Aturan proporsi ordo Dorik" in prompt
+        assert "Rasio ketinggian kolom" in prompt
+
+        # 3. Wajib memfilter merk komersial Colorbond dari celah defisit
+        assert "Colorbond" not in prompt
+        assert "Kolom Ionik" in prompt
+
+    def test_information_gain_filters_commercial_sponsor_brands(self):
+        from app.services.information_gain import calculate_information_gain
+
+        draft_entities = [("ordo", "ordo", 5)]
+        comp_entities = [
+            [("ordo", "ordo", 4), ("colorbond", "Colorbond", 3), ("entablatur", "Entablatur", 2)]
+        ]
+
+        gaps = calculate_information_gain(
+            draft_entities=draft_entities,
+            competitor_entities_list=comp_entities,
+        )
+
+        deficit_stems = [d.term_string for d in gaps.deficit]
+        assert "colorbond" not in deficit_stems
+        assert "entablatur" in deficit_stems

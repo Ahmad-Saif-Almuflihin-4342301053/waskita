@@ -253,6 +253,16 @@ export const App: React.FC = () => {
     setStepperStep(1);
     setStepperMessage('Mengekstrak & menormalisasi draf naskah...');
 
+    // Auto-scroll ke indikator proses saat Turn >= 2 (Sprint 3.3)
+    if (currentTurns.length > 0) {
+      setTimeout(() => {
+        const loadingEl = document.getElementById('turn-loading-indicator');
+        if (loadingEl) {
+          loadingEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+      }, 50);
+    }
+
     const stepTimer1 = setTimeout(() => {
       setStepperStep(2);
       setStepperMessage('Mengakuisisi korpus Top-10 kompetitor SERP...');

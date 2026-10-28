@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 from app.schemas.audit import EntityGapItem, EntityGapsGroup
+from app.services.gatekeeper import is_commercial_or_sponsor
 
 
 def calculate_information_gain(
@@ -56,13 +57,16 @@ def calculate_information_gain(
     deficit_stems = serp_set - draft_set
     deficit_items: List[EntityGapItem] = []
     for stem in deficit_stems:
+        surface = serp_map[stem]
+        if is_commercial_or_sponsor(stem) or is_commercial_or_sponsor(surface):
+            continue
         consensus = serp_consensus.get(stem, 1)
         # Prioritaskan yang muncul di minimal 2 artikel kompetitor (konsensus tinggi)
         weight = round(0.50 + (0.20 * min(consensus, 3)), 4)
         deficit_items.append(
             EntityGapItem(
                 term_string=stem,
-                term_surface_form=serp_map[stem].title(),
+                term_surface_form=surface.title(),
                 tfidf_weight=weight,
                 competitor_consensus_count=consensus,
             )

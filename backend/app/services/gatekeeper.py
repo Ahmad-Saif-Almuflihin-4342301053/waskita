@@ -25,6 +25,55 @@ CLICHE_PHRASES = [
     "sebagai kesimpulan",
 ]
 
+# Daftar Kata Kunci / Merek Sponsor & Komersial Non-Substantif (Sprint 3.3)
+COMMERCIAL_SPONSOR_KEYWORDS = {
+    "colorbond",
+    "bluescope",
+    "dulux",
+    "nippon",
+    "nippon paint",
+    "toto",
+    "ikea",
+    "propan",
+    "holcim",
+    "semen gresik",
+    "mowilex",
+    "roman",
+    "roman ceramic",
+    "onduline",
+    "alustar",
+    "shopee",
+    "tokopedia",
+    "lazada",
+    "blibli",
+    "whatsapp",
+    "instagram",
+    "facebook",
+    "youtube",
+    "tiktok",
+    "hubungi",
+    "kontak",
+    "promo",
+    "diskon",
+    "harga",
+    "jual",
+    "beli",
+    "distributor",
+    "supplier",
+}
+
+
+def is_commercial_or_sponsor(term: str) -> bool:
+    """Filter untuk mendeteksi entitas sponsor/komersial/merek dagang non-substantif."""
+    if not term:
+        return False
+    t_lower = term.lower().strip()
+    words = set(re.findall(r"\b\w+\b", t_lower))
+    for brand in COMMERCIAL_SPONSOR_KEYWORDS:
+        if brand in words or brand == t_lower:
+            return True
+    return False
+
 
 def _split_into_sentences(text: str) -> List[str]:
     """Memecah paragraf/teks menjadi daftar kalimat yang utuh."""
@@ -51,9 +100,13 @@ def generate_annotated_spans(
     sentences = _split_into_sentences(draft_content)
     spans: List[AnnotatedSpan] = []
 
-    # Himpunan stem entitas gain dan deficit
+    # Himpunan stem entitas gain dan deficit (filter entitas komersial/sponsor)
     gain_stems = {item.term_string for item in entity_gaps.gain}
-    top_deficit_items = entity_gaps.deficit[:3]
+    valid_deficits = [
+        d for d in entity_gaps.deficit
+        if not is_commercial_or_sponsor(d.term_string) and not is_commercial_or_sponsor(d.term_surface_form)
+    ]
+    top_deficit_items = valid_deficits[:3]
 
     # Gabungan kalimat dari artikel kompetitor untuk deteksi redundansi lokal
     competitor_sentences = []
@@ -239,10 +292,28 @@ def generate_overview_and_remediation(
     entity_gaps: EntityGapsGroup,
     target_query: str,
     is_out_of_domain: bool = False,
+    highest_competitor: Optional[Dict[str, any]] = None,
+    redundant_snippets: Optional[List[str]] = None,
 ) -> Dict[str, any]:
     """Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt."""
     bullets: List[str] = []
     remediation_points: List[str] = []
+
+    # Format sitasi kompetitor tertinggi jika ada (Sprint 3.3)
+    comp_citation = ""
+    if highest_competitor:
+        comp_title = highest_competitor.get("title") or "Artikel Kompetitor Teratas"
+        comp_domain = highest_competitor.get("domain") or ""
+        if not comp_domain and highest_competitor.get("url"):
+            from urllib.parse import urlparse
+            comp_domain = urlparse(highest_competitor["url"]).netloc.replace("www.", "")
+
+        sim_val = highest_competitor.get("cosine_similarity", max_cosine_sim)
+        sim_pct = round(sim_val * 100.0, 1)
+        if comp_domain:
+            comp_citation = f"Artikel '{comp_title}' ({comp_domain}) dengan kemiripan {sim_pct}%"
+        else:
+            comp_citation = f"Artikel '{comp_title}' dengan kemiripan {sim_pct}%"
 
     if verdict_status == "Siap Terbit":
         bullets.append(f"Skor diferensiasi semantik draf sangat baik ({cds_score}%), melampaui ambang batas.")
@@ -260,8 +331,30 @@ def generate_overview_and_remediation(
             bullets.append("Naskah terindikasi di luar topik utama (Out-of-Domain): kemiripan semantik rata-rata dengan acuan SERP sangat rendah (< 0.05).")
             remediation_points.append(f"Pastikan naskah benar-benar mengulas topik target '{target_query}'. Naskah saat ini tidak memiliki relevansi semantik yang memadai dengan korpus acuan.")
         if is_redundant:
-            bullets.append(f"Tingkat kemiripan semantik dengan artikel kompetitor terlalu tinggi ({max_cosine_sim:.2f} > ambang batas).")
-            remediation_points.append("Tulis ulang paragraf yang ditandai merah agar tidak menjiplak struktur kalimat kompetitor.")
+            if comp_citation:
+                bullets.append(f"Tingkat kemiripan semantik tinggi terhadap {comp_citation} (melampaui ambang batas).")
+                remediation_points.append(
+                    f"Tulis ulang paragraf naskah yang memiliki kemiripan tinggi dengan {comp_citation} agar struktur kalimat dan sudut pandang menjadi orisinal."
+                )
+            else:
+                bullets.append(f"Tingkat kemiripan semantik dengan artikel kompetitor terlalu tinggi ({max_cosine_sim:.2f} > ambang batas).")
+                remediation_points.append("Tulis ulang paragraf yang ditandai merah agar tidak menjiplak struktur kalimat kompetitor.")
+
+            # Sertakan cuplikan naskah yang terindikasi plagiasi/parafrase langsung (Sprint 3.3)
+            if redundant_snippets:
+                unique_snippets = []
+                for s in redundant_snippets:
+                    s_clean = s.strip()
+                    if s_clean and s_clean not in unique_snippets:
+                        unique_snippets.append(s_clean)
+                    if len(unique_snippets) >= 3:
+                        break
+                if unique_snippets:
+                    snippets_block = "\n".join([f'   > "{s}"' for s in unique_snippets])
+                    remediation_points.append(
+                        f"Cuplikan kalimat naskah yang terindikasi parafrase/jiplak langsung:\n{snippets_block}"
+                    )
+
         if is_keyword_stuffed:
             if hko_percentage > 40.0:
                 bullets.append(f"Sub-judul terindikasi keyword stuffing ({hko_percentage:.1f}% memuat kata kunci).")
@@ -269,8 +362,14 @@ def generate_overview_and_remediation(
             if mattr_score < 0.55:
                 bullets.append(f"Kosakata artikel cenderung repetitif (MATTR: {mattr_score:.2f} < 0.55).")
                 remediation_points.append("Gunakan sinonim kata yang lebih bervariasi untuk memperkaya stilometri teks.")
-        if entity_gaps.deficit:
-            deficit_terms = ", ".join([d.term_surface_form for d in entity_gaps.deficit[:3]])
+
+        # Filter entitas defisit dari noise komersial/sponsor seperti Colorbond (Sprint 3.3)
+        valid_deficits = [
+            d for d in entity_gaps.deficit
+            if not is_commercial_or_sponsor(d.term_string) and not is_commercial_or_sponsor(d.term_surface_form)
+        ]
+        if valid_deficits:
+            deficit_terms = ", ".join([d.term_surface_form for d in valid_deficits[:3]])
             bullets.append(f"Terdapat celah topik penting SERP yang belum dicakup: {deficit_terms}.")
             remediation_points.append(f"Sertakan pembahasan topik berikut untuk melengkapi draf: {deficit_terms}.")
 
