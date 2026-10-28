@@ -33,25 +33,212 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   const [dots, setDots] = useState('.');
 
   const isTopicShift =
-    audit.verdict_status === 'Perlu Revisi - Topik Tidak Relevan' ||
-    audit.metrics?.is_out_of_domain ||
-    audit.topic_shift_detected;
+    audit.verdict_status.includes('Topik Tidak Relevan') ||
+    !!audit.metrics?.is_out_of_domain ||
+    !!audit.topic_shift_detected;
 
   useEffect(() => {
-    if (!isNewArrival || revealStage >= 4) return;
+    if (!isNewArrival || revealStage >= 4 || isTopicShift) return;
     const timer = setTimeout(() => {
       setRevealStage((prev) => Math.min(prev + 1, 4));
     }, 450);
     return () => clearTimeout(timer);
-  }, [revealStage, isNewArrival]);
+  }, [revealStage, isNewArrival, isTopicShift]);
 
   useEffect(() => {
-    if (revealStage >= 4) return;
+    if (revealStage >= 4 || isTopicShift) return;
     const interval = setInterval(() => {
       setDots((prev) => (prev === '...' ? '.' : prev + '.'));
     }, 400);
     return () => clearInterval(interval);
-  }, [revealStage]);
+  }, [revealStage, isTopicShift]);
+
+  // Sprint 3.5: Short-circuit render saat terdeteksi Out-of-Domain / Pergantian Topik
+  if (isTopicShift) {
+    return (
+      <div
+        style={{
+          background: 'var(--waskita-card, #E9DFCA)',
+          borderRadius: '20px',
+          padding: isDesktop ? '24px' : '16px',
+          marginBottom: '24px',
+          border: '1px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.3))',
+          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        {/* Header Turn */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '16px',
+            paddingBottom: '12px',
+            borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                background: COLORS.mutedSkyBlue,
+                color: COLORS.deepSlate,
+              }}
+            >
+              {turnLabel || `Turn #${audit.turn_number || 1}`}
+            </span>
+            <span style={{ fontSize: '12px', color: 'var(--waskita-text-muted, #64748B)' }}>
+              {new Date(audit.audit_timestamp).toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* Topic Shift Blocker Card (Sprint 3.5) */}
+        <div
+          style={{
+            background: 'var(--waskita-surface-white, #FFFFFF)',
+            borderRadius: '16px',
+            padding: isDesktop ? '28px 24px' : '20px 16px',
+            border: '1.5px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.35))',
+            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.06)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '50%',
+              background: 'var(--waskita-rose-bg, #FEE2E2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '28px',
+            }}
+          >
+            ⚠️
+          </div>
+
+          <div>
+            <div
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                background: 'var(--waskita-rose-bg, #FEE2E2)',
+                color: 'var(--waskita-rose-text, #991B1B)',
+                fontWeight: 800,
+                fontSize: '12px',
+                marginBottom: '8px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.5px',
+              }}
+            >
+              {audit.verdict_status}
+            </div>
+            <h3
+              style={{
+                margin: '4px 0 8px 0',
+                fontSize: isDesktop ? '18px' : '16px',
+                fontWeight: 800,
+                color: 'var(--waskita-text, #1E293B)',
+              }}
+            >
+              Analisis Dihentikan: Perbedaan Topik Terdeteksi
+            </h3>
+            <p
+              style={{
+                margin: '0 auto',
+                maxWidth: '560px',
+                fontSize: '13px',
+                lineHeight: 1.6,
+                color: 'var(--waskita-text-body, #475569)',
+              }}
+            >
+              Naskah yang Anda kirimkan memiliki irisan semantik sangat rendah (&lt; 5%) terhadap acuan korpus sesi ini{' '}
+              {audit.target_query ? (
+                <strong>("{audit.target_query}")</strong>
+              ) : (
+                'ini'
+              )}
+              . Untuk menjaga akurasi evaluasi dan mencegah rekomendasi keliru, visualisasi 7 metrik dan referensi kompetitor sesi lama disembunyikan. Skor diferensiasi dipangkas maksimal ke 20%.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '4px',
+              width: '100%',
+              maxWidth: '420px',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                const textToTransfer = audit.draft_content || draftContent || '';
+                if (onStartNewSessionWithDraft) {
+                  onStartNewSessionWithDraft(textToTransfer);
+                }
+              }}
+              style={{
+                width: '100%',
+                background: '#DC2626',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: '12px',
+                padding: '12px 20px',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.28)',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = '#B91C1C';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = '#DC2626';
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+              }}
+            >
+              <span>🚀 Mulai Sesi Baru dengan Draf Ini</span>
+            </button>
+            <span
+              style={{
+                fontSize: '11.5px',
+                color: 'var(--waskita-text-muted, #64748B)',
+              }}
+            >
+              Draf naskah dan rekomendasi kata kunci baru akan otomatis disiapkan di sesi baru.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -98,84 +285,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
           </span>
         </div>
       </div>
-
-      {/* Topic Shift / Out-of-Domain Warning Banner (Sprint 3.4) */}
-      {isTopicShift && (
-        <div
-          style={{
-            background: 'var(--waskita-rose-bg, #FEE2E2)',
-            border: '1.5px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.4))',
-            borderRadius: '12px',
-            padding: '12px 16px',
-            marginBottom: '16px',
-            display: 'flex',
-            flexDirection: isDesktop ? 'row' : 'column',
-            alignItems: isDesktop ? 'center' : 'flex-start',
-            justifyContent: 'space-between',
-            gap: '12px',
-            boxShadow: '0 2px 8px rgba(220, 38, 38, 0.08)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-            <span style={{ fontSize: '18px', lineHeight: 1.2 }}>⚠️</span>
-            <div>
-              <div
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 700,
-                  color: 'var(--waskita-rose-text, #991B1B)',
-                }}
-              >
-                Topik Revisi Tidak Sesuai dengan Sesi Ini
-              </div>
-              <div
-                style={{
-                  fontSize: '11.5px',
-                  color: 'var(--waskita-rose-text, #991B1B)',
-                  opacity: 0.9,
-                  marginTop: '2px',
-                  lineHeight: 1.4,
-                }}
-              >
-                Draf ini memiliki relevansi sangat rendah (&lt; 5%) terhadap kompetitor sesi. Skor CDS dipangkas ke batas revisi. Disarankan membuka sesi baru.
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              const textToTransfer = audit.draft_content || draftContent || '';
-              if (onStartNewSessionWithDraft) {
-                onStartNewSessionWithDraft(textToTransfer);
-              }
-            }}
-            style={{
-              background: '#DC2626',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 14px',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)',
-              alignSelf: isDesktop ? 'center' : 'stretch',
-              textAlign: 'center',
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = '#B91C1C';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = '#DC2626';
-            }}
-          >
-            Mulai Sesi Baru dengan Draf Ini →
-          </button>
-        </div>
-      )}
 
       {/* Degradation Warning Banner (FR-13) */}
       {audit.degradation_warning && (

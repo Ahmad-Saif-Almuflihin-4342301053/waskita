@@ -124,7 +124,11 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             </div>
           </div>
         ) : (
-          <SemiCircleGauge score={cdsScore} threshold={thresholdCds} />
+          <SemiCircleGauge
+            score={cdsScore}
+            threshold={thresholdCds}
+            isOutOfDomain={isOutOfDomain}
+          />
         )}
       </div>
     </section>
