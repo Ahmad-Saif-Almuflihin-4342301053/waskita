@@ -486,6 +486,11 @@ class TestRemediationPromptAndCommercialFilter:
         assert "Colorbond" not in prompt
         assert "Kolom Ionik" in prompt
 
+        # 4. Sprint 3.6: Konteks 5 kompetitor dan kontainer delimiter naskah
+        assert "5 artikel kompetitor acuan Google SERP" in prompt
+        assert "[NASKAH ARTIKEL YANG AKAN DIPROSES]:" in prompt
+        assert "(Tempelkan naskah draf artikel Anda di sini sebelum dikirim ke AI)" in prompt
+
     def test_remediation_prompt_actionable_cms_seo_when_siap_terbit(self):
         """Sprint 3.5: Draf Siap Terbit menghasilkan paket materi pra-publikasi CMS & SEO."""
         from app.services.gatekeeper import generate_overview_and_remediation
@@ -519,6 +524,11 @@ class TestRemediationPromptAndCommercialFilter:
         assert "Arsitektur Berkelanjutan" in prompt
         assert "tata letak kampus universitas" in prompt
         assert "88.5%" in prompt
+
+        # Sprint 3.6: Konteks 5 kompetitor dan kontainer delimiter naskah
+        assert "5 artikel kompetitor teratas di Google SERP" in prompt
+        assert "[NASKAH ARTIKEL YANG AKAN DIPROSES]:" in prompt
+        assert "(Tempelkan naskah draf artikel Anda di sini sebelum dikirim ke AI)" in prompt
 
     def test_information_gain_filters_commercial_sponsor_brands(self):
         from app.services.information_gain import calculate_information_gain
