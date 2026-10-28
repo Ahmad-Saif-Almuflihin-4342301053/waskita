@@ -71,3 +71,6 @@ frontend/build/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Log runtime start.sh
+.run-logs/
