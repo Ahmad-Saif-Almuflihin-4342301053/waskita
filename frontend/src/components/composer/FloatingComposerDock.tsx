@@ -129,16 +129,51 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
     const rawHtml = e.clipboardData.getData("text/html");
     const rawText = e.clipboardData.getData("text/plain");
 
-    if (rawHtml || rawText) {
-      e.preventDefault();
-      const sanitized = sanitizePastedOrUploadedDraft(rawText, rawHtml);
-      const keywordCandidate = extractSmartKeyword(sanitized.cleanText);
+    if (!rawHtml && !rawText) return;
 
+    // Bersihkan token media & normalisasi naskah paste
+    const sanitized = sanitizePastedOrUploadedDraft(rawText, rawHtml);
+    const textToInsert = sanitized.cleanText;
+
+    // 1. Kotak kosong -> Paste naskah awal lengkap dengan ekstraksi kata kunci cerdas
+    if (!draftText || !draftText.trim()) {
+      e.preventDefault();
+      const keywordCandidate = extractSmartKeyword(textToInsert);
       if (onPasteSanitized) {
-        onPasteSanitized(sanitized.cleanText, keywordCandidate);
+        onPasteSanitized(textToInsert, keywordCandidate);
       } else if (onDraftTextChange) {
-        onDraftTextChange(sanitized.cleanText);
+        onDraftTextChange(textToInsert);
       }
+      return;
+    }
+
+    // 2. Kotak sudah berisi teks -> Cursor-aware partial paste (pertahankan naskah & riwayat undo Ctrl+Z)
+    e.preventDefault();
+    const textarea = e.currentTarget;
+    const start = textarea.selectionStart ?? 0;
+    const end = textarea.selectionEnd ?? 0;
+
+    let insertSuccess = false;
+    try {
+      insertSuccess = document.execCommand("insertText", false, textToInsert);
+    } catch {
+      insertSuccess = false;
+    }
+
+    if (!insertSuccess) {
+      // Fallback: sisipkan teks di antara selectionStart dan selectionEnd
+      const before = draftText.substring(0, start);
+      const after = draftText.substring(end);
+      const updated = before + textToInsert + after;
+      if (onDraftTextChange) {
+        onDraftTextChange(updated);
+      }
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const nextCursor = start + textToInsert.length;
+          textareaRef.current.setSelectionRange(nextCursor, nextCursor);
+        }
+      }, 0);
     }
   };
 
