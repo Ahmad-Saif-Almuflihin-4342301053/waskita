@@ -210,6 +210,23 @@ Arsitektur Romawi kuno memiliki pilar ordo klasik yang sangat megah dan proporsi
     );
   });
 
+  // Test 12 (Sprint 3.5 Final): Prioritaskan entitas substantif judul baris pertama (Title-First)
+  runCase('extractSmartKeyword memprioritaskan entitas judul kampus (bukan istilah periferal / TikTok)', () => {
+    const campusDraft = `Prinsip Tata Letak Fungsional Kampus: Membangun Ekosistem Hijau
+
+Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di berbagai sudut, ruang kolaborasi terbuka dan area istirahat mahasiswa seringkali menjadi pusat keramaian harian yang ramai dibicarakan di media sosial.`;
+
+    const kw = extractSmartKeyword(campusDraft);
+    assertTrue(
+      kw.includes('tata letak kampus') || kw.includes('tata letak') || kw.includes('kampus'),
+      `Kueri wajib memprioritaskan topik judul 'tata letak kampus', hasil aktual: "${kw}"`
+    );
+    assertTrue(
+      !kw.includes('ruang kolaborasi terbuka') && !kw.includes('tiktok'),
+      `Kueri tidak boleh nyasar ke istilah periferal/TikTok, hasil aktual: "${kw}"`
+    );
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
