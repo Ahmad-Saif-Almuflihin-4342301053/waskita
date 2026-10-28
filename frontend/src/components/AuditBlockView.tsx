@@ -128,7 +128,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
               fontSize: '28px',
             }}
           >
-            ⚠️
+            ⛔
           </div>
 
           <div>
@@ -158,7 +158,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
                 color: 'var(--waskita-text, #1E293B)',
               }}
             >
-              Analisis Dihentikan: Perbedaan Topik Terdeteksi
+              Topik Revisi Tidak Sesuai dengan Sesi Ini
             </h3>
             <p
               style={{
@@ -169,13 +169,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
                 color: 'var(--waskita-text-body, #475569)',
               }}
             >
-              Naskah yang Anda kirimkan memiliki irisan semantik sangat rendah (&lt; 5%) terhadap acuan korpus sesi ini{' '}
-              {audit.target_query ? (
-                <strong>("{audit.target_query}")</strong>
-              ) : (
-                'ini'
-              )}
-              . Untuk menjaga akurasi evaluasi dan mencegah rekomendasi keliru, visualisasi 7 metrik dan referensi kompetitor sesi lama disembunyikan. Skor diferensiasi dipangkas maksimal ke 20%.
+              Naskah revisi Anda terdeteksi melenceng jauh dari topik pembahasan sesi ini. Evaluasi metrik, celah informasi, dan stabilo dinonaktifkan karena perbandingan dengan artikel acuan sesi ini tidak valid.
             </p>
           </div>
 

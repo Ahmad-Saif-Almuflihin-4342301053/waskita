@@ -692,21 +692,20 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     setIsTransitioningToDock(false);
   };
 
-  const handleNewAnalysisWithDraft = (draft: string) => {
-    setActiveSessionId('session-new');
-    setCurrentTurns([]);
-    setDraftInput(draft);
-    const smartKey = extractSmartKeyword(draft);
+  const handleStartNewSessionWithDraft = (text: string) => {
+    // 1. Reset ke sesi baru
+    handleNewAnalysis();
+    // 2. Suntikkan teks naskah ke input draf
+    setDraftInput(text);
+    // 3. Ekstrak kueri semantik baru dari teks tersebut
+    const smartKey = extractSmartKeyword(text);
     if (smartKey) {
       setTargetQuery(smartKey);
-    } else {
-      setTargetQuery('');
     }
-    setIsTransitioningToDock(false);
     showToast({
       type: 'info',
-      title: 'Sesi Baru Disiapkan',
-      message: 'Draf dipindahkan ke sesi baru dengan rekomendasi kata kunci. Silakan verifikasi dan mulai audit.',
+      title: 'Membuka Sesi Baru',
+      message: 'Naskah dipindahkan ke sesi baru dengan acuan topik yang tepat.',
     });
   };
 
@@ -902,7 +901,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                   statusMessage={stepperMessage}
                   isStepperFadingOut={isStepperFadingOut}
                   onSelectForPrint={(aud) => setPrintAuditData(aud)}
-                  onStartNewSessionWithDraft={handleNewAnalysisWithDraft}
+                  onStartNewSessionWithDraft={handleStartNewSessionWithDraft}
                 />
               )}
             </main>
