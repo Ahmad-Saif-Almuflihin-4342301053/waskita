@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { AuditBlockView } from './AuditBlockView';
 import { LiveStepper } from './LiveStepper';
 import { COLORS, IconChevronDown, IconChevronRight, IconSearch } from './shared-ui';
@@ -28,6 +28,17 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
   onSelectForPrint,
 }) => {
   const [expandedDrafts, setExpandedDrafts] = useState<Record<number, boolean>>({});
+  const bottomLoadingRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll ke indikator proses saat Turn >= 2 (Sprint 3.3)
+  useEffect(() => {
+    if (isLoading && historyTurns.length > 0) {
+      const timer = setTimeout(() => {
+        bottomLoadingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, historyTurns.length]);
 
   const toggleDraft = (idx: number) => {
     setExpandedDrafts((prev) => ({
@@ -197,7 +208,14 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
 
       {/* Live Stepper Loading Indicator */}
       {isLoading && (
-        <div style={{ marginTop: '8px' }}>
+        <div
+          ref={bottomLoadingRef}
+          id="turn-loading-indicator"
+          style={{
+            marginTop: '8px',
+            scrollMarginBottom: isDesktop ? '140px' : '160px',
+          }}
+        >
           <LiveStepper
             currentStep={currentStep}
             statusMessage={statusMessage}
