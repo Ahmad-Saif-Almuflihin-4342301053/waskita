@@ -598,6 +598,8 @@ class TestTopicShiftAndOutOfDomainSprint34:
         # Verifikasi Topic Shift Guard aktif
         assert data2["turn_number"] == 2
         assert data2.get("topic_shift_detected") is True
+        assert data2.get("is_topic_shift") is True
+        assert data2["metrics"]["is_topic_shift"] is True
         assert data2["metrics"]["is_out_of_domain"] is True
 
         # Skor CDS wajib dipangkas ke batas maksimum 20.0%
