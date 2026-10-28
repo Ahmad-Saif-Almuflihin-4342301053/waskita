@@ -750,7 +750,8 @@ export const SemiCircleGauge: React.FC<{
   threshold: number;
   color?: string;
   size?: number;
-}> = ({ score, threshold, color = "#10B981" }) => {
+  isOutOfDomain?: boolean;
+}> = ({ score, threshold, color, isOutOfDomain = false }) => {
   const radius = 68;
   const strokeWidth = 10;
   const cx = 90;
@@ -762,6 +763,18 @@ export const SemiCircleGauge: React.FC<{
   const thresholdAngle = Math.PI * (1 - threshold / 100);
   const dotX = cx + (radius - 1) * Math.cos(thresholdAngle);
   const dotY = cy - (radius - 1) * Math.sin(thresholdAngle);
+
+  // Dynamic Gauge Colors (Sprint 3.5):
+  // - Merah (#EF4444) jika score < 50 atau isOutOfDomain == True
+  // - Kuning (#F59E0B) jika score >= 50 dan score < threshold
+  // - Hijau (#10B981) jika score >= threshold
+  const gaugeColor =
+    color ||
+    (isOutOfDomain || score < 50
+      ? '#EF4444'
+      : score < threshold
+      ? '#F59E0B'
+      : '#10B981');
 
   return (
     <div style={{ position: "relative", width: 180, height: 96, margin: "0 auto" }}>
@@ -778,7 +791,7 @@ export const SemiCircleGauge: React.FC<{
         <path
           d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
           fill="none"
-          stroke={color}
+          stroke={gaugeColor}
           strokeWidth={strokeWidth}
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
