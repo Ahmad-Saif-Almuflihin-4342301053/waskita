@@ -53,7 +53,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
     return () => clearInterval(interval);
   }, [revealStage, isTopicShift]);
 
-  // Sprint 3.5: Short-circuit render saat terdeteksi Out-of-Domain / Pergantian Topik
+  // Sprint 3.5 & 3.6: Short-circuit render saat terdeteksi Out-of-Domain / Pergantian Topik
   if (isTopicShift) {
     return (
       <div
@@ -62,7 +62,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
           borderRadius: '20px',
           padding: isDesktop ? '24px' : '16px',
           marginBottom: '24px',
-          border: '1px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.3))',
+          border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
           boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
         }}
       >
@@ -101,133 +101,136 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
           </div>
         </div>
 
-        {/* Topic Shift Blocker Card (Sprint 3.5) */}
+        {/* Topic Shift Blocker Card (Sprint 3.6 Editorial Discovery) */}
         <div
+          className="dark:bg-stone-900 transition-colors"
           style={{
-            background: 'var(--waskita-surface-white, #FFFFFF)',
-            borderRadius: '16px',
-            padding: isDesktop ? '28px 24px' : '20px 16px',
-            border: '1.5px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.35))',
-            boxShadow: '0 4px 14px rgba(220, 38, 38, 0.06)',
+            background: 'var(--waskita-warm-card, #FAF8F5)',
+            borderRadius: '20px',
+            padding: isDesktop ? '32px 28px' : '24px 18px',
+            border: '1px solid var(--waskita-border-subtle, rgba(120, 113, 108, 0.15))',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
             display: 'flex',
-            flexDirection: 'column',
+            flexDirection: isDesktop ? 'row' : 'column',
             alignItems: 'center',
-            textAlign: 'center',
-            gap: '16px',
+            gap: isDesktop ? '32px' : '20px',
           }}
         >
-          <div
-            style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              background: 'var(--waskita-rose-bg, #FEE2E2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '28px',
-            }}
-          >
-            ⛔
+          {/* Visual Discovery */}
+          <div className="flex-shrink-0 flex items-center justify-center">
+            <img
+              src="/assets/discovery-light.svg"
+              alt="Fokus Baru"
+              className="w-36 h-36 md:w-44 md:h-44 object-contain dark:hidden"
+            />
+            <img
+              src="/assets/discovery-dark.svg"
+              alt="Fokus Baru"
+              className="w-36 h-36 md:w-44 md:h-44 object-contain hidden dark:block"
+            />
           </div>
 
-          <div>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 12px',
-                borderRadius: '9999px',
-                background: 'var(--waskita-rose-bg, #FEE2E2)',
-                color: 'var(--waskita-rose-text, #991B1B)',
-                fontWeight: 800,
-                fontSize: '12px',
-                marginBottom: '8px',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-              }}
-            >
-              {audit.verdict_status}
-            </div>
-            <h3
-              style={{
-                margin: '4px 0 8px 0',
-                fontSize: isDesktop ? '18px' : '16px',
-                fontWeight: 800,
-                color: 'var(--waskita-text, #1E293B)',
-              }}
-            >
-              Topik Revisi Tidak Sesuai dengan Sesi Ini
-            </h3>
-            <p
-              style={{
-                margin: '0 auto',
-                maxWidth: '560px',
-                fontSize: '13px',
-                lineHeight: 1.6,
-                color: 'var(--waskita-text-body, #475569)',
-              }}
-            >
-              Naskah revisi Anda terdeteksi melenceng jauh dari topik pembahasan sesi ini. Evaluasi metrik, celah informasi, dan stabilo dinonaktifkan karena perbandingan dengan artikel acuan sesi ini tidak valid.
-            </p>
-          </div>
-
+          {/* Editorial Content & CTA */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
+              alignItems: isDesktop ? 'flex-start' : 'center',
+              textAlign: isDesktop ? 'left' : 'center',
+              flex: 1,
               gap: '10px',
-              marginTop: '4px',
-              width: '100%',
-              maxWidth: '420px',
             }}
           >
-            <button
-              type="button"
-              onClick={() => {
-                const textToTransfer = audit.draft_content || draftContent || '';
-                if (onStartNewSessionWithDraft) {
-                  onStartNewSessionWithDraft(textToTransfer);
-                }
-              }}
+            {/* Badge Pill */}
+            <div
+              className="bg-stone-200/70 text-stone-700 dark:bg-stone-800 dark:text-stone-300"
               style={{
-                width: '100%',
-                background: '#DC2626',
-                color: '#FFFFFF',
-                border: 'none',
-                borderRadius: '12px',
-                padding: '12px 20px',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                boxShadow: '0 4px 12px rgba(220, 38, 38, 0.28)',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = '#B91C1C';
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.background = '#DC2626';
-                (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                fontWeight: 700,
+                fontSize: '11px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.6px',
               }}
             >
-              <span>🚀 Mulai Sesi Baru dengan Draf Ini</span>
-            </button>
-            <span
+              FOKUS BARU
+            </div>
+
+            {/* Headline */}
+            <h3
+              className="text-stone-900 dark:text-stone-100 font-serif"
               style={{
-                fontSize: '11.5px',
-                color: 'var(--waskita-text-muted, #64748B)',
+                margin: '2px 0 0 0',
+                fontSize: isDesktop ? '20px' : '18px',
+                fontWeight: 700,
+                letterSpacing: '-0.2px',
               }}
             >
-              Draf naskah dan rekomendasi kata kunci baru akan otomatis disiapkan di sesi baru.
-            </span>
+              Fokus Berbeda Terdeteksi
+            </h3>
+
+            {/* Body Copy */}
+            <p
+              className="text-stone-600 dark:text-stone-400"
+              style={{
+                margin: '0',
+                maxWidth: '560px',
+                fontSize: '13.5px',
+                lineHeight: 1.6,
+              }}
+            >
+              Draf naskah ini mengangkat pokok bahasan baru di luar artikel acuan sesi ini. Buka sesi baru agar pemetaan kompetitor dan celah informasi dapat dinilai secara akurat.
+            </p>
+
+            {/* Action Group */}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: isDesktop ? 'flex-start' : 'center',
+                gap: '8px',
+                marginTop: '8px',
+                width: isDesktop ? 'auto' : '100%',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  const textToTransfer = audit.draft_content || draftContent || '';
+                  if (onStartNewSessionWithDraft) {
+                    onStartNewSessionWithDraft(textToTransfer);
+                  }
+                }}
+                className="bg-[#292524] hover:bg-[#1C1917] dark:bg-stone-200 dark:hover:bg-white text-white dark:text-stone-900"
+                style={{
+                  border: 'none',
+                  borderRadius: '9999px',
+                  padding: '12px 28px',
+                  fontSize: '13.5px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                  transition: 'all 0.2s ease',
+                  width: isDesktop ? 'auto' : '100%',
+                }}
+              >
+                <span>Lanjutkan di Sesi Baru</span>
+              </button>
+              <span
+                className="text-stone-500 dark:text-stone-400"
+                style={{
+                  fontSize: '11.5px',
+                }}
+              >
+                Draf naskah akan otomatis dimuat di lembar analisis baru.
+              </span>
+            </div>
           </div>
         </div>
       </div>
