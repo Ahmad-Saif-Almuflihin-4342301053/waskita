@@ -486,6 +486,40 @@ class TestRemediationPromptAndCommercialFilter:
         assert "Colorbond" not in prompt
         assert "Kolom Ionik" in prompt
 
+    def test_remediation_prompt_actionable_cms_seo_when_siap_terbit(self):
+        """Sprint 3.5: Draf Siap Terbit menghasilkan paket materi pra-publikasi CMS & SEO."""
+        from app.services.gatekeeper import generate_overview_and_remediation
+
+        entity_gaps = EntityGapsGroup(
+            deficit=[],
+            gain=[
+                EntityGapItem(term_string="arsitektur berkelanjutan", term_surface_form="Arsitektur Berkelanjutan", tfidf_weight=0.9, competitor_consensus_count=0),
+                EntityGapItem(term_string="sirkulasi pejalan kaki", term_surface_form="Sirkulasi Pejalan Kaki", tfidf_weight=0.85, competitor_consensus_count=0),
+            ],
+        )
+
+        res = generate_overview_and_remediation(
+            verdict_status="Siap Terbit",
+            cds_score=88.5,
+            is_redundant=False,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.35,
+            mattr_score=0.82,
+            hko_percentage=15.0,
+            entity_gaps=entity_gaps,
+            target_query="tata letak kampus universitas",
+        )
+
+        prompt = res["remediation_prompt"]
+
+        assert "Meta Title SEO" in prompt
+        assert "Meta Description" in prompt
+        assert "Taksonomi & Tag" in prompt
+        assert "Ringkasan Eksekutif (Lead)" in prompt
+        assert "Arsitektur Berkelanjutan" in prompt
+        assert "tata letak kampus universitas" in prompt
+        assert "88.5%" in prompt
+
     def test_information_gain_filters_commercial_sponsor_brands(self):
         from app.services.information_gain import calculate_information_gain
 
