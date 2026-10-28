@@ -105,6 +105,44 @@ export function runSanitizerTests(): { passed: number; failed: number } {
     assertTrue(!kw.startsWith('#'), 'Tag hash markdown harus dibersihkan');
   });
 
+  // Test 7 (Sprint 3.2 Hotfix): Ekstraksi semantik naskah arsitektur ordo klasik & anti kata sampah lokasional
+  runCase('extractSmartKeyword mengekstrak istilah arsitektur relevan dan TIDAK menghasilkan "bagian bawah tiang"', () => {
+    const draftArsitektur = `Melampaui Sekadar Pilar Besar: Rahasia di Balik Aturan Ordo
+
+Ordo Klasik dalam arsitektur Yunani dan Romawi kuno bukan sekadar pilar besar penghias fasad gedung. Aturan proporsi ordo Dorik, Ionik, dan Korintia mengatur setiap elemen dari pedestal bagian bawah tiang hingga entablatur di puncaknya. Setiap ordo memiliki aturan rasio ketinggian kolom terhadap diameter bawah tiang yang sangat presisi. Ordo klasik merupakan puncak pencapaian estetika arsitektur kuno.`;
+
+    const kw = extractSmartKeyword(draftArsitektur);
+    assertTrue(
+      kw.includes('ordo klasik') || kw.includes('arsitektur') || kw.includes('ordo'),
+      `Kata kunci harus mengandung 'ordo klasik' atau 'arsitektur', hasil aktual: "${kw}"`
+    );
+    assertTrue(
+      !kw.includes('bagian') && !kw.includes('bawah'),
+      `Kata kunci tidak boleh mengandung kata lokasional/fungsional ('bagian'/'bawah'), hasil aktual: "${kw}"`
+    );
+    assertTrue(
+      !kw.includes('tiang') && !kw.includes('bagian bawah tiang'),
+      `Kata kunci tidak boleh menghasilkan chord lagu 'bagian bawah tiang', hasil aktual: "${kw}"`
+    );
+  });
+
+  // Test 8 (Sprint 3.2): Paragraf pembuka panjang dilarang dianggap sebagai judul
+  runCase('extractSmartKeyword tidak menganggap baris pertama yang panjang (> 100 karakter atau > 15 kata) sebagai judul', () => {
+    const longIntroDraft = `Paragraf pembuka yang sangat panjang sekali ini sengaja dibuat melebihi batas seratus karakter dan lebih dari lima belas kata agar sistem sanitasi draf tidak keliru menganggapnya sebagai sebuah judul artikel melainkan sebuah paragraf pembuka naskah biasa.
+
+Arsitektur Romawi kuno memiliki pilar ordo klasik yang sangat megah dan proporsional.`;
+
+    const kw = extractSmartKeyword(longIntroDraft);
+    assertTrue(
+      kw.includes('arsitektur romawi') || kw.includes('ordo klasik') || kw.includes('arsitektur'),
+      `Harus mengekstrak Proper Noun entitas dari naskah ('arsitektur romawi' / 'ordo klasik'), hasil aktual: "${kw}"`
+    );
+    assertTrue(
+      !kw.includes('paragraf pembuka yang sangat panjang'),
+      'Tidak boleh menganggap kalimat paragraf pembuka panjang sebagai judul'
+    );
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
