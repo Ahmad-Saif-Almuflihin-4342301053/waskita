@@ -9,11 +9,14 @@ export interface VerdictSectionProps {
 
 export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop = false }) => {
   const isDemo = audit.verdict_status === 'Mode Demo' || audit.serp_source === 'offline_synthetic';
+  const isOutOfDomain = audit.verdict_status.includes('Topik Tidak Relevan') || !!audit.metrics.is_out_of_domain;
   const isReady =
     !isDemo &&
-    (audit.verdict_status === 'Layak Terbit' ||
-      audit.metrics.content_differentiation_score >=
-        (audit.thresholds?.min_cds_score ?? 75));
+    !isOutOfDomain &&
+    !audit.metrics.is_redundant &&
+    !audit.metrics.is_keyword_stuffed &&
+    (audit.verdict_status === 'Layak Terbit' || audit.verdict_status === 'Siap Terbit') &&
+    audit.metrics.content_differentiation_score >= (audit.thresholds?.min_cds_score ?? 75);
 
   const cdsScore = Math.round(audit.metrics.content_differentiation_score);
   const thresholdCds = Math.round(audit.thresholds?.min_cds_score ?? 75);
@@ -57,11 +60,15 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
               ? 'var(--waskita-card, #E9DFCA)'
               : isReady
               ? 'var(--waskita-emerald-bg, #D1FAE5)'
+              : isOutOfDomain
+              ? 'var(--waskita-rose-bg, #FEE2E2)'
               : 'var(--waskita-amber-bg, #FEF3C7)',
             color: isDemo
               ? 'var(--waskita-text, #1E293B)'
               : isReady
               ? 'var(--waskita-emerald-text, #065F46)'
+              : isOutOfDomain
+              ? 'var(--waskita-rose-accent, #DC2626)'
               : 'var(--waskita-amber-text, #B45309)',
             fontWeight: 800,
             fontSize: '16px',

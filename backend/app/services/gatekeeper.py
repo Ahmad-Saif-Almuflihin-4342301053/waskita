@@ -157,6 +157,7 @@ def calculate_composite_cds(
     mattr_score: float,
     hko_percentage: float,
     thresholds: ThresholdConfig,
+    avg_cosine_sim: Optional[float] = None,
 ) -> Dict[str, any]:
     """
     Rumus Komposit Content Differentiation Score (CDS 0-100%) & Keputusan Gatekeeper (Bab 2.4 & FR-10):
@@ -165,6 +166,9 @@ def calculate_composite_cds(
     3. C_MATTR (20%)
     4. C_HKO (15%)
     CDS = round(0.35 * C_VSM + 0.30 * C_IG + 0.20 * C_MATTR + 0.15 * C_HKO, 1)
+
+    Ditambah Topic Relevance Gate (Sprint 3.1 & Temuan T8):
+    Jika avg_cosine_sim < 0.05, naskah ditandai Out-of-Domain (Perlu Revisi - Topik Tidak Relevan).
     """
     # 1. Skor Diferensiasi Vektor C_VSM (35%)
     # Penalti linier jika S_cos_max > 0.25
@@ -198,8 +202,13 @@ def calculate_composite_cds(
     is_redundant = max_cosine_sim > thresholds.max_cosine_similarity
     is_keyword_stuffed = (hko_percentage > thresholds.max_hko_percentage) or (mattr_score < thresholds.min_mattr)
 
+    # Topic Relevance Gate (Sprint 3.1 & Bukti Empiris T8 Fase C)
+    is_out_of_domain = (avg_cosine_sim is not None) and (avg_cosine_sim < 0.05)
+
     # Aturan Vonis
-    if (cds >= thresholds.min_cds_score) and (not is_redundant) and (not is_keyword_stuffed):
+    if is_out_of_domain:
+        verdict_status = "Perlu Revisi - Topik Tidak Relevan"
+    elif (cds >= thresholds.min_cds_score) and (not is_redundant) and (not is_keyword_stuffed):
         verdict_status = "Siap Terbit"
     else:
         verdict_status = "Perlu Revisi"
@@ -208,6 +217,7 @@ def calculate_composite_cds(
         "content_differentiation_score": cds,
         "is_redundant": is_redundant,
         "is_keyword_stuffed": is_keyword_stuffed,
+        "is_out_of_domain": is_out_of_domain,
         "verdict_status": verdict_status,
         "sub_scores": {
             "c_vsm": round(c_vsm, 1),
@@ -228,6 +238,7 @@ def generate_overview_and_remediation(
     hko_percentage: float,
     entity_gaps: EntityGapsGroup,
     target_query: str,
+    is_out_of_domain: bool = False,
 ) -> Dict[str, any]:
     """Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt."""
     bullets: List[str] = []
@@ -245,6 +256,9 @@ def generate_overview_and_remediation(
         )
     else:
         bullets.append(f"Draf memerlukan kurasi editorial (Skor CDS: {cds_score}%).")
+        if is_out_of_domain:
+            bullets.append("Naskah terindikasi di luar topik utama (Out-of-Domain): kemiripan semantik rata-rata dengan acuan SERP sangat rendah (< 0.05).")
+            remediation_points.append(f"Pastikan naskah benar-benar mengulas topik target '{target_query}'. Naskah saat ini tidak memiliki relevansi semantik yang memadai dengan korpus acuan.")
         if is_redundant:
             bullets.append(f"Tingkat kemiripan semantik dengan artikel kompetitor terlalu tinggi ({max_cosine_sim:.2f} > ambang batas).")
             remediation_points.append("Tulis ulang paragraf yang ditandai merah agar tidak menjiplak struktur kalimat kompetitor.")

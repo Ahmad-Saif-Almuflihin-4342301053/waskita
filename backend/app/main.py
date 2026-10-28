@@ -2,7 +2,10 @@ import datetime
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routers import api_router
@@ -37,6 +40,25 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Mengembalikan format respons error validasi yang ramah pengguna (FR-02 & Sprint 3.1)."""
+    errors = exc.errors()
+    first_error = errors[0] if errors else {}
+    msg = str(first_error.get("msg", "Data yang dikirimkan tidak valid."))
+    if msg.startswith("Value error, "):
+        msg = msg[len("Value error, "):]
+    return JSONResponse(
+        status_code=422,
+        content=jsonable_encoder({
+            "detail": msg,
+            "message": msg,
+            "errors": errors,
+        }),
+    )
+
 
 # Registrasi Router API v1
 app.include_router(api_router, prefix="/api/v1")

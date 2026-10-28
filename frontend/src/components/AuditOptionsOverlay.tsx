@@ -81,6 +81,76 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
   const touchStartYRef = useRef<number>(0);
   const touchCurrentYRef = useRef<number>(0);
 
+  // Kueri Target Tag Support (Sprint 3.1)
+  const [queryTags, setQueryTags] = useState<string[]>(() => {
+    if (targetQuery && targetQuery.includes(',')) {
+      return targetQuery.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return [];
+  });
+  const [queryBuffer, setQueryBuffer] = useState<string>(() => {
+    if (targetQuery && !targetQuery.includes(',')) {
+      return targetQuery;
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    if (targetQuery.includes(',')) {
+      const parts = targetQuery.split(',').map((s) => s.trim()).filter(Boolean);
+      setQueryTags(parts);
+      setQueryBuffer('');
+    } else if (queryTags.length === 0) {
+      setQueryBuffer(targetQuery);
+    }
+  }, [targetQuery]);
+
+  const handleBufferChange = (val: string) => {
+    if (val.includes(',')) {
+      const parts = val.split(',').map((s) => s.trim()).filter(Boolean);
+      const newTags = [...queryTags, ...parts];
+      setQueryTags(newTags);
+      setQueryBuffer('');
+      if (onTargetQueryChange) {
+        onTargetQueryChange(newTags.join(', '));
+      }
+    } else {
+      setQueryBuffer(val);
+      if (onTargetQueryChange) {
+        const full = queryTags.length > 0 ? `${queryTags.join(', ')}, ${val}` : val;
+        onTargetQueryChange(full.trim());
+      }
+    }
+  };
+
+  const handleBufferKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (queryBuffer.trim()) {
+        const newTags = [...queryTags, queryBuffer.trim()];
+        setQueryTags(newTags);
+        setQueryBuffer('');
+        if (onTargetQueryChange) {
+          onTargetQueryChange(newTags.join(', '));
+        }
+      }
+    } else if (e.key === 'Backspace' && !queryBuffer && queryTags.length > 0) {
+      const newTags = queryTags.slice(0, -1);
+      setQueryTags(newTags);
+      if (onTargetQueryChange) {
+        onTargetQueryChange(newTags.join(', '));
+      }
+    }
+  };
+
+  const handleRemoveTag = (idx: number) => {
+    const newTags = queryTags.filter((_, i) => i !== idx);
+    setQueryTags(newTags);
+    if (onTargetQueryChange) {
+      onTargetQueryChange(newTags.join(', '));
+    }
+  };
+
   useEffect(() => {
     if (!isOpen) {
       setIsExpandedSheet(false);
@@ -422,21 +492,69 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                 Kueri Target Analisis
               </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                alignItems: 'center',
+                gap: '6px',
+                background: COLORS.warmCream,
+                border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+                borderRadius: '10px',
+                padding: '6px 10px',
+                minHeight: '40px',
+                boxSizing: 'border-box',
+              }}
+            >
+              {queryTags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    background: 'var(--waskita-surface-white, #FFFFFF)',
+                    border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+                    borderRadius: '6px',
+                    padding: '2px 8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.deepSlate,
+                  }}
+                >
+                  <span>{tag}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveTag(idx)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: 0,
+                      color: 'var(--waskita-text-muted, #64748B)',
+                      fontSize: '14px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
               <input
                 type="text"
-                value={targetQuery}
-                onChange={(e) => onTargetQueryChange && onTargetQueryChange(e.target.value)}
-                placeholder="Ketik kueri target..."
+                value={queryBuffer}
+                onChange={(e) => handleBufferChange(e.target.value)}
+                onKeyDown={handleBufferKeyDown}
+                placeholder={queryTags.length === 0 ? "Ketik kueri target (koma / Enter untuk membuat tag)..." : "Tambah kata kunci..."}
                 style={{
                   flex: 1,
-                  background: COLORS.warmCream,
-                  border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
-                  borderRadius: '10px',
-                  padding: '8px 12px',
+                  minWidth: '120px',
+                  background: 'transparent',
+                  border: 'none',
                   fontSize: '13px',
                   color: COLORS.deepSlate,
                   outline: 'none',
+                  padding: '2px 4px',
                 }}
               />
             </div>

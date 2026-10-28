@@ -182,12 +182,13 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
               )}
             </div>
 
-            {/* Audit Result Block with Client-Side Exporter */}
+            {/* Audit Result Block with Progressive Reveal */}
             <AuditBlockView
               audit={turn.auditResult}
               turnLabel={turnLabel}
               isDesktop={isDesktop}
               draftContent={turn.draftContent}
+              isNewArrival={isLatest}
               onSelectForPrint={onSelectForPrint}
             />
           </React.Fragment>
