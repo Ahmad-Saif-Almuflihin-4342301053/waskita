@@ -487,8 +487,12 @@ class TestSprint3SerpLiveIntegrity:
         assert "skipped_bot_protect_count" in summary
         assert "total_candidates_evaluated" in summary
 
-    def test_synthetic_corpus_produces_mode_demo_verdict(self, client):
-        """Kueri asing yang memicu korpus sintetis offline harus menghasilkan verdict_status 'Mode Demo'."""
+    def test_synthetic_corpus_produces_mode_demo_verdict(self, client, monkeypatch):
+        """Kueri yang memicu korpus sintetis offline harus menghasilkan verdict_status 'Mode Demo'."""
+        from app.core.config import settings
+        monkeypatch.setattr(settings, "SERPER_API_KEY", "")
+        monkeypatch.setattr(settings, "FEATURE_OFFLINE_CORPUS_FALLBACK", True)
+
         draft = (
             "Kueri antariksa topik asing yang sangat spesifik dan belum pernah terindeks di sistem lokal WASKITA. "
         ) * 25  # ~375 kata
