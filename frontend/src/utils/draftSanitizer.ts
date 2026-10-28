@@ -273,14 +273,10 @@ export function extractSmartKeyword(text: string): string {
       const countInAll = (clean.match(re) || []).length;
       const countInBody = (bodyText.match(re) || []).length;
 
-      // Hindari artefak Title Case judul jika frasa tersebut tidak pernah muncul sama sekali di isi teks
-      if (titleText && countInBody === 0 && countInAll === 1) {
-        continue;
-      }
-
+      // Sprint 3.5: Jangan buang entitas judul agar kueri tidak nyasar ke istilah periferal
       const wordQuality = validWords.reduce((acc, w) => acc + (unigramCounts[w] || 1), 0);
-      const inTitleBoost = titleText && titleText.includes(phrase) ? 2.5 : 1.0;
-      const properBonus = countInBody > 0 ? 3.0 : 1.0;
+      const inTitleBoost = titleText && titleText.includes(phrase) ? 5.0 : 1.0;
+      const properBonus = countInBody > 0 ? 3.0 : 1.5;
       entityScores[phrase] = Math.max(entityScores[phrase] || 0, countInAll * wordQuality * inTitleBoost * properBonus);
     }
   }
@@ -289,14 +285,41 @@ export function extractSmartKeyword(text: string): string {
   const sortedBigrams = Object.entries(bigramCounts).sort((a, b) => b[1] - a[1]);
   const sortedUnigrams = Object.entries(unigramCounts).sort((a, b) => b[1] - a[1]);
 
-  // Pilih kata kunci utama (prioritas: entitas kapital > bigram dominan > unigram)
+  // Pilih kata kunci utama (Title-First & Prioritas Substantif - Sprint 3.5 Final)
   let primary = '';
-  if (sortedEntities.length > 0 && sortedEntities[0][1] >= 4.0) {
-    primary = sortedEntities[0][0];
-  } else if (sortedBigrams.length > 0 && sortedBigrams[0][1] >= 2.0) {
-    primary = sortedBigrams[0][0];
-  } else if (sortedUnigrams.length > 0) {
-    primary = sortedUnigrams[0][0];
+
+  // 1. Jika baris pertama valid sebagai judul, selalu prioritaskan entitas substantif dari judul
+  if (titleText) {
+    const titleEntity = sortedEntities.find(([ent]) => titleText.includes(ent));
+    if (titleEntity && titleEntity[1] >= 2.0) {
+      primary = titleEntity[0];
+    } else {
+      const titleBigram = sortedBigrams.find(([bg]) => titleText.includes(bg));
+      if (titleBigram && titleBigram[1] >= 1.5) {
+        primary = titleBigram[0];
+      } else {
+        const titleSubstantive = titleText
+          .replace(/[^\w\s-]/g, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length >= 3 && !INDONESIAN_STOPWORDS.has(w));
+        if (titleSubstantive.length >= 2) {
+          primary = titleSubstantive.slice(0, 3).join(' ');
+        } else if (titleSubstantive.length === 1) {
+          primary = titleSubstantive[0];
+        }
+      }
+    }
+  }
+
+  // 2. Fallback jika tidak ada judul atau judul tidak menghasilkan kueri
+  if (!primary) {
+    if (sortedEntities.length > 0 && sortedEntities[0][1] >= 4.0) {
+      primary = sortedEntities[0][0];
+    } else if (sortedBigrams.length > 0 && sortedBigrams[0][1] >= 2.0) {
+      primary = sortedBigrams[0][0];
+    } else if (sortedUnigrams.length > 0) {
+      primary = sortedUnigrams[0][0];
+    }
   }
 
   if (!primary) return clean.slice(0, 30).trim().toLowerCase();
@@ -306,8 +329,9 @@ export function extractSmartKeyword(text: string): string {
   let secondary = '';
 
   // 4a. Cari entitas independen lain
-  for (const [ent, score] of sortedEntities.slice(1)) {
-    if (score >= 4.0) {
+  for (const [ent, score] of sortedEntities) {
+    if (ent === primary) continue;
+    if (score >= 3.5 || (titleText && titleText.includes(ent))) {
       const entWords = ent.split(/\s+/);
       if (!entWords.some((w) => primaryWords.has(w))) {
         secondary = ent;
@@ -319,7 +343,8 @@ export function extractSmartKeyword(text: string): string {
   // 4b. Cari bigram pelengkap jika tidak ada entitas kedua
   if (!secondary) {
     for (const [bg, score] of sortedBigrams) {
-      if (score >= 2.5) {
+      if (bg === primary) continue;
+      if (score >= 2.0 || (titleText && titleText.includes(bg))) {
         const bgWords = bg.split(/\s+/);
         if (!bgWords.some((w) => primaryWords.has(w))) {
           secondary = bg;
