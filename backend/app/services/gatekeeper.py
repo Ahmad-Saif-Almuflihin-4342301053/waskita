@@ -255,12 +255,13 @@ def calculate_composite_cds(
     is_redundant = max_cosine_sim > thresholds.max_cosine_similarity
     is_keyword_stuffed = (hko_percentage > thresholds.max_hko_percentage) or (mattr_score < thresholds.min_mattr)
 
-    # Topic Relevance Gate (Sprint 3.1 & Bukti Empiris T8 Fase C)
+    # Topic Relevance Gate (Sprint 3.1 & 3.4)
     is_out_of_domain = (avg_cosine_sim is not None) and (avg_cosine_sim < 0.05)
 
-    # Aturan Vonis
+    # Aturan Vonis & Penalti Skor Out-of-Domain (Sprint 3.4)
     if is_out_of_domain:
         verdict_status = "Perlu Revisi - Topik Tidak Relevan"
+        cds = min(cds, 20.0)
     elif (cds >= thresholds.min_cds_score) and (not is_redundant) and (not is_keyword_stuffed):
         verdict_status = "Siap Terbit"
     else:
@@ -328,8 +329,8 @@ def generate_overview_and_remediation(
     else:
         bullets.append(f"Draf memerlukan kurasi editorial (Skor CDS: {cds_score}%).")
         if is_out_of_domain:
-            bullets.append("Naskah terindikasi di luar topik utama (Out-of-Domain): kemiripan semantik rata-rata dengan acuan SERP sangat rendah (< 0.05).")
-            remediation_points.append(f"Pastikan naskah benar-benar mengulas topik target '{target_query}'. Naskah saat ini tidak memiliki relevansi semantik yang memadai dengan korpus acuan.")
+            bullets.append("Naskah terindikasi di luar topik utama (Out-of-Domain): kemiripan semantik rata-rata dengan acuan SERP sangat rendah (< 0.05). Skor CDS dipangkas menjadi maksimal 20.0%.")
+            remediation_points.append(f"Topik naskah tidak relevan dengan sesi/kueri '{target_query}'. Mulai sesi analisis baru jika naskah ini membahas topik yang berbeda agar dievaluasi terhadap kompetitor SERP yang sesuai.")
         if is_redundant:
             if comp_citation:
                 bullets.append(f"Tingkat kemiripan semantik tinggi terhadap {comp_citation} (melampaui ambang batas).")
