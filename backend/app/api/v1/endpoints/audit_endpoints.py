@@ -371,6 +371,12 @@ async def execute_audit(
         threshold_hko=thresholds.max_hko_percentage,
     )
 
+    # Identifikasi kompetitor dengan kemiripan tertinggi dan cuplikan redundansi (Sprint 3.3)
+    highest_comp = None
+    if competitor_docs:
+        highest_comp = max(competitor_docs, key=lambda d: d.get("cosine_similarity", 0.0))
+    red_snippets = [span.text for span in annotated_spans if span.color == "red"]
+
     # 9. Poin Editorial & Remediasi Kurasi
     overview_remediation = generate_overview_and_remediation(
         verdict_status=cds_decision["verdict_status"],
@@ -383,6 +389,8 @@ async def execute_audit(
         entity_gaps=entity_gaps,
         target_query=target_query,
         is_out_of_domain=cds_decision.get("is_out_of_domain", False),
+        highest_competitor=highest_comp,
+        redundant_snippets=red_snippets,
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)
