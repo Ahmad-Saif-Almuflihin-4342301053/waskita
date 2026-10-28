@@ -356,6 +356,7 @@ async def execute_audit(
         mattr_score=stylometrics["mattr_score"],
         hko_percentage=stylometrics["hko_percentage"],
         thresholds=thresholds,
+        avg_cosine_sim=vsm_results["avg_cosine_similarity"],
     )
 
     serp_source = determine_serp_source(competitor_docs)
@@ -381,6 +382,7 @@ async def execute_audit(
         hko_percentage=stylometrics["hko_percentage"],
         entity_gaps=entity_gaps,
         target_query=target_query,
+        is_out_of_domain=cds_decision.get("is_out_of_domain", False),
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)
@@ -511,6 +513,7 @@ async def execute_audit(
             hko_percentage=stylometrics["hko_percentage"],
             is_redundant=cds_decision["is_redundant"],
             is_keyword_stuffed=cds_decision["is_keyword_stuffed"],
+            is_out_of_domain=cds_decision.get("is_out_of_domain", False),
         ),
         entity_gaps=entity_gaps,
         annotated_spans=annotated_spans,

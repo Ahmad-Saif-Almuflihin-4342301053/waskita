@@ -75,6 +75,7 @@ class MetricResultSchema(BaseModel):
     hko_percentage: float
     is_redundant: bool
     is_keyword_stuffed: bool
+    is_out_of_domain: bool = False
 
 
 class EntityGapItem(BaseModel):
