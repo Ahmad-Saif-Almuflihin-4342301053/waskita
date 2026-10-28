@@ -29,6 +29,7 @@ export interface AuditMetrics {
   is_redundant: boolean;
   is_keyword_stuffed: boolean;
   is_out_of_domain?: boolean;
+  topic_shift_detected?: boolean;
 }
 
 export interface QualityThresholds {
@@ -97,6 +98,7 @@ export interface AuditExecuteResponse {
   serp_competitors?: SerpCompetitorItem[];
   serp_source?: SerpSource;
   serp_audit_summary?: SerpAuditSummary;
+  topic_shift_detected?: boolean;
 }
 
 export interface AuditSessionSummary {

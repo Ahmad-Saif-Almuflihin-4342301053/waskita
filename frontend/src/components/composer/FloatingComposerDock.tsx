@@ -241,9 +241,26 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               borderRadius: "9999px",
               marginBottom: "8px",
               pointerEvents: "auto",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              transition: "all 0.2s ease",
             }}
           >
-            Mode Revisi Turn #{activeTurnNumber} untuk kata kunci "{activeTargetQuery || targetQuery || "Target"}"
+            {isLoading && (
+              <span
+                style={{
+                  display: "inline-block",
+                  width: "6px",
+                  height: "6px",
+                  borderRadius: "50%",
+                  background: "var(--waskita-emerald-accent, #059669)",
+                }}
+              />
+            )}
+            {isLoading
+              ? "Sedang menganalisis revisi draf..."
+              : `Mode Revisi Turn #${activeTurnNumber} untuk kata kunci "${activeTargetQuery || targetQuery || "Target"}"`}
           </div>
         )}
 
@@ -328,21 +345,38 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               }}
             />
 
-            <span
-              style={{
-                fontSize: "12px",
-                fontWeight: 600,
-                color: isEligibleToSubmit
-                  ? "var(--waskita-emerald-accent, #059669)"
-                  : "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
-                whiteSpace: "nowrap",
-                padding: "0 6px",
-                userSelect: "none",
-                transition: "color 0.2s ease",
-              }}
-            >
-              {currentWordCount} / {minWordCount} kata
-            </span>
+            {isLoading ? (
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: "var(--waskita-emerald-accent, #059669)",
+                  whiteSpace: "nowrap",
+                  padding: "0 6px",
+                  userSelect: "none",
+                }}
+              >
+                {activeTurnNumber && activeTurnNumber > 1
+                  ? "Sedang menganalisis revisi draf..."
+                  : "Sedang menganalisis..."}
+              </span>
+            ) : (
+              <span
+                style={{
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: isEligibleToSubmit
+                    ? "var(--waskita-emerald-accent, #059669)"
+                    : "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
+                  whiteSpace: "nowrap",
+                  padding: "0 6px",
+                  userSelect: "none",
+                  transition: "color 0.2s ease",
+                }}
+              >
+                {currentWordCount} / {minWordCount} kata
+              </span>
+            )}
 
             <button
               type="button"
@@ -514,21 +548,38 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               </button>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: isEligibleToSubmit
-                      ? "var(--waskita-emerald-accent, #059669)"
-                      : "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
-                    whiteSpace: "nowrap",
-                    padding: "0 4px",
-                    userSelect: "none",
-                    transition: "color 0.2s ease",
-                  }}
-                >
-                  {currentWordCount} / {minWordCount} kata
-                </span>
+                {isLoading ? (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: "var(--waskita-emerald-accent, #059669)",
+                      whiteSpace: "nowrap",
+                      padding: "0 4px",
+                      userSelect: "none",
+                    }}
+                  >
+                    {activeTurnNumber && activeTurnNumber > 1
+                      ? "Sedang menganalisis revisi draf..."
+                      : "Sedang menganalisis..."}
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: 600,
+                      color: isEligibleToSubmit
+                        ? "var(--waskita-emerald-accent, #059669)"
+                        : "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
+                      whiteSpace: "nowrap",
+                      padding: "0 4px",
+                      userSelect: "none",
+                      transition: "color 0.2s ease",
+                    }}
+                  >
+                    {currentWordCount} / {minWordCount} kata
+                  </span>
+                )}
 
                 <button
                   type="button"
