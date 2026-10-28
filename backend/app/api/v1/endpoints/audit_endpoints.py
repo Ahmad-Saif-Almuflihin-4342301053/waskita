@@ -527,6 +527,7 @@ async def execute_audit(
         verdict_status=final_verdict_status,
         degradation_warning=degradation_warning,
         topic_shift_detected=topic_shift_detected,
+        is_topic_shift=topic_shift_detected,
         thresholds=thresholds,
         metrics=MetricResultSchema(
             content_differentiation_score=cds_decision["content_differentiation_score"],
@@ -540,6 +541,7 @@ async def execute_audit(
             is_keyword_stuffed=cds_decision["is_keyword_stuffed"],
             is_out_of_domain=cds_decision.get("is_out_of_domain", False),
             topic_shift_detected=topic_shift_detected,
+            is_topic_shift=topic_shift_detected,
         ),
         entity_gaps=entity_gaps,
         annotated_spans=annotated_spans,
