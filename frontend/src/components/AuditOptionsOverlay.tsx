@@ -81,64 +81,81 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
   const touchStartYRef = useRef<number>(0);
   const touchCurrentYRef = useRef<number>(0);
 
-  // Kueri Target Tag Support (Sprint 3.1)
+  // Kueri Target Tag Support (Sprint 3.1 & 3.2 Hotfix)
+  const lastCommittedRef = useRef<string>(targetQuery);
   const [queryTags, setQueryTags] = useState<string[]>(() => {
-    if (targetQuery && targetQuery.includes(',')) {
+    if (!targetQuery) return [];
+    if (targetQuery.includes(',')) {
       return targetQuery.split(',').map((s) => s.trim()).filter(Boolean);
     }
-    return [];
+    return [targetQuery.trim()];
   });
-  const [queryBuffer, setQueryBuffer] = useState<string>(() => {
-    if (targetQuery && !targetQuery.includes(',')) {
-      return targetQuery;
-    }
-    return '';
-  });
+  const [queryBuffer, setQueryBuffer] = useState<string>('');
 
   useEffect(() => {
-    if (targetQuery.includes(',')) {
-      const parts = targetQuery.split(',').map((s) => s.trim()).filter(Boolean);
-      setQueryTags(parts);
-      setQueryBuffer('');
-    } else if (queryTags.length === 0) {
-      setQueryBuffer(targetQuery);
+    // Hanya perbarui dari prop luar jika targetQuery berubah dari sumber luar (misal ekstraksi paste draft)
+    if (targetQuery !== lastCommittedRef.current) {
+      lastCommittedRef.current = targetQuery;
+      if (targetQuery.includes(',')) {
+        const parts = targetQuery.split(',').map((s) => s.trim()).filter(Boolean);
+        setQueryTags(parts);
+        setQueryBuffer('');
+      } else if (targetQuery.trim()) {
+        setQueryTags([targetQuery.trim()]);
+        setQueryBuffer('');
+      } else {
+        setQueryTags([]);
+        setQueryBuffer('');
+      }
     }
   }, [targetQuery]);
 
-  const handleBufferChange = (val: string) => {
-    if (val.includes(',')) {
-      const parts = val.split(',').map((s) => s.trim()).filter(Boolean);
-      const newTags = [...queryTags, ...parts];
+  const commitBuffer = () => {
+    if (queryBuffer.trim()) {
+      const newTags = [...queryTags, queryBuffer.trim()];
       setQueryTags(newTags);
       setQueryBuffer('');
+      const combined = newTags.join(', ');
+      lastCommittedRef.current = combined;
       if (onTargetQueryChange) {
-        onTargetQueryChange(newTags.join(', '));
+        onTargetQueryChange(combined);
+      }
+    }
+  };
+
+  const handleBufferChange = (val: string) => {
+    if (val.includes(',')) {
+      // Pemisahan koma otomatis membuat tag chip
+      const parts = val.split(',').map((s) => s.trim()).filter(Boolean);
+      if (parts.length > 0) {
+        const newTags = [...queryTags, ...parts];
+        setQueryTags(newTags);
+        setQueryBuffer('');
+        const combined = newTags.join(', ');
+        lastCommittedRef.current = combined;
+        if (onTargetQueryChange) {
+          onTargetQueryChange(combined);
+        }
+      } else {
+        setQueryBuffer('');
       }
     } else {
+      // Mengetik biasa: simpan di buffer lokal tanpa menyinkronisasi ke parent per-keystroke
       setQueryBuffer(val);
-      if (onTargetQueryChange) {
-        const full = queryTags.length > 0 ? `${queryTags.join(', ')}, ${val}` : val;
-        onTargetQueryChange(full.trim());
-      }
     }
   };
 
   const handleBufferKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (queryBuffer.trim()) {
-        const newTags = [...queryTags, queryBuffer.trim()];
-        setQueryTags(newTags);
-        setQueryBuffer('');
-        if (onTargetQueryChange) {
-          onTargetQueryChange(newTags.join(', '));
-        }
-      }
+      commitBuffer();
     } else if (e.key === 'Backspace' && !queryBuffer && queryTags.length > 0) {
       const newTags = queryTags.slice(0, -1);
       setQueryTags(newTags);
+      const combined = newTags.join(', ');
+      lastCommittedRef.current = combined;
       if (onTargetQueryChange) {
-        onTargetQueryChange(newTags.join(', '));
+        onTargetQueryChange(combined);
       }
     }
   };
@@ -146,9 +163,16 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
   const handleRemoveTag = (idx: number) => {
     const newTags = queryTags.filter((_, i) => i !== idx);
     setQueryTags(newTags);
+    const combined = newTags.join(', ');
+    lastCommittedRef.current = combined;
     if (onTargetQueryChange) {
-      onTargetQueryChange(newTags.join(', '));
+      onTargetQueryChange(combined);
     }
+  };
+
+  const handleClose = () => {
+    commitBuffer();
+    if (onClose) onClose();
   };
 
   useEffect(() => {
@@ -187,7 +211,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
       // Swipe down threshold reached -> close
       setDragOffsetY(0);
       setIsExpandedSheet(false);
-      if (onClose) onClose();
+      handleClose();
     } else if (deltaY < -20) {
       setIsExpandedSheet(true);
       setDragOffsetY(0);
@@ -297,7 +321,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
 
       {/* Backdrop */}
       <div
-        onClick={onClose}
+        onClick={handleClose}
         style={{
           position: 'fixed',
           top: 0,
@@ -392,7 +416,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Tutup Opsi"
             style={{
               cursor: 'pointer',
@@ -545,6 +569,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                 value={queryBuffer}
                 onChange={(e) => handleBufferChange(e.target.value)}
                 onKeyDown={handleBufferKeyDown}
+                onBlur={commitBuffer}
                 placeholder={queryTags.length === 0 ? "Ketik kueri target (koma / Enter untuk membuat tag)..." : "Tambah kata kunci..."}
                 style={{
                   flex: 1,
@@ -800,7 +825,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
         >
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               height: '46px',
               width: '100%',

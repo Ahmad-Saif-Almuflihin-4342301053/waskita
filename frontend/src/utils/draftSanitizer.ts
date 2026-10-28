@@ -182,14 +182,19 @@ const INDONESIAN_STOPWORDS = new Set([
   'dosa', 'besar', 'cara', 'tips', 'rahasia', 'panduan', 'trik', 'langkah', 'alasan',
   'faktor', 'mengapa', 'kenapa', 'bagaimana', 'apa', 'siapa', 'kapan', 'dimana',
   'ternyata', 'simak', 'inilah', 'berikut', 'ampuh', 'mudah', 'cepat', 'tepat',
-  'paling', 'sering', 'kurang', 'terlalu', 'selalu', 'belum', 'masih', 'pernah'
+  'paling', 'sering', 'kurang', 'terlalu', 'selalu', 'belum', 'masih', 'pernah',
+  // Kata lokasional, struktural, fungsional & transisi (Sprint 3.2 Hotfix):
+  'bagian', 'bawah', 'atas', 'tengah', 'depan', 'belakang', 'samping', 'luar',
+  'sisi', 'aspek', 'bentuk', 'macam', 'jenis', 'melampaui', 'sekadar', 'berupa',
+  'terdiri', 'yakni', 'yaitu', 'balik'
 ]);
 
 /**
- * Ekstraksi kata kunci semantik menyeluruh (Whole-Text Extraction) - Sprint 3.1:
- * Memindai seluruh teks naskah untuk mengidentifikasi topik substantif dominan (Term Frequency & Bigram Collocation),
- * mengabaikan kata tugas dan jargon clickbait (misal judul '3 Dosa Besar Membangun Properti'
- * diekstrak menjadi 'desain arsitektur properti', bukan agama).
+ * Ekstraksi kata kunci semantik cerdas (Semantic Entity & Whole-Text Extraction) - Sprint 3.2:
+ * 1. Memprioritaskan Entitas Huruf Kapital (Proper Nouns) sebelum lowercase (misal 'Ordo Klasik', 'Arsitektur Romawi').
+ * 2. Deteksi judul ketat: baris pertama hanya dianggap judul jika <= 100 karakter dan <= 15 kata.
+ * 3. Menghilangkan noise kata lokasional/fungsional ('bagian', 'bawah', 'sekadar', dsb.).
+ * 4. Mendukung rekomendasi multi-kata kunci dipisahkan koma agar otomatis menjadi tag chip di UI.
  */
 export function extractSmartKeyword(text: string): string {
   if (!text || !text.trim()) return '';
@@ -202,7 +207,32 @@ export function extractSmartKeyword(text: string): string {
   const lines = clean.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
   if (lines.length === 0) return '';
 
-  const titleSection = lines.slice(0, 2).join(' ').toLowerCase();
+  // Deteksi judul: lines[0] hanya dianggap judul jika <= 100 karakter dan <= 15 kata
+  let titleText = '';
+  const firstLineClean = lines[0].replace(/^#+\s*/, '').trim();
+  const firstLineWords = firstLineClean.split(/\s+/).filter(Boolean);
+  if (firstLineClean.length <= 100 && firstLineWords.length <= 15) {
+    titleText = firstLineClean.toLowerCase();
+  }
+
+  const bodyLines = titleText && lines.length > 1 ? lines.slice(1) : lines;
+  const bodyText = bodyLines.join('\n');
+
+  // 2. Ekstraksi Entitas Huruf Kapital (Proper Nouns) sebelum lowercase
+  const entityMatches = clean.match(/\b[A-Z][a-z\u00C0-\u024F]{2,}(?:[^\S\r\n]+[A-Z][a-z\u00C0-\u024F]{2,}){1,2}\b/g) || [];
+  const entityScores: Record<string, number> = {};
+
+  // Proper noun tunggal di tengah kalimat (misal: "ordo Dorik", "arsitektur Romawi")
+  const singleEntityBoost: Record<string, number> = {};
+  const midSentenceCapitalized = bodyText.match(/(?:[a-z0-9,;]\s+)\b([A-Z][a-z\u00C0-\u024F]{2,})\b/g) || [];
+  for (const match of midSentenceCapitalized) {
+    const word = match.replace(/^[^A-Z]+/, '').toLowerCase();
+    if (!INDONESIAN_STOPWORDS.has(word)) {
+      singleEntityBoost[word] = (singleEntityBoost[word] || 0) + 2.0;
+    }
+  }
+
+  // 3. Frekuensi kata (unigram) dan bigram substantif di seluruh naskah
   const allWords = clean
     .toLowerCase()
     .replace(/[^\w\s-]/g, ' ')
@@ -211,57 +241,106 @@ export function extractSmartKeyword(text: string): string {
 
   if (allWords.length === 0) return clean.slice(0, 30).trim().toLowerCase();
 
-  // 2. Hitung frekuensi unigram dan bigram substantif
   const unigramCounts: Record<string, number> = {};
   const bigramCounts: Record<string, number> = {};
 
   for (let i = 0; i < allWords.length; i++) {
     const w1 = allWords[i];
     if (!INDONESIAN_STOPWORDS.has(w1)) {
-      const inTitle = titleSection.includes(w1) ? 2.5 : 1.0;
-      unigramCounts[w1] = (unigramCounts[w1] || 0) + inTitle;
+      const inTitle = titleText && titleText.includes(w1) ? 2.5 : 1.0;
+      const properBoost = singleEntityBoost[w1] || 0;
+      unigramCounts[w1] = (unigramCounts[w1] || 0) + inTitle + properBoost;
     }
 
     if (i < allWords.length - 1) {
       const w2 = allWords[i + 1];
       if (!INDONESIAN_STOPWORDS.has(w1) && !INDONESIAN_STOPWORDS.has(w2) && w1 !== w2) {
         const bg = `${w1} ${w2}`;
-        const inTitle = titleSection.includes(bg) ? 3.5 : 1.5;
+        const inTitle = titleText && titleText.includes(bg) ? 3.5 : 1.5;
         bigramCounts[bg] = (bigramCounts[bg] || 0) + inTitle;
       }
     }
   }
 
-  // Cari bigram dengan frekuensi tertinggi
-  let topBigram = '';
-  let topBigramScore = 0;
-  for (const [bg, score] of Object.entries(bigramCounts)) {
-    if (score > topBigramScore) {
-      topBigramScore = score;
-      topBigram = bg;
+  // Skor frasa entitas kapital
+  for (const raw of entityMatches) {
+    const rawWords = raw.split(/[^\S\r\n]+/);
+    const validWords = rawWords.map((w) => w.toLowerCase()).filter((w) => !INDONESIAN_STOPWORDS.has(w));
+    if (validWords.length >= 2) {
+      const phrase = validWords.join(' ');
+      const escaped = phrase.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const re = new RegExp('\\b' + escaped + '\\b', 'gi');
+      const countInAll = (clean.match(re) || []).length;
+      const countInBody = (bodyText.match(re) || []).length;
+
+      // Hindari artefak Title Case judul jika frasa tersebut tidak pernah muncul sama sekali di isi teks
+      if (titleText && countInBody === 0 && countInAll === 1) {
+        continue;
+      }
+
+      const wordQuality = validWords.reduce((acc, w) => acc + (unigramCounts[w] || 1), 0);
+      const inTitleBoost = titleText && titleText.includes(phrase) ? 2.5 : 1.0;
+      const properBonus = countInBody > 0 ? 3.0 : 1.0;
+      entityScores[phrase] = Math.max(entityScores[phrase] || 0, countInAll * wordQuality * inTitleBoost * properBonus);
     }
   }
 
-  // Cari unigram substantif dengan frekuensi tertinggi di luar bigram
+  const sortedEntities = Object.entries(entityScores).sort((a, b) => b[1] - a[1]);
+  const sortedBigrams = Object.entries(bigramCounts).sort((a, b) => b[1] - a[1]);
   const sortedUnigrams = Object.entries(unigramCounts).sort((a, b) => b[1] - a[1]);
 
-  if (topBigram && topBigramScore >= 2.0) {
-    // Cari unigram pelengkap yang tidak terkandung dalam topBigram
-    const [wA, wB] = topBigram.split(' ');
-    const complementary = sortedUnigrams.find(([w]) => w !== wA && w !== wB);
-    if (complementary && complementary[1] >= 2.0 && (topBigram + ' ' + complementary[0]).length <= 40) {
-      return `${topBigram} ${complementary[0]}`;
+  // Pilih kata kunci utama (prioritas: entitas kapital > bigram dominan > unigram)
+  let primary = '';
+  if (sortedEntities.length > 0 && sortedEntities[0][1] >= 4.0) {
+    primary = sortedEntities[0][0];
+  } else if (sortedBigrams.length > 0 && sortedBigrams[0][1] >= 2.0) {
+    primary = sortedBigrams[0][0];
+  } else if (sortedUnigrams.length > 0) {
+    primary = sortedUnigrams[0][0];
+  }
+
+  if (!primary) return clean.slice(0, 30).trim().toLowerCase();
+
+  // 4. Rekomendasi kata kunci pelengkap (multi-keyword dengan koma untuk tag chip UI)
+  const primaryWords = new Set(primary.split(/\s+/));
+  let secondary = '';
+
+  // 4a. Cari entitas independen lain
+  for (const [ent, score] of sortedEntities.slice(1)) {
+    if (score >= 4.0) {
+      const entWords = ent.split(/\s+/);
+      if (!entWords.some((w) => primaryWords.has(w))) {
+        secondary = ent;
+        break;
+      }
     }
-    return topBigram;
   }
 
-  // Fallback: Gabungkan 2-3 unigram paling dominan
-  if (sortedUnigrams.length >= 2) {
-    const topWords = sortedUnigrams.slice(0, 3).map(([w]) => w);
-    return topWords.join(' ');
-  } else if (sortedUnigrams.length === 1) {
-    return sortedUnigrams[0][0];
+  // 4b. Cari bigram pelengkap jika tidak ada entitas kedua
+  if (!secondary) {
+    for (const [bg, score] of sortedBigrams) {
+      if (score >= 2.5) {
+        const bgWords = bg.split(/\s+/);
+        if (!bgWords.some((w) => primaryWords.has(w))) {
+          secondary = bg;
+          break;
+        }
+      }
+    }
   }
 
-  return clean.slice(0, 30).trim().toLowerCase();
+  // 4c. Cari unigram pelengkap jika tidak ada bigram
+  if (!secondary) {
+    const comp = sortedUnigrams.find(([w, score]) => !primaryWords.has(w) && score >= 2.0);
+    if (comp) {
+      secondary = comp[0];
+    }
+  }
+
+  // Gabungkan dengan koma jika panjangnya proporsional (<= 45 karakter)
+  if (secondary && (primary + ', ' + secondary).length <= 45) {
+    return `${primary}, ${secondary}`;
+  }
+
+  return primary;
 }
