@@ -5,6 +5,11 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
 
+// @ts-ignore
+import fs from 'node:fs';
+// @ts-ignore
+import path from 'node:path';
+
 import { sanitizePastedOrUploadedDraft, countPureWords, extractSmartKeyword, getGaugeColor } from '../draftSanitizer.ts';
 
 function assertTrue(condition: boolean, message: string): void {
@@ -225,6 +230,19 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
       !kw.includes('ruang kolaborasi terbuka') && !kw.includes('tiktok'),
       `Kueri tidak boleh nyasar ke istilah periferal/TikTok, hasil aktual: "${kw}"`
     );
+  });
+
+  // Test 13 (Sprint 3.6): Aset ilustrasi Editorial Discovery Blocker tersedia di folder public
+  runCase('Aset ilustrasi Editorial Discovery Blocker (discovery-light.svg & discovery-dark.svg) tersedia di public assets', () => {
+    const findAsset = (filename: string) => {
+      const candidates = [
+        path.resolve('frontend/public/assets', filename),
+        path.resolve('public/assets', filename),
+      ];
+      return candidates.some((p: string) => fs.existsSync(p));
+    };
+    assertTrue(findAsset('discovery-light.svg'), 'File discovery-light.svg harus tersedia di public assets');
+    assertTrue(findAsset('discovery-dark.svg'), 'File discovery-dark.svg harus tersedia di public assets');
   });
 
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);

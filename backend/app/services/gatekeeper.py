@@ -75,6 +75,15 @@ def is_commercial_or_sponsor(term: str) -> bool:
     return False
 
 
+PROMPT_DRAFT_DELIMITER = (
+    "\n\n--------------------------------------------------\n"
+    "[NASKAH ARTIKEL YANG AKAN DIPROSES]:\n"
+    '"""\n'
+    "(Tempelkan naskah draf artikel Anda di sini sebelum dikirim ke AI)\n"
+    '"""'
+)
+
+
 def _split_into_sentences(text: str) -> List[str]:
     """Memecah paragraf/teks menjadi daftar kalimat yang utuh."""
     # Pecah berdasarkan tanda titik, tanda tanya, tanda seru atau newline ganda
@@ -325,15 +334,17 @@ def generate_overview_and_remediation(
         else:
             gain_terms = "konten orisinal naskah"
 
-        # Prompt Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 Section 2.A)
+        # Prompt Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6)
         remediation_prompt = (
-            f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n\n"
+            f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n"
+            f"Berdasarkan analisis perbandingan terhadap 5 artikel kompetitor teratas di Google SERP, draf ini memiliki diferensiasi dan nilai kebaruan materi yang kuat ({gain_terms}).\n\n"
             "Tolong siapkan paket materi pra-publikasi CMS & SEO untuk artikel ini tanpa mengubah isi naskah pokoknya:\n"
             f"1. Meta Title SEO: Buatkan judul menarik maksimal 60 karakter yang memuat kata kunci '{target_query}'.\n"
             "2. Meta Description: Buatkan deskripsi 140–155 karakter yang persuasif dan memicu CTR tinggi di Google.\n"
             f"3. Taksonomi & Tag: Ekstrak 3–5 tag kategori paling relevan untuk pengelompokan artikel di CMS.\n"
             "4. Ringkasan Eksekutif (Lead): Tuliskan cuplikan pembuka 2 kalimat untuk teaser media sosial dan newsletter.\n"
             f"5. Pertahankan Nilai Orisinal: Pastikan poin-poin kebaruan materi draf berikut tetap terjaga: {gain_terms}."
+            f"{PROMPT_DRAFT_DELIMITER}"
         )
     else:
         bullets.append(f"Draf memerlukan kurasi editorial (Skor CDS: {cds_score}%).")
@@ -385,9 +396,10 @@ def generate_overview_and_remediation(
 
         points_text = "\n".join([f"{idx+1}. {pt}" for idx, pt in enumerate(remediation_points)])
         remediation_prompt = (
-            f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berikut:\n"
-            f"{points_text}\n"
-            "Pertahankan keunikan sudut pandang tulisan dan hindari frasa pembuka yang klise."
+            f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan 5 artikel kompetitor acuan Google SERP berikut:\n\n"
+            f"{points_text}\n\n"
+            "Instruksi Tambahan: Pertahankan keunikan sudut pandang tulisan dan hindari frasa pembuka yang klise."
+            f"{PROMPT_DRAFT_DELIMITER}"
         )
 
     return {
