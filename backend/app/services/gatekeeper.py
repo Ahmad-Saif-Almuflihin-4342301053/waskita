@@ -316,15 +316,24 @@ def generate_overview_and_remediation(
         else:
             comp_citation = f"Artikel '{comp_title}' dengan kemiripan {sim_pct}%"
 
-    if verdict_status == "Siap Terbit":
+    if verdict_status in ("Siap Terbit", "Layak Terbit"):
         bullets.append(f"Skor diferensiasi semantik draf sangat baik ({cds_score}%), melampaui ambang batas.")
         bullets.append("Variasi leksikal tinggi dan struktur sub-judul proporsional tanpa repetisi berlebih.")
         if entity_gaps.gain:
-            gain_terms = ", ".join([g.term_surface_form for g in entity_gaps.gain[:3]])
+            gain_terms = ", ".join([g.term_surface_form for g in entity_gaps.gain[:4]])
             bullets.append(f"Draf berhasil menyajikan nilai tambah informasi orisinal: {gain_terms}.")
+        else:
+            gain_terms = "konten orisinal naskah"
+
+        # Prompt Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 Section 2.A)
         remediation_prompt = (
-            f"Draf untuk kueri '{target_query}' telah memenuhi standar kurasi pra-publikasi WASKITA (Skor: {cds_score}%). "
-            "Artikel siap dipublikasikan ke CMS dengan tetap mempertahankan kebaruan materi yang ada."
+            f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n\n"
+            "Tolong siapkan paket materi pra-publikasi CMS & SEO untuk artikel ini tanpa mengubah isi naskah pokoknya:\n"
+            f"1. Meta Title SEO: Buatkan judul menarik maksimal 60 karakter yang memuat kata kunci '{target_query}'.\n"
+            "2. Meta Description: Buatkan deskripsi 140–155 karakter yang persuasif dan memicu CTR tinggi di Google.\n"
+            f"3. Taksonomi & Tag: Ekstrak 3–5 tag kategori paling relevan untuk pengelompokan artikel di CMS.\n"
+            "4. Ringkasan Eksekutif (Lead): Tuliskan cuplikan pembuka 2 kalimat untuk teaser media sosial dan newsletter.\n"
+            f"5. Pertahankan Nilai Orisinal: Pastikan poin-poin kebaruan materi draf berikut tetap terjaga: {gain_terms}."
         )
     else:
         bullets.append(f"Draf memerlukan kurasi editorial (Skor CDS: {cds_score}%).")
