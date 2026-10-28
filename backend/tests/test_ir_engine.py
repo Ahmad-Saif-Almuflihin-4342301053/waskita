@@ -350,6 +350,27 @@ class TestCompositeCdsAndGatekeeper:
         assert decision["is_keyword_stuffed"] is True
         assert decision["verdict_status"] == "Perlu Revisi"
 
+    def test_out_of_domain_topic_relevance_gate(self):
+        """avg_cosine_sim < 0.05 memicu is_out_of_domain=True -> Perlu Revisi - Topik Tidak Relevan (Sprint 3.1 & Temuan T8)."""
+        thresholds = ThresholdConfig(min_cds_score=75.0)
+
+        # Kasus draf out-of-domain (resep nasi goreng untuk kueri arsitektur):
+        # max_cosine rendah, MATTR tinggi, HKO rendah, CDS ~ 82%, namun avg_cosine < 0.05
+        decision = calculate_composite_cds(
+            max_cosine_sim=0.03,
+            draft_entities_count=30,
+            serp_entities_count=30,
+            shared_entities_count=0,
+            gain_count=5,
+            mattr_score=0.88,
+            hko_percentage=0.0,
+            thresholds=thresholds,
+            avg_cosine_sim=0.02,  # < 0.05 Out-of-Domain!
+        )
+
+        assert decision["is_out_of_domain"] is True
+        assert decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan"
+
     def test_aggregate_gatekeeper_decision_alias(self):
         """Memverifikasi alias aggregate_gatekeeper_decision kompatibel dengan calculate_composite_cds."""
         thresholds = ThresholdConfig()
