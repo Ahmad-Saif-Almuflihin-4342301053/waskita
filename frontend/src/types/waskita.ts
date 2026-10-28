@@ -30,6 +30,7 @@ export interface AuditMetrics {
   is_keyword_stuffed: boolean;
   is_out_of_domain?: boolean;
   topic_shift_detected?: boolean;
+  is_topic_shift?: boolean;
 }
 
 export interface QualityThresholds {
@@ -99,6 +100,7 @@ export interface AuditExecuteResponse {
   serp_source?: SerpSource;
   serp_audit_summary?: SerpAuditSummary;
   topic_shift_detected?: boolean;
+  is_topic_shift?: boolean;
 }
 
 export interface AuditSessionSummary {
