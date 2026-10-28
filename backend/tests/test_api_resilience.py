@@ -550,3 +550,65 @@ class TestSprint3SerpLiveIntegrity:
             assert comp["domain_name"] is not None
 
 
+class TestTopicShiftAndOutOfDomainSprint34:
+    """
+    Sprint 3.4:
+    Verifikasi Topic Shift Guard dan penalti CDS Out-of-Domain saat naskah di luar topik
+    (misal: Kuil Yunani Klasik) dikirimkan ke dalam sesi yang membahas Tata Letak Kampus.
+    """
+
+    def test_topic_shift_in_revision_triggers_guard_and_caps_cds(self, client):
+        # Turn 1: Draf bertopik Tata Letak Kampus & Fasilitas Universitas
+        campus_draft = (
+            "Perencanaan tata letak kampus universitas modern harus memprioritaskan zonasi akademik, "
+            "sirkulasi pejalan kaki bebas kendaraan bermotor, ruang terbuka hijau terintegrasi, "
+            "serta aksesibilitas gedung rektorat, fakultas teknik, laboratorium riset, dan perpustakaan pusat. "
+            "Efisiensi pergerakan mahasiswa antar fakultas dipengaruhi oleh konektivitas koridor ramah pejalan kaki. "
+        ) * 10  # ~380 kata
+
+        payload_turn1 = {
+            "target_query": "tata letak kampus universitas",
+            "draft_title": "Desain Sirkulasi & Tata Letak Kampus Hijau",
+            "draft_content": campus_draft,
+        }
+        res1 = client.post("/api/v1/audit/execute", json=payload_turn1)
+        assert res1.status_code == 200
+        data1 = res1.json()
+        turn1_id = data1["session_id"]
+
+        # Turn 2: Pengguna keliru menempel naskah Kuil Yunani Kuno & Ordo Klasik ke sesi ini
+        greek_temple_draft = (
+            "Kuil Parthenon di bukit Akropolis Athena merupakan mahakarya agung arsitektur Yunani klasik. "
+            "Bangunan suci persembahan Dewi Athena ini menerapkan ordo pilar dorik yang kokoh dengan entablatur marmer. "
+            "Proporsi rasio emas diterapkan pada friezes ukiran mitologi, triglif, metope, dan pedimen megah. "
+            "Para arsitek Iktinos dan Kallikrates merancang kelengkungan optik entasis pada setiap tiang batu marmer putih. "
+        ) * 10  # ~380 kata
+
+        payload_turn2 = {
+            "target_query": "tata letak kampus universitas",
+            "draft_title": "Keagungan Arsitektur Kuil Yunani Klasik Parthenon",
+            "draft_content": greek_temple_draft,
+            "parent_session_id": turn1_id,
+            "use_cached_serp": True,
+        }
+        res2 = client.post("/api/v1/audit/execute", json=payload_turn2)
+        assert res2.status_code == 200
+        data2 = res2.json()
+
+        # Verifikasi Topic Shift Guard aktif
+        assert data2["turn_number"] == 2
+        assert data2.get("topic_shift_detected") is True
+        assert data2["metrics"]["is_out_of_domain"] is True
+
+        # Skor CDS wajib dipangkas ke batas maksimum 20.0%
+        assert data2["metrics"]["content_differentiation_score"] <= 20.0
+
+        # Vonis status wajib menegaskan pergantian topik / out-of-domain
+        assert data2["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan"
+
+        # Degradation warning harus memuat notifikasi peringatan pergantian topik
+        assert data2["degradation_warning"] is not None
+        assert "pergantian topik" in data2["degradation_warning"] or "tidak relevan" in data2["degradation_warning"]
+
+
+
