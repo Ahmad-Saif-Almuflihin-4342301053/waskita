@@ -234,10 +234,15 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
 
   // Test 13 (Sprint 3.6): Aset ilustrasi Editorial Discovery Blocker tersedia di folder public
   runCase('Aset ilustrasi Editorial Discovery Blocker (discovery-light.svg & discovery-dark.svg) tersedia di public assets', () => {
-    const lightPath = path.resolve('public/assets/discovery-light.svg');
-    const darkPath = path.resolve('public/assets/discovery-dark.svg');
-    assertTrue(fs.existsSync(lightPath), `File ${lightPath} harus tersedia`);
-    assertTrue(fs.existsSync(darkPath), `File ${darkPath} harus tersedia`);
+    const findAsset = (filename: string) => {
+      const candidates = [
+        path.resolve('frontend/public/assets', filename),
+        path.resolve('public/assets', filename),
+      ];
+      return candidates.some((p: string) => fs.existsSync(p));
+    };
+    assertTrue(findAsset('discovery-light.svg'), 'File discovery-light.svg harus tersedia di public assets');
+    assertTrue(findAsset('discovery-dark.svg'), 'File discovery-dark.svg harus tersedia di public assets');
   });
 
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
