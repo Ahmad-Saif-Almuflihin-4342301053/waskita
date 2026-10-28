@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS } from './shared-ui';
 
 export interface LiveStepperProps {
@@ -9,8 +9,8 @@ export interface LiveStepperProps {
 
 const STEPS = [
   { step: 1, label: 'Mengekstrak & menormalisasi draf naskah...' },
-  { step: 2, label: 'Mengakuisisi korpus Top-3 kompetitor SERP...' },
-  { step: 3, label: 'Melakukan tokenisasi & stemming Sastrawi...' },
+  { step: 2, label: 'Mengakuisisi korpus Top-10 kompetitor SERP...' },
+  { step: 3, label: 'Melakukan tokenisasi & pembersihan stopword...' },
   { step: 4, label: 'Menghitung matriks TF-IDF, Cosine Similarity, & Information Gain...' },
   { step: 5, label: 'Menyusun evaluasi stilometri (MATTR, HKO) & vonis CDS...' },
 ];
@@ -20,6 +20,15 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({
   statusMessage,
   isFadingOut = false,
 }) => {
+  const [dots, setDots] = useState('.');
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setDots((prev) => (prev === '...' ? '.' : prev + '.'));
+    }, 400);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div
       style={{
@@ -46,19 +55,13 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span
             style={{
-              display: 'inline-block',
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              background: '#059669',
-              boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.3)',
-              animation: 'pulse 1.5s infinite',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              color: 'var(--waskita-text-muted, #64748B)',
+              letterSpacing: '0.2px',
             }}
-          />
-          <span style={{ fontSize: '13px', fontWeight: 700, color: COLORS.deepSlate }}>
-            {isFadingOut
-              ? 'Seluruh 5 Tahap Evaluasi Selesai!'
-              : 'Audit Kualitas Real-time Sedang Berjalan...'}
+          >
+            {isFadingOut ? 'Selesai' : `Sedang menganalisis ${dots}`}
           </span>
         </div>
         <span

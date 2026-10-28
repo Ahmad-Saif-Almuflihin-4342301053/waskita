@@ -167,59 +167,100 @@ export function countPureWords(text: string): number {
   return words.length;
 }
 
+const INDONESIAN_STOPWORDS = new Set([
+  'yang', 'di', 'ke', 'dari', 'pada', 'dalam', 'untuk', 'dengan', 'dan', 'atau',
+  'ini', 'itu', 'adalah', 'sebagai', 'sebuah', 'para', 'saat', 'ada', 'tidak',
+  'bisa', 'dapat', 'juga', 'lebih', 'sangat', 'telah', 'sudah', 'akan', 'secara',
+  'hal', 'per', 'bagi', 'agar', 'karena', 'jika', 'tetapi', 'namun', 'seperti',
+  'oleh', 'tentang', 'kita', 'anda', 'mereka', 'kami', 'saya', 'dia', 'ia',
+  'suatu', 'maupun', 'serta', 'hingga', 'sampai', 'antara', 'setiap', 'semua',
+  'beberapa', 'seluruh', 'banyak', 'sedikit', 'lain', 'baru', 'lama', 'awal',
+  'akhir', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan',
+  'sembilan', 'sepuluh', 'pertama', 'kedua', 'ketiga', 'hari', 'bulan', 'tahun',
+  'bukan', 'hanya', 'saja', 'pun', 'lalu', 'kemudian', 'bahkan', 'maka', 'begitu',
+  'menjadi', 'membuat', 'melakukan', 'adanya', 'tersebut', 'harus', 'wajib',
+  'dosa', 'besar', 'cara', 'tips', 'rahasia', 'panduan', 'trik', 'langkah', 'alasan',
+  'faktor', 'mengapa', 'kenapa', 'bagaimana', 'apa', 'siapa', 'kapan', 'dimana',
+  'ternyata', 'simak', 'inilah', 'berikut', 'ampuh', 'mudah', 'cepat', 'tepat',
+  'paling', 'sering', 'kurang', 'terlalu', 'selalu', 'belum', 'masih', 'pernah'
+]);
+
 /**
- * Ekstraksi kandidat kata kunci cerdas (3–6 kata) dari baris pertama / kalimat pembuka naskah.
- * Menghilangkan kata umum seperti "resep", "cara", "panduan", dll jika diawali tanda pagar/judul,
- * dan menghasilkan frasa target yang relevan.
+ * Ekstraksi kata kunci semantik menyeluruh (Whole-Text Extraction) - Sprint 3.1:
+ * Memindai seluruh teks naskah untuk mengidentifikasi topik substantif dominan (Term Frequency & Bigram Collocation),
+ * mengabaikan kata tugas dan jargon clickbait (misal judul '3 Dosa Besar Membangun Properti'
+ * diekstrak menjadi 'desain arsitektur properti', bukan agama).
  */
 export function extractSmartKeyword(text: string): string {
   if (!text || !text.trim()) return '';
 
-  // Hapus token gambar/video
+  // 1. Bersihkan token media [gambar N], [video N], dsb.
   const clean = text
-    .replace(/\[gambar\s*\d+\]/gi, ' ')
-    .replace(/\[video\s*\d+\]/gi, ' ')
+    .replace(/\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]/gi, ' ')
     .trim();
 
-  // Ambil baris pertama yang bermakna
-  const lines = clean
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
+  const lines = clean.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
   if (lines.length === 0) return '';
 
-  // Bersihkan markdown headings #, ##, **, quotes
-  let firstLine = lines[0]
-    .replace(/^#+\s*/, '')
-    .replace(/^[*_~`]+|[*_~`]+$/g, '')
-    .replace(/^["']|["']$/g, '')
-    .trim();
+  const titleSection = lines.slice(0, 2).join(' ').toLowerCase();
+  const allWords = clean
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !/^[\d_-]+$/.test(w));
 
-  // Jika baris pertama terlalu pendek (< 3 karakter) atau hanya angka, coba baris kedua
-  if (firstLine.length < 3 && lines.length > 1) {
-    firstLine = lines[1]
-      .replace(/^#+\s*/, '')
-      .replace(/^[*_~`]+|[*_~`]+$/g, '')
-      .replace(/^["']|["']$/g, '')
-      .trim();
+  if (allWords.length === 0) return clean.slice(0, 30).trim().toLowerCase();
+
+  // 2. Hitung frekuensi unigram dan bigram substantif
+  const unigramCounts: Record<string, number> = {};
+  const bigramCounts: Record<string, number> = {};
+
+  for (let i = 0; i < allWords.length; i++) {
+    const w1 = allWords[i];
+    if (!INDONESIAN_STOPWORDS.has(w1)) {
+      const inTitle = titleSection.includes(w1) ? 2.5 : 1.0;
+      unigramCounts[w1] = (unigramCounts[w1] || 0) + inTitle;
+    }
+
+    if (i < allWords.length - 1) {
+      const w2 = allWords[i + 1];
+      if (!INDONESIAN_STOPWORDS.has(w1) && !INDONESIAN_STOPWORDS.has(w2) && w1 !== w2) {
+        const bg = `${w1} ${w2}`;
+        const inTitle = titleSection.includes(bg) ? 3.5 : 1.5;
+        bigramCounts[bg] = (bigramCounts[bg] || 0) + inTitle;
+      }
+    }
   }
 
-  // Potong di tanda titik atau tanda tanya atau tanda seru atau koma jika ada kalimat panjang
-  const sentenceMatch = firstLine.split(/[.:?!;]/)[0];
-  const candidate = (sentenceMatch || firstLine).trim();
+  // Cari bigram dengan frekuensi tertinggi
+  let topBigram = '';
+  let topBigramScore = 0;
+  for (const [bg, score] of Object.entries(bigramCounts)) {
+    if (score > topBigramScore) {
+      topBigramScore = score;
+      topBigram = bg;
+    }
+  }
 
-  // Bersihkan karakter non-alfanumerik di awal/akhir
-  const cleanedCandidate = candidate.replace(/^[^\w]+|[^\w]+$/g, '');
+  // Cari unigram substantif dengan frekuensi tertinggi di luar bigram
+  const sortedUnigrams = Object.entries(unigramCounts).sort((a, b) => b[1] - a[1]);
 
-  // Batasi ke 3-6 kata pertama
-  const words = cleanedCandidate.split(/\s+/).filter((w) => w.length > 0);
-  if (words.length <= 6 && words.length >= 2) {
-    return words.join(' ').toLowerCase();
-  } else if (words.length > 6) {
-    return words.slice(0, 5).join(' ').toLowerCase();
-  } else if (words.length === 1 && words[0].length >= 3) {
-    return words[0].toLowerCase();
+  if (topBigram && topBigramScore >= 2.0) {
+    // Cari unigram pelengkap yang tidak terkandung dalam topBigram
+    const [wA, wB] = topBigram.split(' ');
+    const complementary = sortedUnigrams.find(([w]) => w !== wA && w !== wB);
+    if (complementary && complementary[1] >= 2.0 && (topBigram + ' ' + complementary[0]).length <= 40) {
+      return `${topBigram} ${complementary[0]}`;
+    }
+    return topBigram;
+  }
+
+  // Fallback: Gabungkan 2-3 unigram paling dominan
+  if (sortedUnigrams.length >= 2) {
+    const topWords = sortedUnigrams.slice(0, 3).map(([w]) => w);
+    return topWords.join(' ');
+  } else if (sortedUnigrams.length === 1) {
+    return sortedUnigrams[0][0];
   }
 
   return clean.slice(0, 30).trim().toLowerCase();

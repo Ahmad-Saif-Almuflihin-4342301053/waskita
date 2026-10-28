@@ -135,6 +135,7 @@ export const App: React.FC = () => {
 
   // Stepper state for live audit submit
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isTransitioningToDock, setIsTransitioningToDock] = useState<boolean>(false);
   const [stepperStep, setStepperStep] = useState<number>(1);
   const [stepperMessage, setStepperMessage] = useState<string>('');
   const [isStepperFadingOut, setIsStepperFadingOut] = useState<boolean>(false);
@@ -247,13 +248,14 @@ export const App: React.FC = () => {
     }
 
     setIsLoading(true);
+    setIsTransitioningToDock(true);
     setIsStepperFadingOut(false);
     setStepperStep(1);
     setStepperMessage('Mengekstrak & menormalisasi draf naskah...');
 
     const stepTimer1 = setTimeout(() => {
       setStepperStep(2);
-      setStepperMessage('Mengakuisisi korpus Top-3 kompetitor SERP...');
+      setStepperMessage('Mengakuisisi korpus Top-10 kompetitor SERP...');
     }, 900);
 
     const stepTimer2 = setTimeout(() => {
@@ -288,123 +290,24 @@ export const App: React.FC = () => {
           thresholds,
         });
       } catch (err: any) {
-        // Fallback simulation when backend server is offline/dev
-        await new Promise((r) => setTimeout(r, 4200));
-        const newScore = Math.min(
-          95,
-          currentTurns.length > 0
-            ? Math.round(
-                currentTurns[currentTurns.length - 1].auditResult.metrics
-                  .content_differentiation_score + 15
-              )
-            : 70
-        );
-        const verdict = newScore >= thresholds.min_cds_score ? 'Layak Terbit' : 'Perlu Revisi';
-
-        result = {
-          session_id: 'session-' + Math.random().toString(36).substring(2, 9),
-          parent_session_id: parentSession,
-          turn_number: currentTurns.length + 1,
-          target_query: targetQuery,
-          draft_title: `Revisi #${currentTurns.length + 1} - ${targetQuery}`,
-          draft_content: content,
-          draft_word_count: wordCount,
-          audit_timestamp: new Date().toISOString(),
-          verdict_status: verdict,
-          degradation_warning: null,
-          thresholds,
-          metrics: {
-            content_differentiation_score: newScore,
-            avg_cosine_similarity: 0.42,
-            max_cosine_similarity: newScore >= thresholds.min_cds_score ? 0.48 : 0.68,
-            euclidean_distance: 1.15,
-            ttr_score: 0.58,
-            mattr_score: newScore >= thresholds.min_cds_score ? 0.62 : 0.49,
-            hko_percentage: newScore >= thresholds.min_cds_score ? 20.0 : 45.0,
-            is_redundant: newScore < thresholds.min_cds_score,
-            is_keyword_stuffed: newScore < thresholds.min_cds_score,
-          },
-          entity_gaps: {
-            deficit:
-              newScore >= thresholds.min_cds_score
-                ? []
-                : [
-                    {
-                      term_string: 'rasio seduh',
-                      term_surface_form: 'Rasio Seduh 1:15',
-                      tfidf_weight: 0.8,
-                      competitor_consensus_count: 2,
-                    },
-                  ],
-            gain: [
-              {
-                term_string: 'analisis unik',
-                term_surface_form: 'Cita Rasa Lokal Khas',
-                tfidf_weight: 0.9,
-                competitor_consensus_count: 0,
-              },
-            ],
-          },
-          annotated_spans: [
-            {
-              text: content.slice(0, 120),
-              color: newScore >= thresholds.min_cds_score ? 'green' : 'yellow',
-              label: newScore >= thresholds.min_cds_score ? 'Orisinalitas Kuat' : 'Klise/Generik',
-            },
-            {
-              text: content.slice(120, 240) || 'Paragraf penjelasan...',
-              color: 'blue',
-              label: 'Saran Celah Defisit',
-            },
-            {
-              text: content.slice(240) || 'Paragraf penutup naskah...',
-              color: newScore >= thresholds.min_cds_score ? 'green' : 'red',
-              label:
-                newScore >= thresholds.min_cds_score
-                  ? 'Orisinalitas Kuat'
-                  : 'Redundansi VSM Tinggi',
-            },
-          ],
-          overview_bullets: [
-            `Audit selesai dengan skor diferensiasi konten ${newScore}%.`,
-            verdict === 'Layak Terbit'
-              ? 'Naskah telah memenuhi ambang batas kualitas artikel kompetitif.'
-              : 'Disarankan memperkaya variasi kosakata dan menutup celah defisit topik.',
-          ],
-          remediation_prompt: `Perbaiki gaya bahasa naskah '${targetQuery}' dengan memprioritaskan entitas unik.`,
-          serp_competitors: [
-            {
-              rank_position: 1,
-              page_title: `Panduan Terlengkap: ${targetQuery}`,
-              source_url: `https://kompas.com/top-guide-${encodeURIComponent(targetQuery)}`,
-              domain_name: 'kompas.com',
-              snippet_text: `Ulasan komprehensif mengenai ${targetQuery} dengan tips praktis langsung dari pakar industri...`,
-              word_count: 540,
-              cosine_similarity: newScore >= thresholds.min_cds_score ? 0.48 : 0.68,
-              fetch_status: 'success',
-            },
-            {
-              rank_position: 2,
-              page_title: `Trik & Solusi Praktis ${targetQuery}`,
-              source_url: `https://detik.com/panduan/${encodeURIComponent(targetQuery)}`,
-              domain_name: 'detik.com',
-              snippet_text: `Langkah mudah memahami ${targetQuery} secara mendalam untuk pemula hingga profesional...`,
-              word_count: 480,
-              cosine_similarity: newScore >= thresholds.min_cds_score ? 0.44 : 0.62,
-              fetch_status: 'success',
-            },
-            {
-              rank_position: 3,
-              page_title: `Rangkuman Referensi Utama ${targetQuery}`,
-              source_url: `https://medium.com/artikel-${encodeURIComponent(targetQuery)}`,
-              domain_name: 'medium.com',
-              snippet_text: `Analisis mendalam seputar ${targetQuery} dan berbagai sudut pandang komparatif...`,
-              word_count: 620,
-              cosine_similarity: newScore >= thresholds.min_cds_score ? 0.40 : 0.58,
-              fetch_status: 'success',
-            },
-          ],
-        };
+        clearTimeout(stepTimer1);
+        clearTimeout(stepTimer2);
+        clearTimeout(stepTimer3);
+        clearTimeout(stepTimer4);
+        console.error('Audit execution error:', err);
+        const errMsg =
+          err.response?.data?.message ||
+          err.response?.data?.detail ||
+          err.message ||
+          'Gagal melakukan audit naskah. Pastikan backend aktif.';
+        showToast({
+          type: 'error',
+          message: typeof errMsg === 'string' ? errMsg : JSON.stringify(errMsg),
+        });
+        setIsLoading(false);
+        setIsStepperFadingOut(false);
+        setIsTransitioningToDock(false);
+        return;
       }
 
       clearTimeout(stepTimer1);
@@ -701,6 +604,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
   };
 
   const handleSelectSession = async (sessionId: string) => {
+    setIsTransitioningToDock(false);
     setActiveSessionId(sessionId);
     const sessionObj = sessions.find((s) => s.session_id === sessionId);
     if (sessionObj && sessionObj.target_query) {
@@ -765,13 +669,15 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     setCurrentTurns([]);
     setTargetQuery('');
     setDraftInput('');
+    setIsTransitioningToDock(false);
   };
 
   const isCurrentPinned =
     sessions.find((s) => s.session_id === activeSessionId)?.is_pinned ?? false;
 
   const currentWordCount = countPureWords(draftInput);
-  const isComposerCentered = activeSessionId === 'session-new' || currentTurns.length === 0;
+  const isComposerCentered =
+    (activeSessionId === 'session-new' || currentTurns.length === 0) && !isTransitioningToDock;
 
   return (
     <div
