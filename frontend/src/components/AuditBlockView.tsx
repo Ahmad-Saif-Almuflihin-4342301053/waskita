@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   COLORS,
   IconAlertCircle,
-  IconFileText,
 } from './shared-ui';
 import { AuditExecuteResponse } from '../types/waskita';
 import { VerdictSection } from './audit-block/VerdictSection';
@@ -17,6 +16,7 @@ export interface AuditBlockViewProps {
   turnLabel?: string;
   isDesktop?: boolean;
   draftContent?: string;
+  isNewArrival?: boolean;
   onSelectForPrint?: (audit: AuditExecuteResponse) => void;
 }
 
@@ -24,8 +24,27 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   audit,
   turnLabel,
   isDesktop = false,
-  onSelectForPrint,
+  isNewArrival = false,
 }) => {
+  const [revealStage, setRevealStage] = useState<number>(isNewArrival ? 1 : 4);
+  const [dots, setDots] = useState('.');
+
+  useEffect(() => {
+    if (!isNewArrival || revealStage >= 4) return;
+    const timer = setTimeout(() => {
+      setRevealStage((prev) => Math.min(prev + 1, 4));
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [revealStage, isNewArrival]);
+
+  useEffect(() => {
+    if (revealStage >= 4) return;
+    const interval = setInterval(() => {
+      setDots((prev) => (prev === '...' ? '.' : prev + '.'));
+    }, 400);
+    return () => clearInterval(interval);
+  }, [revealStage]);
+
   return (
     <div
       style={{
@@ -37,7 +56,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
         boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
       }}
     >
-      {/* Header Turn & Print Action */}
+      {/* Header Turn */}
       <div
         style={{
           display: 'flex',
@@ -70,37 +89,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
             })}
           </span>
         </div>
-
-        {onSelectForPrint && (
-          <button
-            type="button"
-            onClick={() => onSelectForPrint(audit)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: COLORS.deepSlate,
-              padding: '4px 8px',
-              borderRadius: '6px',
-              transition: 'background 0.15s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(30, 41, 59, 0.06)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent';
-            }}
-            title="Cetak Ringkasan Eksekutif A4"
-          >
-            <IconFileText size={15} color={COLORS.deepSlate} />
-            <span>Cetak A4</span>
-          </button>
-        )}
       </div>
 
       {/* Degradation Warning Banner (FR-13) */}
@@ -125,23 +113,93 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
         </div>
       )}
 
-      {/* 1. Skor CDS & Vonis Status */}
-      <VerdictSection audit={audit} isDesktop={isDesktop} />
+      {/* Tahap 1: Skor CDS, Vonis Status, & 7 Metrik Kuantitatif */}
+      <div style={{ transition: 'opacity 0.3s ease', opacity: 1 }}>
+        <VerdictSection audit={audit} isDesktop={isDesktop} />
+        <AuditMetricsGrid audit={audit} isDesktop={isDesktop} />
+      </div>
 
-      {/* 2. 7 Metrik Kuantitatif White-Box IR & Stilometri */}
-      <AuditMetricsGrid audit={audit} isDesktop={isDesktop} />
+      {/* Indikator Progresif Tahap 1 -> Tahap 2 */}
+      {revealStage < 2 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '14px',
+            margin: '12px 0',
+            color: 'var(--waskita-text-muted, #64748B)',
+            fontSize: '13px',
+            fontWeight: 600,
+            background: 'rgba(30, 41, 59, 0.04)',
+            borderRadius: '12px',
+          }}
+        >
+          <span>Sedang menganalisis {dots}</span>
+        </div>
+      )}
 
-      {/* 3. Matriks Celah Informasi (Information Gain & Defisit) */}
-      <EntityGapsSection audit={audit} isDesktop={isDesktop} />
+      {/* Tahap 2: Matriks Celah Informasi (Information Gain & Defisit) */}
+      {revealStage >= 2 && (
+        <div style={{ transition: 'opacity 0.35s ease', opacity: 1 }}>
+          <EntityGapsSection audit={audit} isDesktop={isDesktop} />
+        </div>
+      )}
 
-      {/* 4. Naskah Teranotasi Stabilo 4-Warna Interaktif */}
-      <AnnotatedTextSection audit={audit} />
+      {/* Indikator Progresif Tahap 2 -> Tahap 3 */}
+      {revealStage === 2 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '14px',
+            margin: '12px 0',
+            color: 'var(--waskita-text-muted, #64748B)',
+            fontSize: '13px',
+            fontWeight: 600,
+            background: 'rgba(30, 41, 59, 0.04)',
+            borderRadius: '12px',
+          }}
+        >
+          <span>Sedang menganalisis {dots}</span>
+        </div>
+      )}
 
-      {/* 5. Rekomendasi Perbaikan & Prompt Remediasi LLM */}
-      <RemediationPromptSection audit={audit} />
+      {/* Tahap 3: Naskah Teranotasi Stabilo 4-Warna Interaktif */}
+      {revealStage >= 3 && (
+        <div style={{ transition: 'opacity 0.35s ease', opacity: 1 }}>
+          <AnnotatedTextSection audit={audit} />
+        </div>
+      )}
 
-      {/* 6. Referensi SERP · Top 3 Google Competitor */}
-      <SerpCompetitorsSection audit={audit} isDesktop={isDesktop} />
+      {/* Indikator Progresif Tahap 3 -> Tahap 4 */}
+      {revealStage === 3 && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '14px',
+            margin: '12px 0',
+            color: 'var(--waskita-text-muted, #64748B)',
+            fontSize: '13px',
+            fontWeight: 600,
+            background: 'rgba(30, 41, 59, 0.04)',
+            borderRadius: '12px',
+          }}
+        >
+          <span>Sedang menganalisis {dots}</span>
+        </div>
+      )}
+
+      {/* Tahap 4: Rekomendasi Perbaikan & Referensi Kompetitor SERP */}
+      {revealStage >= 4 && (
+        <div style={{ transition: 'opacity 0.35s ease', opacity: 1 }}>
+          <RemediationPromptSection audit={audit} />
+          <SerpCompetitorsSection audit={audit} isDesktop={isDesktop} />
+        </div>
+      )}
     </div>
   );
 };
