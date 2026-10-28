@@ -344,3 +344,23 @@ export function extractSmartKeyword(text: string): string {
 
   return primary;
 }
+
+/**
+ * Menghitung warna busur dinamis SemiCircleGauge (Sprint 3.5):
+ * - Merah (#EF4444) jika score < 50 atau isOutOfDomain == True
+ * - Kuning (#F59E0B) jika score >= 50 dan score < threshold
+ * - Hijau (#10B981) jika score >= threshold
+ */
+export function getGaugeColor(
+  score: number,
+  threshold: number = 75,
+  isOutOfDomain: boolean = false
+): string {
+  if (isOutOfDomain || score < 50) {
+    return '#EF4444';
+  }
+  if (score < threshold) {
+    return '#F59E0B';
+  }
+  return '#10B981';
+}

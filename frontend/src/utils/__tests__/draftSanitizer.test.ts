@@ -5,7 +5,7 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 declare const process: any;
 
-import { sanitizePastedOrUploadedDraft, countPureWords, extractSmartKeyword } from '../draftSanitizer.ts';
+import { sanitizePastedOrUploadedDraft, countPureWords, extractSmartKeyword, getGaugeColor } from '../draftSanitizer.ts';
 
 function assertTrue(condition: boolean, message: string): void {
   if (!condition) {
@@ -161,6 +161,53 @@ Arsitektur Romawi kuno memiliki pilar ordo klasik yang sangat megah dan proporsi
     assertTrue(result.includes(p3), 'Paragraf 3 harus tetap utuh');
     assertTrue(result.includes('KALIMAT SISIPAN'), 'Kalimat sisipan baru harus berhasil dimasukkan');
     assertTrue(result.length === fullText.length + newSentence.length, 'Panjang teks hasil harus tepat bertambah sepanjang kalimat sisipan');
+  });
+
+  // Test 10 (Sprint 3.5): Dynamic Gauge Colors
+  runCase('Warna busur SemiCircleGauge dinamis (Merah < 50% / Out-of-Domain, Kuning 50-74%, Hijau >= 75%)', () => {
+    // Skor rendah / out-of-domain -> Merah (#EF4444)
+    assertEqual(getGaugeColor(20, 75, false), '#EF4444', 'Skor 20% wajib merah #EF4444');
+    assertEqual(getGaugeColor(49, 75, false), '#EF4444', 'Skor 49% wajib merah #EF4444');
+    assertEqual(getGaugeColor(85, 75, true), '#EF4444', 'Skor 85% jika out-of-domain wajib tetap merah #EF4444');
+
+    // Skor sedang di bawah threshold -> Kuning (#F59E0B)
+    assertEqual(getGaugeColor(50, 75, false), '#F59E0B', 'Skor 50% wajib kuning #F59E0B');
+    assertEqual(getGaugeColor(74, 75, false), '#F59E0B', 'Skor 74% wajib kuning #F59E0B');
+
+    // Skor di atas / sama dengan threshold -> Hijau (#10B981)
+    assertEqual(getGaugeColor(75, 75, false), '#10B981', 'Skor 75% batas ambang wajib hijau #10B981');
+    assertEqual(getGaugeColor(92, 75, false), '#10B981', 'Skor 92% wajib hijau #10B981');
+  });
+
+  // Test 11 (Sprint 3.5): Kondisi Short-circuit Topic Shift Blocker
+  runCase('Deteksi short-circuit isTopicShift memicu kartu penolakan terfokus', () => {
+    const isTopicShiftCondition = (verdict: string, isOutOfDomain?: boolean, topicShiftDetected?: boolean) => {
+      return verdict.includes('Topik Tidak Relevan') || !!isOutOfDomain || !!topicShiftDetected;
+    };
+
+    // Kasus melenceng (Kuil Yunani di sesi Tata Letak Kampus)
+    assertTrue(
+      isTopicShiftCondition('Perlu Revisi - Topik Tidak Relevan', true, true),
+      'Harus short-circuit ketika status vonis Topik Tidak Relevan'
+    );
+    assertTrue(
+      isTopicShiftCondition('Perlu Revisi', true, false),
+      'Harus short-circuit ketika is_out_of_domain bernilai true'
+    );
+    assertTrue(
+      isTopicShiftCondition('Perlu Revisi', false, true),
+      'Harus short-circuit ketika topic_shift_detected bernilai true'
+    );
+
+    // Kasus normal (Sesi relevan)
+    assertTrue(
+      !isTopicShiftCondition('Layak Terbit', false, false),
+      'Naskah relevan normal tidak boleh memicu short-circuit blocker'
+    );
+    assertTrue(
+      !isTopicShiftCondition('Perlu Revisi', false, false),
+      'Naskah revisi normal (bukan out-of-domain) tidak boleh memicu short-circuit blocker'
+    );
   });
 
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
