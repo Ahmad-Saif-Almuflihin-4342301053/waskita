@@ -18,6 +18,8 @@
   --waskita-track: rgba(30, 41, 59, 0.12);
   --waskita-surface: #FFFFFF;
   --waskita-surface-white: #FFFFFF;
+  --waskita-warm-card: #FAF8F5;
+  --waskita-border-subtle: rgba(120, 113, 108, 0.15);
   --waskita-code-bg: rgba(255, 255, 255, 0.72);
   --waskita-logo-fill: #10B981;
 
@@ -64,6 +66,8 @@
   --waskita-track: rgba(247, 244, 235, 0.14);
   --waskita-surface: #1A2436;
   --waskita-surface-white: #1A2436;
+  --waskita-warm-card: #1C1917;
+  --waskita-border-subtle: rgba(247, 244, 235, 0.12);
   --waskita-code-bg: rgba(11, 17, 32, 0.65);
   --waskita-logo-fill: #F7F4EB;
 
