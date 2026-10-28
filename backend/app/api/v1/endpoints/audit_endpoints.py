@@ -371,7 +371,12 @@ async def execute_audit(
     )
 
     serp_source = determine_serp_source(competitor_docs)
-    final_verdict_status = "Mode Demo" if serp_source == "offline_synthetic" else cds_decision["verdict_status"]
+    if cds_decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan":
+        final_verdict_status = "Perlu Revisi - Topik Tidak Relevan"
+    elif serp_source == "offline_synthetic":
+        final_verdict_status = "Mode Demo"
+    else:
+        final_verdict_status = cds_decision["verdict_status"]
 
     # 8. Anotasi Stabilo 4-Warna (Tabel 3.6 Proposal TA)
     annotated_spans = generate_annotated_spans(
