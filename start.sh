@@ -23,7 +23,7 @@ trap cleanup INT TERM EXIT
 
 # Backend harus dijalankan dari dalam folder backend/ (.env dan SQLite bersifat relatif)
 echo "[1/3] Menyalakan backend di port 8000..."
-(cd "$ROOT/backend" && exec ../.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000) \
+(cd "$ROOT/backend" && exec ../.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload) \
   > "$LOG_DIR/backend.log" 2>&1 &
 PIDS+=($!)
 
