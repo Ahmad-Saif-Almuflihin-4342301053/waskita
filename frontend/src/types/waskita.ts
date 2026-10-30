@@ -88,7 +88,7 @@ export interface AuditExecuteResponse {
   draft_content?: string;
   draft_word_count: number;
   audit_timestamp: string;
-  verdict_status: 'Layak Terbit' | 'Siap Terbit' | 'Perlu Revisi' | 'Perlu Revisi - Topik Tidak Relevan' | 'Mode Demo';
+  verdict_status: 'Layak Terbit' | 'Siap Terbit' | 'Perlu Revisi' | 'Perlu Revisi - Topik Tidak Relevan' | 'Perlu Revisi - Redundansi Kalimat Tinggi' | 'Mode Demo';
   degradation_warning: string | null;
   thresholds: QualityThresholds;
   metrics: AuditMetrics;
@@ -110,7 +110,7 @@ export interface AuditSessionSummary {
   target_query: string;
   draft_title: string;
   audit_timestamp: string;
-  verdict_status: 'Layak Terbit' | 'Siap Terbit' | 'Perlu Revisi' | 'Perlu Revisi - Topik Tidak Relevan' | 'Mode Demo';
+  verdict_status: 'Layak Terbit' | 'Siap Terbit' | 'Perlu Revisi' | 'Perlu Revisi - Topik Tidak Relevan' | 'Perlu Revisi - Redundansi Kalimat Tinggi' | 'Mode Demo';
   score_cds: number;
   is_pinned?: boolean;
   serp_source?: SerpSource;

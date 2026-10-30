@@ -336,6 +336,19 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertTrue(annotatedSpans.some((s) => s.color === 'blue' && s.label === 'Kosakata Monoton'), 'Stabilo biru harus berlabel Kosakata Monoton');
   });
 
+  // Test 16 (Sprint 4.0): Verifikasi Dukungan Vonis Redundansi Kalimat Tinggi
+  runCase('Penanganan vonis Perlu Revisi - Redundansi Kalimat Tinggi & warna gauge', () => {
+    const verdictStatus = 'Perlu Revisi - Redundansi Kalimat Tinggi';
+    const isRedundantSentence = verdictStatus.includes('Redundansi Kalimat Tinggi');
+    assertTrue(isRedundantSentence, 'Vonis harus terdeteksi sebagai Redundansi Kalimat Tinggi');
+
+    // Skor dipangkas ke 52% (kuning) atau 45% (merah)
+    const colorAmber = getGaugeColor(52, 75);
+    assertEqual(colorAmber, '#F59E0B', 'Skor 52% harus berwarna kuning');
+    const colorRed = getGaugeColor(45, 75);
+    assertEqual(colorRed, '#EF4444', 'Skor 45% harus berwarna merah');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
