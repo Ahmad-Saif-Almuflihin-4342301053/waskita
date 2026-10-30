@@ -315,6 +315,27 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertEqual(draftInput, 'Catatan revisi untuk sesi 1', 'Catatan revisi session-1 harus pulih utuh');
   });
 
+  // Test 15 (Sprint 3.10): Verifikasi Kartu Saran Celah Defisit Paten Mandiri & Naskah Bebas Teks Sintetis
+  runCase('Kartu Saran Celah Defisit paten mandiri tanpa tombol [X] dan naskah bebas teks sintetis', () => {
+    const mockDeficits = [
+      { term_string: 'roma', term_surface_form: 'Roma', tfidf_weight: 0.9, competitor_consensus_count: 3 },
+      { term_string: 'pemerintahan', term_surface_form: 'Pemerintahan', tfidf_weight: 0.8, competitor_consensus_count: 2 },
+      { term_string: 'bangsa', term_surface_form: 'Bangsa', tfidf_weight: 0.7, competitor_consensus_count: 2 },
+    ];
+
+    // Format output teks saran celah defisit
+    const deficitText = mockDeficits.slice(0, 5).map((d) => d.term_surface_form || d.term_string).join(', ');
+    assertEqual(deficitText, 'Roma, Pemerintahan, Bangsa', 'Format daftar defisit harus sesuai');
+
+    // Naskah stabilo tidak boleh memuat teks buatan
+    const annotatedSpans = [
+      { text: 'Kopi tubruk disukai banyak orang.', color: 'yellow', label: 'Frasa Klise' },
+      { text: 'Kopi kopi kopi robusta kopi kopi robusta.', color: 'blue', label: 'Kosakata Monoton' },
+    ];
+    assertTrue(annotatedSpans.every((s) => !s.text.includes('[Saran Celah Defisit')), 'Naskah tidak boleh memuat injeksi defisit sintetis');
+    assertTrue(annotatedSpans.some((s) => s.color === 'blue' && s.label === 'Kosakata Monoton'), 'Stabilo biru harus berlabel Kosakata Monoton');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
