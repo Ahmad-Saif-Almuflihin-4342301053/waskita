@@ -10,9 +10,11 @@ export interface VerdictSectionProps {
 export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop = false }) => {
   const isDemo = audit.verdict_status === 'Mode Demo' || audit.serp_source === 'offline_synthetic';
   const isOutOfDomain = audit.verdict_status.includes('Topik Tidak Relevan') || !!audit.metrics.is_out_of_domain;
+  const isRedundantSentence = audit.verdict_status.includes('Redundansi Kalimat Tinggi');
   const isReady =
     !isDemo &&
     !isOutOfDomain &&
+    !isRedundantSentence &&
     !audit.metrics.is_redundant &&
     !audit.metrics.is_keyword_stuffed &&
     (audit.verdict_status === 'Layak Terbit' || audit.verdict_status === 'Siap Terbit') &&
@@ -60,14 +62,14 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
               ? 'var(--waskita-card, #E9DFCA)'
               : isReady
               ? 'var(--waskita-emerald-bg, #D1FAE5)'
-              : isOutOfDomain
+              : isOutOfDomain || isRedundantSentence
               ? 'var(--waskita-rose-bg, #FEE2E2)'
               : 'var(--waskita-amber-bg, #FEF3C7)',
             color: isDemo
               ? 'var(--waskita-text, #1E293B)'
               : isReady
               ? 'var(--waskita-emerald-text, #065F46)'
-              : isOutOfDomain
+              : isOutOfDomain || isRedundantSentence
               ? 'var(--waskita-rose-accent, #DC2626)'
               : 'var(--waskita-amber-text, #B45309)',
             fontWeight: 800,
@@ -95,6 +97,10 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
         >
           {isDemo
             ? 'Hasil analisis dihitung menggunakan data sintetis / korpus uji lokal offline (bukan hasil Google SERP langsung). Vonis kelayakan publikasi dinonaktifkan dalam mode ini.'
+            : isOutOfDomain
+            ? 'Topik naskah terdeteksi tidak relevan dengan kueri audit target sesi ini. Mulai sesi analisis baru jika membahas topik yang berbeda.'
+            : isRedundantSentence
+            ? 'Draf memiliki kemiripan kalimat langsung yang signifikan dengan artikel kompetitor SERP (≥ 20% kalimat berstabilo merah). Rombak struktur kalimat yang ditandai sebelum diajukan publikasi.'
             : isReady
             ? `Selamat! Skor diferensiasi ${cdsScore}% melampaui ambang batas ${thresholdCds}%. Draf telah memiliki entitas baru bernilai tambah dan aman dari risiko kanibalisasi konten.`
             : `Naskah memperoleh skor ${cdsScore}% (di bawah batas ${thresholdCds}%). Diperlukan penguatan informasi unik dan reduksi kalimat generik sebelum diterbitkan.`}
