@@ -52,7 +52,15 @@ DOC_EXTENSIONS = (
     ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip", ".rar"
 )
 DOC_DOMAINS = {
-    "scribd.com", "www.scribd.com", "academia.edu", "www.academia.edu"
+    "scribd.com",
+    "www.scribd.com",
+    "academia.edu",
+    "www.academia.edu",
+    # Sprint 3.10: Ensiklopedia publik diblokir agar tidak mendistorsi bobot TF-IDF artikel komersial
+    "wikipedia.org",
+    "www.wikipedia.org",
+    "id.wikipedia.org",
+    "en.wikipedia.org",
 }
 
 # Sprint 3.8 & 3.9: Domain proxy dan penerjemah yang memicu pencemaran bahasa atau bukan artikel
@@ -66,7 +74,7 @@ SEARCH_ENGINE_PROXY_DOMAINS = {
     "www.yahoo.com",
 }
 
-BLOCKED_DOMAINS = VIDEO_SOCIAL_DOMAINS
+BLOCKED_DOMAINS = VIDEO_SOCIAL_DOMAINS | DOC_DOMAINS
 BLOCKED_EXTENSIONS = DOC_EXTENSIONS
 
 
@@ -297,7 +305,7 @@ async def search_and_scrape_competitors(
             "q": clean_query,
             "gl": "id",
             "hl": "id",
-            "num": 15,
+            "num": 25,
         }
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(url, headers=headers, json=payload)

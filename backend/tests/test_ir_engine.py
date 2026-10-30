@@ -385,16 +385,17 @@ class TestCompositeCdsAndGatekeeper:
 
 class TestAnnotatedSpans:
     """
-    Anotasi 4-Warna Resmi:
-    - yellow: Klise/Generik/TTR Lokal Rendah
+    Anotasi 4-Warna Resmi (Proposal TA & Sprint 3.10):
+    - yellow: Klise / Frasa Pasaran
+    - blue: Kosakata Monoton (local_ttr < 0.40)
     - red: Redundansi VSM lokal terhadap kompetitor
-    - blue: Saran Celah Topik Defisit
     - green: Orisinalitas Kuat (Delta Gain)
     """
 
     def test_stabilo_four_colors_detection(self):
         draft_text = (
             "Di era digital saat ini kopi tubruk disukai banyak orang. "
+            "Kopi kopi kopi robusta kopi kopi robusta kopi robusta. "
             "Kopi tubruk tradisional khas Nusantara diseduh dengan air mendidih bersuhu 90-95 derajat celcius tanpa saringan. "
             "Biji kopi Robusta Dampit memberikan keunikan aroma rempah manis alami."
         )
@@ -417,8 +418,15 @@ class TestAnnotatedSpans:
 
         colors_present = {s.color for s in spans if s.color is not None}
 
-        # Wajib ada injeksi warna biru untuk saran defisit
+        # Sprint 3.10: Naskah HANYA berisi kalimat asli milik pengguna (bebas teks sintetis)
+        assert all(not s.text.startswith("[Saran Celah Defisit") for s in spans)
+        assert all(s.text in draft_text for s in spans)
+
+        # Wajib ada biru untuk kalimat berkosakata monoton (local_ttr < 0.40)
         assert "blue" in colors_present
+        blue_spans = [s for s in spans if s.color == "blue"]
+        assert any(s.label == "Kosakata Monoton" for s in blue_spans)
+
         # Wajib ada kuning untuk frasa klise 'di era digital saat ini'
         assert "yellow" in colors_present
         # Wajib ada merah untuk kalimat yang identik dengan kompetitor
