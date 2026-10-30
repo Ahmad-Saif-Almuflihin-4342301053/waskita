@@ -184,33 +184,48 @@ Arsitektur Romawi kuno memiliki pilar ordo klasik yang sangat megah dan proporsi
     assertEqual(getGaugeColor(92, 75, false), '#10B981', 'Skor 92% wajib hijau #10B981');
   });
 
-  // Test 11 (Sprint 3.5): Kondisi Short-circuit Topic Shift Blocker
-  runCase('Deteksi short-circuit isTopicShift memicu kartu penolakan terfokus', () => {
-    const isTopicShiftCondition = (verdict: string, isOutOfDomain?: boolean, topicShiftDetected?: boolean) => {
-      return verdict.includes('Topik Tidak Relevan') || !!isOutOfDomain || !!topicShiftDetected;
+  // Test 11 (Sprint 3.5 & 3.8): Kondisi Short-circuit Topic Shift Blocker (Hanya aktif jika Turn > 1)
+  runCase('Deteksi short-circuit isTopicShift memicu kartu penolakan terfokus hanya pada Turn > 1', () => {
+    const isTopicShiftCondition = (
+      verdict: string,
+      isOutOfDomain?: boolean,
+      topicShiftDetected?: boolean,
+      turnNumber: number = 2
+    ) => {
+      const isTurn1 = turnNumber <= 1;
+      return (
+        !isTurn1 &&
+        (verdict.includes('Topik Tidak Relevan') || !!isOutOfDomain || !!topicShiftDetected)
+      );
     };
 
-    // Kasus melenceng (Kuil Yunani di sesi Tata Letak Kampus)
+    // Kasus melenceng di Turn #1: TIDAK BOLEH memicu blocker (Sprint 3.8 Turn-1 Guard Rail)
     assertTrue(
-      isTopicShiftCondition('Perlu Revisi - Topik Tidak Relevan', true, true),
-      'Harus short-circuit ketika status vonis Topik Tidak Relevan'
+      !isTopicShiftCondition('Perlu Revisi - Topik Tidak Relevan', true, true, 1),
+      'Turn #1 tidak boleh memicu short-circuit blocker meskipun out-of-domain'
+    );
+
+    // Kasus melenceng di Turn #2: HARUS memicu blocker
+    assertTrue(
+      isTopicShiftCondition('Perlu Revisi - Topik Tidak Relevan', true, true, 2),
+      'Harus short-circuit ketika status vonis Topik Tidak Relevan pada Turn > 1'
     );
     assertTrue(
-      isTopicShiftCondition('Perlu Revisi', true, false),
-      'Harus short-circuit ketika is_out_of_domain bernilai true'
+      isTopicShiftCondition('Perlu Revisi', true, false, 2),
+      'Harus short-circuit ketika is_out_of_domain bernilai true pada Turn > 1'
     );
     assertTrue(
-      isTopicShiftCondition('Perlu Revisi', false, true),
-      'Harus short-circuit ketika topic_shift_detected bernilai true'
+      isTopicShiftCondition('Perlu Revisi', false, true, 2),
+      'Harus short-circuit ketika topic_shift_detected bernilai true pada Turn > 1'
     );
 
     // Kasus normal (Sesi relevan)
     assertTrue(
-      !isTopicShiftCondition('Layak Terbit', false, false),
+      !isTopicShiftCondition('Layak Terbit', false, false, 2),
       'Naskah relevan normal tidak boleh memicu short-circuit blocker'
     );
     assertTrue(
-      !isTopicShiftCondition('Perlu Revisi', false, false),
+      !isTopicShiftCondition('Perlu Revisi', false, false, 2),
       'Naskah revisi normal (bukan out-of-domain) tidak boleh memicu short-circuit blocker'
     );
   });
@@ -232,12 +247,14 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     );
   });
 
-  // Test 13 (Sprint 3.6): Aset ilustrasi Editorial Discovery Blocker tersedia di folder public
+  // Test 13 (Sprint 3.6 & 3.8): Aset ilustrasi Editorial Discovery Blocker tersedia di folder public (Multi-CWD resolution)
   runCase('Aset ilustrasi Editorial Discovery Blocker (discovery-light.svg & discovery-dark.svg) tersedia di public assets', () => {
     const findAsset = (filename: string) => {
       const candidates = [
         path.resolve('frontend/public/assets', filename),
         path.resolve('public/assets', filename),
+        path.resolve('../frontend/public/assets', filename),
+        path.resolve('../../frontend/public/assets', filename),
       ];
       return candidates.some((p: string) => fs.existsSync(p));
     };
