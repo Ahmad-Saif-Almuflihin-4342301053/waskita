@@ -63,10 +63,8 @@ DOC_DOMAINS = {
     "en.wikipedia.org",
 }
 
-# Sprint 3.8 & 3.9: Domain proxy dan penerjemah yang memicu pencemaran bahasa atau bukan artikel
+# Sprint 3.8, 3.9, & 4.0: Domain proxy dan search engine eksternal
 SEARCH_ENGINE_PROXY_DOMAINS = {
-    "translate.google.com",
-    "translate.google.co.id",
     "webcache.googleusercontent.com",
     "bing.com",
     "www.bing.com",
@@ -97,7 +95,19 @@ def classify_url_skip_reason(url: str) -> Optional[str]:
         domain = parsed.netloc
         domain_no_www = domain[4:] if domain.startswith("www.") else domain
 
-        # Sprint 3.8 & 3.9: Filter domain proxy, penerjemah, dan search engine lain
+        # Sprint 4.0: Google Translate & .translate.goog proxy handling
+        # Jika memuat artikel substantif berbahasa Indonesia, jangan diblokir secara prematur
+        if "translate.google." in domain or domain.endswith(".translate.goog") or domain == "translate.goog":
+            from urllib.parse import parse_qs
+            query_params = parse_qs(parsed.query)
+            orig_url = query_params.get("u", [None])[0] or query_params.get("url", [None])[0]
+            if orig_url:
+                orig_skip = classify_url_skip_reason(orig_url)
+                if orig_skip:
+                    return orig_skip
+            return None
+
+        # Filter domain proxy dan search engine lain
         for proxy_dom in SEARCH_ENGINE_PROXY_DOMAINS:
             if domain == proxy_dom or domain.endswith("." + proxy_dom) or domain_no_www == proxy_dom:
                 return "search_engine_proxy"
@@ -249,6 +259,32 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
     return result
 
 
+async def _fetch_serper_page(client: httpx.AsyncClient, query: str, page_num: int = 1) -> List[Dict[str, Any]]:
+    """Helper untuk mengambil hasil organik Google per halaman dari Serper.dev."""
+    url = "https://google.serper.dev/search"
+    headers = {
+        "X-API-KEY": settings.SERPER_API_KEY,
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "q": query,
+        "gl": "id",
+        "hl": "id",
+        "page": page_num,
+    }
+    try:
+        resp = await client.post(url, headers=headers, json=payload, timeout=10.0)
+        if resp.status_code == 200:
+            data = resp.json()
+            return data.get("organic", [])
+        else:
+            logger.warning(f"Serper.dev returned {resp.status_code} on page {page_num}")
+            return []
+    except Exception as e:
+        logger.error(f"Error fetching Serper page {page_num}: {e}")
+        return []
+
+
 async def search_and_scrape_competitors(
     target_query: str,
     audit_summary: Optional[Dict[str, int]] = None,
@@ -296,27 +332,38 @@ async def search_and_scrape_competitors(
         return fallback_docs
 
     try:
-        url = "https://google.serper.dev/search"
-        headers = {
-            "X-API-KEY": settings.SERPER_API_KEY,
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "q": clean_query,
-            "gl": "id",
-            "hl": "id",
-            "num": 25,
-        }
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, headers=headers, json=payload)
-            if resp.status_code != 200:
-                logger.warning(f"Serper.dev returned {resp.status_code}")
-                if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-                    return []
-                return get_fallback_corpus(clean_query)
-            data = resp.json()
+        organic_results: List[Dict[str, Any]] = []
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            page_1_results = await _fetch_serper_page(client, clean_query, page_num=1)
+            organic_results.extend(page_1_results)
 
-        organic_results = data.get("organic", [])
+            # Hitung kandidat lolos filter awal dari page 1
+            valid_p1 = [
+                item for item in page_1_results
+                if classify_url_skip_reason(item.get("link", "")) is None
+            ]
+
+            # Sprint 4.0: Dynamic Pagination jika kandidat bersih page 1 < 8
+            if len(valid_p1) < 8:
+                logger.info(f"Page 1 yielded {len(valid_p1)} valid candidates (< 8). Fetching page 2...")
+                page_2_results = await _fetch_serper_page(client, clean_query, page_num=2)
+                organic_results.extend(page_2_results)
+
+                valid_p2 = [
+                    item for item in organic_results
+                    if classify_url_skip_reason(item.get("link", "")) is None
+                ]
+                if len(valid_p2) < 8:
+                    logger.info(f"Page 1+2 yielded {len(valid_p2)} valid candidates (< 8). Fetching page 3...")
+                    page_3_results = await _fetch_serper_page(client, clean_query, page_num=3)
+                    organic_results.extend(page_3_results)
+
+        if not organic_results:
+            logger.warning("Serper.dev returned 0 organic results across queried pages.")
+            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                return []
+            return get_fallback_corpus(clean_query)
+
         summary["total_candidates_evaluated"] = len(organic_results)
 
         candidate_urls = []
@@ -350,6 +397,8 @@ async def search_and_scrape_competitors(
                 candidate_domains.add(domain)
 
             candidate_urls.append(item)
+            if len(candidate_urls) >= 15:
+                break
 
         if len(candidate_urls) < 2:
             logger.warning("Fewer than 2 valid candidate URLs found from SERP.")

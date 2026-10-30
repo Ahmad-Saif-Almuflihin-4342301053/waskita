@@ -219,6 +219,7 @@ def calculate_composite_cds(
     hko_percentage: float,
     thresholds: ThresholdConfig,
     avg_cosine_sim: Optional[float] = None,
+    red_span_ratio: float = 0.0,
 ) -> Dict[str, any]:
     """
     Rumus Komposit Content Differentiation Score (CDS 0-100%) & Keputusan Gatekeeper (Bab 2.4 & FR-10):
@@ -228,8 +229,12 @@ def calculate_composite_cds(
     4. C_HKO (15%)
     CDS = round(0.35 * C_VSM + 0.30 * C_IG + 0.20 * C_MATTR + 0.15 * C_HKO, 1)
 
-    Ditambah Topic Relevance Gate (Sprint 3.1 & Temuan T8):
+    Ditambah Topic Relevance Gate (Sprint 3.1 & 3.4):
     Jika avg_cosine_sim < 0.05, naskah ditandai Out-of-Domain (Perlu Revisi - Topik Tidak Relevan).
+
+    Sprint 4.0: Red-Span Density Veto Gate:
+    Jika red_span_ratio >= 0.20 (≥ 20% kalimat naskah menjiplak kompetitor),
+    Vonis WAJIB menjadi "Perlu Revisi - Redundansi Kalimat Tinggi" dan CDS dipangkas maksimal 58.0%.
     """
     # 1. Skor Diferensiasi Vektor C_VSM (35%)
     # Penalti linier jika S_cos_max > 0.25
@@ -266,18 +271,29 @@ def calculate_composite_cds(
     # Topic Relevance Gate (Sprint 3.1 & 3.4)
     is_out_of_domain = (avg_cosine_sim is not None) and (avg_cosine_sim < 0.05)
 
-    # Aturan Vonis & Penalti Skor Out-of-Domain (Sprint 3.4)
+    # Sprint 4.0: Red-Span Density Veto Gate (ambang batas >= 20% kalimat redundan)
+    is_sentence_redundant = red_span_ratio >= 0.20
+
+    # Aturan Vonis & Penalti Skor
     if is_out_of_domain:
         verdict_status = "Perlu Revisi - Topik Tidak Relevan"
         cds = min(cds, 20.0)
+    elif is_sentence_redundant:
+        verdict_status = "Perlu Revisi - Redundansi Kalimat Tinggi"
+        # Skor CDS tidak boleh melebihi 58.0% jika lebih dari seperlima draf menjiplak kompetitor
+        cds = min(cds, round(58.0 * (1.0 - (red_span_ratio - 0.20)), 1))
     elif (cds >= thresholds.min_cds_score) and (not is_redundant) and (not is_keyword_stuffed):
         verdict_status = "Siap Terbit"
     else:
         verdict_status = "Perlu Revisi"
 
+    cds = max(0.0, min(100.0, cds))
+
     return {
         "content_differentiation_score": cds,
         "is_redundant": is_redundant,
+        "is_sentence_redundant": is_sentence_redundant,
+        "red_span_ratio": round(red_span_ratio, 3),
         "is_keyword_stuffed": is_keyword_stuffed,
         "is_out_of_domain": is_out_of_domain,
         "verdict_status": verdict_status,
@@ -350,7 +366,15 @@ def generate_overview_and_remediation(
         if is_out_of_domain:
             bullets.append("Naskah terindikasi di luar topik utama (Out-of-Domain): kemiripan semantik rata-rata dengan acuan SERP sangat rendah (< 0.05). Skor CDS dipangkas menjadi maksimal 20.0%.")
             remediation_points.append(f"Topik naskah tidak relevan dengan sesi/kueri '{target_query}'. Mulai sesi analisis baru jika naskah ini membahas topik yang berbeda agar dievaluasi terhadap kompetitor SERP yang sesuai.")
-        if is_redundant:
+        if verdict_status == "Perlu Revisi - Redundansi Kalimat Tinggi":
+            bullets.append("Naskah terdeteksi memiliki kepadatan kalimat redundan langsung yang tinggi (≥ 20% kalimat naskah mirip kompetitor). Skor CDS dipangkas secara proporsional.")
+            if comp_citation:
+                remediation_points.append(
+                    f"Rombak total struktur kalimat yang terindikasi meniru {comp_citation} agar terbebas dari penalti redundansi kalimat."
+                )
+            else:
+                remediation_points.append("Rombak total kalimat naskah yang ditandai stabilo merah agar tidak menjiplak struktur kalimat kompetitor.")
+        elif is_redundant:
             if comp_citation:
                 bullets.append(f"Tingkat kemiripan semantik tinggi terhadap {comp_citation} (melampaui ambang batas).")
                 remediation_points.append(

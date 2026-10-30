@@ -489,12 +489,10 @@ class TestSprint3SerpLiveIntegrity:
         assert "total_candidates_evaluated" in summary
 
     def test_classify_url_skip_proxy_and_redirect_domains(self):
-        """Sprint 3.8 & 3.9: classify_url_skip_reason menyaring domain penerjemah & proxy, namun mengizinkan Google goto redirects."""
+        """Sprint 3.8, 3.9, & 4.0: classify_url_skip_reason menyaring domain proxy, namun mengizinkan Google goto & Google Translate substantif."""
         from app.services.serp_scraper import classify_url_skip_reason, is_valid_article_url
 
         proxy_urls = [
-            "https://translate.google.com/translate?u=https://example.com/article",
-            "https://translate.google.co.id/translate?hl=id",
             "https://webcache.googleusercontent.com/search?q=cache:abc",
             "https://www.bing.com/ck/a?!&&p=123",
             "https://search.yahoo.com/search?p=test",
@@ -502,6 +500,15 @@ class TestSprint3SerpLiveIntegrity:
         for u in proxy_urls:
             assert classify_url_skip_reason(u) == "search_engine_proxy", f"URL {u} harus diklasifikasikan search_engine_proxy"
             assert not is_valid_article_url(u), f"URL {u} tidak boleh dianggap valid article"
+
+        # Sprint 4.0: Google Translate dengan target artikel substantif diizinkan
+        translate_urls = [
+            "https://translate.google.com/translate?u=https://example.com/article",
+            "https://www-invaluable-com.translate.goog/blog/brutalist-architecture/?_x_tr_sl=en&_x_tr_tl=id",
+        ]
+        for u in translate_urls:
+            assert classify_url_skip_reason(u) is None, f"Google translate URL {u} harus diizinkan (return None)"
+            assert is_valid_article_url(u) is True
 
         # Sprint 3.9: Google goto redirects diizinkan agar di-resolve oleh fetch_page_content
         google_goto_urls = [
@@ -654,6 +661,66 @@ class TestTopicShiftAndOutOfDomainSprint34:
         # Degradation warning harus memuat notifikasi peringatan pergantian topik
         assert data2["degradation_warning"] is not None
         assert "pergantian topik" in data2["degradation_warning"] or "tidak relevan" in data2["degradation_warning"]
+
+    def test_red_span_density_veto_gate(self):
+        """Sprint 4.0: Jika red_span_ratio >= 0.20, vonis wajib 'Perlu Revisi - Redundansi Kalimat Tinggi' dan skor <= 58%."""
+        from app.services.gatekeeper import calculate_composite_cds
+        from app.schemas.audit import ThresholdConfig
+
+        thresholds = ThresholdConfig(
+            max_cosine_similarity=0.60,
+            min_mattr=0.55,
+            max_hko_percentage=40.0,
+            min_cds_score=75.0,
+        )
+
+        # Kasus 1: Draf plagiat dengan 30% kalimat merah (red_span_ratio = 0.30)
+        # Cosine similarity makro rendah (0.35), MATTR bagus (0.80), HKO aman (0%)
+        decision = calculate_composite_cds(
+            max_cosine_sim=0.35,
+            draft_entities_count=20,
+            serp_entities_count=25,
+            shared_entities_count=18,
+            gain_count=5,
+            mattr_score=0.80,
+            hko_percentage=0.0,
+            thresholds=thresholds,
+            avg_cosine_sim=0.30,
+            red_span_ratio=0.30,
+        )
+
+        assert decision["is_sentence_redundant"] is True
+        assert decision["verdict_status"] == "Perlu Revisi - Redundansi Kalimat Tinggi"
+        assert decision["content_differentiation_score"] <= 58.0
+        # Dilarang keras lolos sebagai 'Siap Terbit'
+        assert decision["verdict_status"] != "Siap Terbit"
+
+        # Kasus 2: Draf orisinal (red_span_ratio = 0.05 < 0.20)
+        decision_clean = calculate_composite_cds(
+            max_cosine_sim=0.20,
+            draft_entities_count=20,
+            serp_entities_count=25,
+            shared_entities_count=18,
+            gain_count=5,
+            mattr_score=0.80,
+            hko_percentage=0.0,
+            thresholds=thresholds,
+            avg_cosine_sim=0.25,
+            red_span_ratio=0.05,
+        )
+        assert decision_clean["is_sentence_redundant"] is False
+        assert decision_clean["verdict_status"] == "Siap Terbit"
+        assert decision_clean["content_differentiation_score"] >= 75.0
+
+    def test_web_cruft_stopwords_purge(self):
+        """Sprint 4.0: Stopwords protokol web & ekstensi berkas (www, https, html, pdf, dll.) harus dibersihkan."""
+        from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, WEB_NOISE_STOPWORDS
+
+        cruft_words = ["www", "http", "https", "html", "php", "com", "org", "pdf", "download"]
+        for word in cruft_words:
+            assert word in WEB_NOISE_STOPWORDS, f"Word '{word}' harus terdaftar di WEB_NOISE_STOPWORDS"
+            assert word in ALL_INDONESIAN_STOPWORDS, f"Word '{word}' harus terdaftar di ALL_INDONESIAN_STOPWORDS"
+
 
 
 
