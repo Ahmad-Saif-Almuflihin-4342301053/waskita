@@ -351,7 +351,20 @@ async def execute_audit(
     # 6. Analisis Stilometri (TTR, MATTR, HKO)
     stylometrics = calculate_stylometrics(draft_content, target_query)
 
-    # 7. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4)
+    # 7. Anotasi Stabilo 4-Warna (Tabel 3.6 Proposal TA & Sprint 4.0 Red-Span Veto)
+    annotated_spans = generate_annotated_spans(
+        draft_content=draft_content,
+        competitor_clean_texts=[c.get("clean_text", "") for c in competitor_docs],
+        entity_gaps=entity_gaps,
+        hko_percentage=stylometrics["hko_percentage"],
+        threshold_hko=thresholds.max_hko_percentage,
+    )
+
+    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate
+    red_spans = [span for span in annotated_spans if span.color == "red"]
+    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+
+    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.0)
     draft_stems_set = {e[0] for e in draft_entities}
     serp_stems_set = set()
     for ce in competitor_entities_list:
@@ -369,34 +382,28 @@ async def execute_audit(
         hko_percentage=stylometrics["hko_percentage"],
         thresholds=thresholds,
         avg_cosine_sim=vsm_results["avg_cosine_similarity"],
+        red_span_ratio=red_span_ratio,
     )
 
     serp_source = determine_serp_source(competitor_docs)
     if cds_decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan":
         final_verdict_status = "Perlu Revisi - Topik Tidak Relevan"
+    elif cds_decision["verdict_status"] == "Perlu Revisi - Redundansi Kalimat Tinggi":
+        final_verdict_status = "Perlu Revisi - Redundansi Kalimat Tinggi"
     elif serp_source == "offline_synthetic":
         final_verdict_status = "Mode Demo"
     else:
         final_verdict_status = cds_decision["verdict_status"]
 
-    # 8. Anotasi Stabilo 4-Warna (Tabel 3.6 Proposal TA)
-    annotated_spans = generate_annotated_spans(
-        draft_content=draft_content,
-        competitor_clean_texts=[c.get("clean_text", "") for c in competitor_docs],
-        entity_gaps=entity_gaps,
-        hko_percentage=stylometrics["hko_percentage"],
-        threshold_hko=thresholds.max_hko_percentage,
-    )
-
-    # Identifikasi kompetitor dengan kemiripan tertinggi dan cuplikan redundansi (Sprint 3.3)
+    # Identifikasi kompetitor dengan kemiripan tertinggi dan cuplikan redundansi (Sprint 3.3 & 4.0)
     highest_comp = None
     if competitor_docs:
         highest_comp = max(competitor_docs, key=lambda d: d.get("cosine_similarity", 0.0))
-    red_snippets = [span.text for span in annotated_spans if span.color == "red"]
+    red_snippets = [span.text for span in red_spans]
 
     # 9. Poin Editorial & Remediasi Kurasi
     overview_remediation = generate_overview_and_remediation(
-        verdict_status=cds_decision["verdict_status"],
+        verdict_status=final_verdict_status,
         cds_score=cds_decision["content_differentiation_score"],
         is_redundant=cds_decision["is_redundant"],
         is_keyword_stuffed=cds_decision["is_keyword_stuffed"],
