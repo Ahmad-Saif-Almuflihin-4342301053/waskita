@@ -66,7 +66,7 @@ def seed_initial_demo_data():
                     annotated_spans_json=json.dumps([
                         {"text": "Kopi tubruk adalah minuman khas Indonesia yang dibuat dengan cara menyeduh bubuk kopi secara langsung tanpa disaring.", "color": None, "label": None},
                         {"text": "Banyak orang menyukai kopi tubruk karena aromanya yang pekat dan cara pembuatannya yang sangat mudah sekali.", "color": "yellow", "label": "Klise/Generik"},
-                        {"text": "[Saran Celah Defisit SERP: Naskah belum mengulas materi penting: Takaran Suhu 90°C, Rasio Seduh 1:15]", "color": "blue", "label": "Saran Celah Defisit"},
+                        {"text": "Namun jika salah takaran, rasanya bisa menjadi terlalu pahit dan getir di lidah.", "color": "blue", "label": "Kosakata Monoton"},
                         {"text": "Cara membuat kopi tubruk tanpa ampas naik ke permukaan dan langkah mudah menyeduhnya...", "color": "red", "label": "Redundansi VSM Tinggi"}
                     ]),
                     remediation_prompt="Tolong tulis ulang paragraf pembuka artikel kopi tubruk ini agar lebih tajam dan kaya gaya stilometri.\nWajib sertakan poin penting berikut:\n1. Suhu seduh air ideal (90-94°C) dan rasio bubuk:air (1:15).\n2. Tekankan keunikan profil rasa Robusta Dampit.\n3. Hindari kalimat klise 'banyak orang menyukai kopi tubruk'.",
