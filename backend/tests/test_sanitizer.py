@@ -139,6 +139,7 @@ class TestMediaSanitizerAndWordCount:
         assert os.path.exists(test_file), f"Berkas {test_file} tidak ditemukan."
 
         cmd = ["node", "--experimental-strip-types", test_file]
-        run_res = subprocess.run(cmd, capture_output=True, text=True)
+        frontend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend"))
+        run_res = subprocess.run(cmd, capture_output=True, text=True, cwd=frontend_dir)
         assert run_res.returncode == 0, f"Frontend sanitizer test failed:\nSTDOUT:\n{run_res.stdout}\nSTDERR:\n{run_res.stderr}"
         assert "0 gagal" in run_res.stdout and "lulus" in run_res.stdout

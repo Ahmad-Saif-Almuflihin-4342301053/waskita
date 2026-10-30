@@ -247,6 +247,7 @@ async def execute_audit(
     serp_audit_summary_dict = {
         "skipped_video_social_count": 0,
         "skipped_pdf_doc_count": 0,
+        "skipped_proxy_count": 0,
         "skipped_short_text_count": 0,
         "skipped_bot_protect_count": 0,
         "total_candidates_evaluated": 0,

@@ -55,6 +55,21 @@ DOC_DOMAINS = {
     "scribd.com", "www.scribd.com", "academia.edu", "www.academia.edu"
 }
 
+# Sprint 3.8: Domain proxy, penerjemah, dan mesin pencari yang memicu redirect atau pencemaran bahasa
+SEARCH_ENGINE_PROXY_DOMAINS = {
+    "google.com",
+    "www.google.com",
+    "google.co.id",
+    "www.google.co.id",
+    "translate.google.com",
+    "translate.google.co.id",
+    "webcache.googleusercontent.com",
+    "bing.com",
+    "www.bing.com",
+    "yahoo.com",
+    "www.yahoo.com",
+}
+
 BLOCKED_DOMAINS = VIDEO_SOCIAL_DOMAINS
 BLOCKED_EXTENSIONS = DOC_EXTENSIONS
 
@@ -64,6 +79,7 @@ def classify_url_skip_reason(url: str) -> Optional[str]:
     Mengklasifikasikan alasan URL dilewati sebelum fetch:
     - 'video_social'
     - 'pdf_doc'
+    - 'search_engine_proxy'
     - None jika lolos
     """
     if not url or not url.startswith("http"):
@@ -72,6 +88,14 @@ def classify_url_skip_reason(url: str) -> Optional[str]:
         parsed = urlparse(url.lower())
         domain = parsed.netloc
         domain_no_www = domain[4:] if domain.startswith("www.") else domain
+
+        # Sprint 3.8: Filter domain proxy, penerjemah, dan mesin pencari
+        for proxy_dom in SEARCH_ENGINE_PROXY_DOMAINS:
+            if domain == proxy_dom or domain.endswith("." + proxy_dom) or domain_no_www == proxy_dom:
+                return "search_engine_proxy"
+
+        if domain.endswith(".google.com") or domain.endswith(".google.co.id"):
+            return "search_engine_proxy"
 
         for blocked in VIDEO_SOCIAL_DOMAINS:
             if domain == blocked or domain.endswith("." + blocked) or domain_no_www == blocked:
@@ -234,10 +258,13 @@ async def search_and_scrape_competitors(
     summary = audit_summary if audit_summary is not None else {
         "skipped_video_social_count": 0,
         "skipped_pdf_doc_count": 0,
+        "skipped_proxy_count": 0,
         "skipped_short_text_count": 0,
         "skipped_bot_protect_count": 0,
         "total_candidates_evaluated": 0,
     }
+    if "skipped_proxy_count" not in summary:
+        summary["skipped_proxy_count"] = 0
 
     # 0. Cache-Aside Check (Fase 1 Production Roadmap - Redis / Multi-Tier)
     cached_serp = await get_serp_cache(target_query)
@@ -289,6 +316,9 @@ async def search_and_scrape_competitors(
                 continue
             elif skip_reason == "pdf_doc":
                 summary["skipped_pdf_doc_count"] += 1
+                continue
+            elif skip_reason == "search_engine_proxy":
+                summary["skipped_proxy_count"] += 1
                 continue
             elif skip_reason is not None:
                 continue
