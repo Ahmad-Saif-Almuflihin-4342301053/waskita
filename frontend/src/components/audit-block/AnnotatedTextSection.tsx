@@ -158,6 +158,61 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
         )}
       </div>
 
+      {/* Sprint 3.10: Kartu Informasi Celah Defisit Paten Mandiri (Tanpa Tombol [X]) */}
+      {audit.entity_gaps?.deficit && audit.entity_gaps.deficit.length > 0 && (
+        <div
+          data-testid="deficit-topic-gaps-card"
+          style={{
+            marginBottom: '10px',
+            padding: '12px 16px',
+            borderRadius: '12px',
+            background: 'rgba(59, 130, 246, 0.08)',
+            border: '1px solid rgba(59, 130, 246, 0.25)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px',
+            fontSize: '12.5px',
+            lineHeight: 1.5,
+          }}
+          className="dark:bg-slate-800 dark:border-blue-900/40"
+        >
+          <div
+            style={{
+              fontSize: '18px',
+              lineHeight: 1,
+              marginTop: '1px',
+              flexShrink: 0,
+            }}
+          >
+            💡
+          </div>
+          <div style={{ flex: 1 }}>
+            <div
+              style={{
+                fontWeight: 700,
+                color: 'var(--waskita-primary, #1D4ED8)',
+                marginBottom: '3px',
+                fontSize: '12px',
+                textTransform: 'uppercase',
+                letterSpacing: '0.03em',
+              }}
+            >
+              Saran Celah Topik (SERP)
+            </div>
+            <div style={{ color: 'var(--waskita-text-body, #334155)' }}>
+              Naskah Anda belum mengulas aspek penting yang banyak dibahas kompetitor:{' '}
+              <strong style={{ fontWeight: 600, color: 'var(--waskita-text-heading, #0F172A)' }}>
+                {audit.entity_gaps.deficit
+                  .slice(0, 5)
+                  .map((item) => item.term_surface_form || item.term_string)
+                  .join(', ')}
+              </strong>
+              .
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Popover Detail Kalimat yang Diklik */}
       {activeSentenceSpan && (
         <div
