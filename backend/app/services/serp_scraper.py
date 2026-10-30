@@ -334,29 +334,24 @@ async def search_and_scrape_competitors(
     try:
         organic_results: List[Dict[str, Any]] = []
         async with httpx.AsyncClient(timeout=12.0) as client:
-            page_1_results = await _fetch_serper_page(client, clean_query, page_num=1)
-            organic_results.extend(page_1_results)
+            # Sprint 4.0: Ambil Page 1 dan Page 2 secara paralel agar kandidat kompetitor selalu mencukupi
+            p1_task = _fetch_serper_page(client, clean_query, page_num=1)
+            p2_task = _fetch_serper_page(client, clean_query, page_num=2)
+            p1_res, p2_res = await asyncio.gather(p1_task, p2_task)
+            organic_results.extend(p1_res)
+            organic_results.extend(p2_res)
 
-            # Hitung kandidat lolos filter awal dari page 1
-            valid_p1 = [
-                item for item in page_1_results
+            # Hitung kandidat lolos filter dari Page 1 & 2
+            valid_candidates = [
+                item for item in organic_results
                 if classify_url_skip_reason(item.get("link", "")) is None
             ]
 
-            # Sprint 4.0: Dynamic Pagination jika kandidat bersih page 1 < 8
-            if len(valid_p1) < 8:
-                logger.info(f"Page 1 yielded {len(valid_p1)} valid candidates (< 8). Fetching page 2...")
-                page_2_results = await _fetch_serper_page(client, clean_query, page_num=2)
-                organic_results.extend(page_2_results)
-
-                valid_p2 = [
-                    item for item in organic_results
-                    if classify_url_skip_reason(item.get("link", "")) is None
-                ]
-                if len(valid_p2) < 8:
-                    logger.info(f"Page 1+2 yielded {len(valid_p2)} valid candidates (< 8). Fetching page 3...")
-                    page_3_results = await _fetch_serper_page(client, clean_query, page_num=3)
-                    organic_results.extend(page_3_results)
+            # Jika kandidat bersih masih < 8, ambil Page 3
+            if len(valid_candidates) < 8:
+                logger.info(f"Page 1 & 2 yielded {len(valid_candidates)} candidates (< 8). Fetching page 3...")
+                p3_res = await _fetch_serper_page(client, clean_query, page_num=3)
+                organic_results.extend(p3_res)
 
         if not organic_results:
             logger.warning("Serper.dev returned 0 organic results across queried pages.")
