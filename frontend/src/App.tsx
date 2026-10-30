@@ -100,9 +100,20 @@ export const App: React.FC = () => {
 
   // Input composer draft state
   const [draftInput, setDraftInput] = useState<string>('');
+  // Penyimpan draf aktif per session_id (mencegah kebocoran & kehilangan teks antar-sesi, Sprint 3.7)
+  const [sessionDrafts, setSessionDrafts] = useState<Record<string, string>>({});
   const [targetQuery, setTargetQuery] = useState<string>('resep kopi tubruk tradisional');
   const [isPlusGlowing, setIsPlusGlowing] = useState<boolean>(false);
   const [detectedKeywordHint, setDetectedKeywordHint] = useState<string | null>(null);
+
+  const handleDraftInputChange = (text: string) => {
+    setDraftInput(text);
+    const currentKey = activeSessionId || 'session-new';
+    setSessionDrafts((prev) => ({
+      ...prev,
+      [currentKey]: text,
+    }));
+  };
 
   // Thresholds state dengan persistensi localStorage (waskita_custom_thresholds)
   const [thresholds, setThresholds] = useState<QualityThresholds>(() => {
@@ -203,7 +214,7 @@ export const App: React.FC = () => {
 
   // Handle Paste with auto sanitization & keyword detection
   const handlePasteSanitized = (cleanText: string, keywordCandidate: string) => {
-    setDraftInput(cleanText);
+    handleDraftInputChange(cleanText);
     if (keywordCandidate) {
       setTargetQuery(keywordCandidate);
       setDetectedKeywordHint(keywordCandidate);
@@ -216,7 +227,7 @@ export const App: React.FC = () => {
   const handleSelectSampleDraft = (sampleKey: 'revisionNeeded' | 'approvedReady') => {
     const sample = SAMPLE_DRAFTS[sampleKey];
     if (sample) {
-      setDraftInput(sample.text);
+      handleDraftInputChange(sample.text);
       setTargetQuery(sample.query);
       setDetectedKeywordHint(sample.query);
       setIsPlusGlowing(true);
@@ -368,6 +379,13 @@ export const App: React.FC = () => {
         ]);
       }
 
+      // Bersihkan buffer untuk sesi yang baru saja berhasil dieksekusi (Sprint 3.7)
+      setSessionDrafts((prev) => ({
+        ...prev,
+        'session-new': '',
+        [result.session_id]: '',
+        ...(activeSessionId ? { [activeSessionId]: '' } : {}),
+      }));
       setDraftInput('');
       showToast({
         type: 'success',
@@ -404,7 +422,7 @@ export const App: React.FC = () => {
       });
 
       const parsed = await parseUploadedFileClientSide(file);
-      setDraftInput(parsed.text);
+      handleDraftInputChange(parsed.text);
 
       const smartKey = extractSmartKeyword(parsed.text);
       if (smartKey) {
@@ -565,9 +583,15 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     if (!targetId) return;
 
     setSessions((prev) => prev.filter((s) => s.session_id !== targetId));
+    setSessionDrafts((prev) => {
+      const next = { ...prev };
+      delete next[targetId];
+      return next;
+    });
     if (activeSessionId === targetId) {
       setActiveSessionId('session-new');
       setCurrentTurns([]);
+      setDraftInput(sessionDrafts['session-new'] || '');
     }
 
     try {
@@ -624,6 +648,18 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
   };
 
   const handleSelectSession = async (sessionId: string) => {
+    // 1. Kunci draf yang sedang diketik pada sesi lama ke dalam buffer map (Sprint 3.7)
+    const currentKey = activeSessionId || 'session-new';
+    setSessionDrafts((prev) => ({
+      ...prev,
+      [currentKey]: draftInput,
+    }));
+
+    // 2. Ambil draf yang tersimpan pada sesi tujuan (atau kosong jika belum pernah ada ketikan)
+    const targetDraft = sessionDrafts[sessionId] || '';
+    setDraftInput(targetDraft);
+
+    // 3. Pindah sesi
     setIsTransitioningToDock(false);
     setActiveSessionId(sessionId);
     const sessionObj = sessions.find((s) => s.session_id === sessionId);
@@ -685,19 +721,33 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
   };
 
   const handleNewAnalysis = () => {
+    // 1. Simpan draf sesi aktif saat ini ke buffer (Sprint 3.7)
+    const currentKey = activeSessionId || 'session-new';
+    setSessionDrafts((prev) => ({
+      ...prev,
+      [currentKey]: draftInput,
+    }));
+
+    // 2. Berpindah ke sesi baru dan pulihkan draf yang belum terkirim di sesi baru
     setActiveSessionId('session-new');
     setCurrentTurns([]);
     setTargetQuery('');
-    setDraftInput('');
+    setDraftInput(sessionDrafts['session-new'] || '');
     setIsTransitioningToDock(false);
   };
 
   const handleStartNewSessionWithDraft = (text: string) => {
-    // 1. Reset ke sesi baru
-    handleNewAnalysis();
-    // 2. Suntikkan teks naskah ke input draf
+    // 1. Simpan naskah ke buffer 'session-new' (Sprint 3.7)
+    setSessionDrafts((prev) => ({
+      ...prev,
+      'session-new': text,
+    }));
+    setActiveSessionId('session-new');
+    setCurrentTurns([]);
     setDraftInput(text);
-    // 3. Ekstrak kueri semantik baru dari teks tersebut
+    setIsTransitioningToDock(false);
+
+    // 2. Ekstrak kueri semantik baru dari teks tersebut
     const smartKey = extractSmartKeyword(text);
     if (smartKey) {
       setTargetQuery(smartKey);
@@ -768,7 +818,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
               });
             }}
             draftText={draftInput}
-            onDraftTextChange={setDraftInput}
+            onDraftTextChange={handleDraftInputChange}
             onSubmit={() => handleExecuteAudit()}
             isLoading={isLoading}
             onSelectSampleDraft={handleSelectSampleDraft}
@@ -875,7 +925,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                       layoutMode="centered"
                       onOpenPlus={() => setIsOptionsOpen(true)}
                       draftText={draftInput}
-                      onDraftTextChange={setDraftInput}
+                      onDraftTextChange={handleDraftInputChange}
                       onSubmit={() => handleExecuteAudit()}
                       isLoading={isLoading}
                       wordCount={currentWordCount}
@@ -913,7 +963,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                 layoutMode="docked"
                 onOpenPlus={() => setIsOptionsOpen(true)}
                 draftText={draftInput}
-                onDraftTextChange={setDraftInput}
+                onDraftTextChange={handleDraftInputChange}
                 onSubmit={() => handleExecuteAudit()}
                 isLoading={isLoading}
                 wordCount={currentWordCount}
