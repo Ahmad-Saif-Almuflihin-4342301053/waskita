@@ -105,6 +105,7 @@ class AnnotatedSpan(BaseModel):
 class SerpAuditSummary(BaseModel):
     skipped_video_social_count: int = 0
     skipped_pdf_doc_count: int = 0
+    skipped_proxy_count: int = 0
     skipped_short_text_count: int = 0
     skipped_bot_protect_count: int = 0
     total_candidates_evaluated: int = 0

@@ -32,10 +32,13 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   const [revealStage, setRevealStage] = useState<number>(isNewArrival ? 1 : 4);
   const [dots, setDots] = useState('.');
 
+  // Sprint 3.8: Turn-1 Guard Rail - Turn #1 tidak memiliki sesi acuan sebelumnya sehingga tidak boleh menampilkan Blocker Card
+  const isTurn1 = (audit.turn_number || 1) <= 1;
   const isTopicShift =
-    audit.verdict_status.includes('Topik Tidak Relevan') ||
-    !!audit.metrics?.is_out_of_domain ||
-    !!audit.topic_shift_detected;
+    !isTurn1 &&
+    (audit.verdict_status.includes('Topik Tidak Relevan') ||
+      !!audit.metrics?.is_out_of_domain ||
+      !!audit.topic_shift_detected);
 
   useEffect(() => {
     if (!isNewArrival || revealStage >= 4 || isTopicShift) return;

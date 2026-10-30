@@ -483,9 +483,35 @@ class TestSprint3SerpLiveIntegrity:
         assert summary is not None
         assert "skipped_video_social_count" in summary
         assert "skipped_pdf_doc_count" in summary
+        assert "skipped_proxy_count" in summary
         assert "skipped_short_text_count" in summary
         assert "skipped_bot_protect_count" in summary
         assert "total_candidates_evaluated" in summary
+
+    def test_classify_url_skip_proxy_and_redirect_domains(self):
+        """Sprint 3.8: classify_url_skip_reason menyaring domain mesin pencari, penerjemah, dan proxy redirect."""
+        from app.services.serp_scraper import classify_url_skip_reason, is_valid_article_url
+
+        proxy_urls = [
+            "https://translate.google.com/translate?u=https://example.com/article",
+            "https://translate.google.co.id/translate?hl=id",
+            "https://www.google.com/goto?url=https://bbc.com/arts",
+            "https://google.co.id/url?sa=t&rct=j&q=&esrc=s&source=web",
+            "https://webcache.googleusercontent.com/search?q=cache:abc",
+            "https://www.bing.com/ck/a?!&&p=123",
+            "https://search.yahoo.com/search?p=test",
+        ]
+        for u in proxy_urls:
+            assert classify_url_skip_reason(u) == "search_engine_proxy", f"URL {u} harus diklasifikasikan search_engine_proxy"
+            assert not is_valid_article_url(u), f"URL {u} tidak boleh dianggap valid article"
+
+        valid_urls = [
+            "https://arsitektur.uma.ac.id/mengenal-arsitektur-brutalisme/",
+            "https://www.dekoruma.com/artikel/12345/arsitektur-brutalism",
+        ]
+        for u in valid_urls:
+            assert classify_url_skip_reason(u) is None, f"URL valid {u} tidak boleh dilewati"
+            assert is_valid_article_url(u) is True
 
     def test_synthetic_corpus_produces_mode_demo_verdict(self, client, monkeypatch):
         """Kueri yang memicu korpus sintetis offline harus menghasilkan verdict_status 'Mode Demo'."""
