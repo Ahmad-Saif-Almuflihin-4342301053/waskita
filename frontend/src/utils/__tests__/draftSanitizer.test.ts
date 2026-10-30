@@ -245,6 +245,59 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertTrue(findAsset('discovery-dark.svg'), 'File discovery-dark.svg harus tersedia di public assets');
   });
 
+  // Test 14 (Sprint 3.7): Isolasi & retensi buffer draf naskah multi-sesi (Per-Session Draft Buffer)
+  runCase('Isolasi & retensi buffer draf naskah multi-sesi (Per-Session Draft Buffer)', () => {
+    const sessionDrafts: Record<string, string> = {};
+    let activeSessionId = 'session-new';
+    let draftInput = '';
+
+    const handleDraftInputChange = (text: string) => {
+      draftInput = text;
+      sessionDrafts[activeSessionId] = text;
+    };
+
+    const handleSelectSession = (targetSessionId: string) => {
+      sessionDrafts[activeSessionId] = draftInput;
+      draftInput = sessionDrafts[targetSessionId] || '';
+      activeSessionId = targetSessionId;
+    };
+
+    const handleNewAnalysis = () => {
+      sessionDrafts[activeSessionId] = draftInput;
+      activeSessionId = 'session-new';
+      draftInput = sessionDrafts['session-new'] || '';
+    };
+
+    const handleStartNewSessionWithDraft = (text: string) => {
+      sessionDrafts['session-new'] = text;
+      activeSessionId = 'session-new';
+      draftInput = text;
+    };
+
+    // 1. Mulai sesi baru dengan teks dari Blocker Card (Kopi Tubruk)
+    handleStartNewSessionWithDraft('Naskah Lengkap Resep Kopi Tubruk Tradisional...');
+    assertEqual(draftInput, 'Naskah Lengkap Resep Kopi Tubruk Tradisional...', 'Draft input harus terisi');
+    assertEqual(sessionDrafts['session-new'], 'Naskah Lengkap Resep Kopi Tubruk Tradisional...', 'Buffer session-new harus menyimpan teks');
+
+    // 2. Pindah ke session-1 di riwayat: draf input harus bersih/kosong (tidak bocor)
+    handleSelectSession('session-1');
+    assertEqual(draftInput, '', 'Draf di session-1 harus kosong/bersih dari teks Kopi Tubruk');
+    assertEqual(sessionDrafts['session-new'], 'Naskah Lengkap Resep Kopi Tubruk Tradisional...', 'Buffer session-new tidak boleh terhapus');
+
+    // 3. Ketik naskah di session-1
+    handleDraftInputChange('Catatan revisi untuk sesi 1');
+    assertEqual(draftInput, 'Catatan revisi untuk sesi 1', 'Draf session-1 harus mencatat input');
+    assertEqual(sessionDrafts['session-1'], 'Catatan revisi untuk sesi 1', 'Buffer session-1 harus tersimpan');
+
+    // 4. Kembali ke Analisis Baru via handleNewAnalysis: teks Kopi Tubruk kembali utuh
+    handleNewAnalysis();
+    assertEqual(draftInput, 'Naskah Lengkap Resep Kopi Tubruk Tradisional...', 'Draf session-new harus pulih utuh');
+
+    // 5. Kembali ke session-1: catatan revisi sesi 1 kembali utuh
+    handleSelectSession('session-1');
+    assertEqual(draftInput, 'Catatan revisi untuk sesi 1', 'Catatan revisi session-1 harus pulih utuh');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
