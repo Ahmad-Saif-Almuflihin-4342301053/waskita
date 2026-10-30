@@ -489,14 +489,12 @@ class TestSprint3SerpLiveIntegrity:
         assert "total_candidates_evaluated" in summary
 
     def test_classify_url_skip_proxy_and_redirect_domains(self):
-        """Sprint 3.8: classify_url_skip_reason menyaring domain mesin pencari, penerjemah, dan proxy redirect."""
+        """Sprint 3.8 & 3.9: classify_url_skip_reason menyaring domain penerjemah & proxy, namun mengizinkan Google goto redirects."""
         from app.services.serp_scraper import classify_url_skip_reason, is_valid_article_url
 
         proxy_urls = [
             "https://translate.google.com/translate?u=https://example.com/article",
             "https://translate.google.co.id/translate?hl=id",
-            "https://www.google.com/goto?url=https://bbc.com/arts",
-            "https://google.co.id/url?sa=t&rct=j&q=&esrc=s&source=web",
             "https://webcache.googleusercontent.com/search?q=cache:abc",
             "https://www.bing.com/ck/a?!&&p=123",
             "https://search.yahoo.com/search?p=test",
@@ -504,6 +502,15 @@ class TestSprint3SerpLiveIntegrity:
         for u in proxy_urls:
             assert classify_url_skip_reason(u) == "search_engine_proxy", f"URL {u} harus diklasifikasikan search_engine_proxy"
             assert not is_valid_article_url(u), f"URL {u} tidak boleh dianggap valid article"
+
+        # Sprint 3.9: Google goto redirects diizinkan agar di-resolve oleh fetch_page_content
+        google_goto_urls = [
+            "https://www.google.com/goto?url=CAESegHrOzAVII1iyg3GcByvHC8WPeJH8hcUOgnxkDL7ZMLPjb4w",
+            "https://google.co.id/goto?url=CAESegHrOzAVII1iyg3",
+        ]
+        for u in google_goto_urls:
+            assert classify_url_skip_reason(u) is None, f"Google goto URL {u} harus diizinkan (return None)"
+            assert is_valid_article_url(u) is True
 
         valid_urls = [
             "https://arsitektur.uma.ac.id/mengenal-arsitektur-brutalisme/",

@@ -55,12 +55,8 @@ DOC_DOMAINS = {
     "scribd.com", "www.scribd.com", "academia.edu", "www.academia.edu"
 }
 
-# Sprint 3.8: Domain proxy, penerjemah, dan mesin pencari yang memicu redirect atau pencemaran bahasa
+# Sprint 3.8 & 3.9: Domain proxy dan penerjemah yang memicu pencemaran bahasa atau bukan artikel
 SEARCH_ENGINE_PROXY_DOMAINS = {
-    "google.com",
-    "www.google.com",
-    "google.co.id",
-    "www.google.co.id",
     "translate.google.com",
     "translate.google.co.id",
     "webcache.googleusercontent.com",
@@ -85,17 +81,18 @@ def classify_url_skip_reason(url: str) -> Optional[str]:
     if not url or not url.startswith("http"):
         return "invalid_url"
     try:
+        # Sprint 3.9: Link redirect resmi Google (/goto?url=) selalu diizinkan agar di-resolve oleh fetcher
+        if "google.com/goto?" in url or "google.co.id/goto?" in url:
+            return None
+
         parsed = urlparse(url.lower())
         domain = parsed.netloc
         domain_no_www = domain[4:] if domain.startswith("www.") else domain
 
-        # Sprint 3.8: Filter domain proxy, penerjemah, dan mesin pencari
+        # Sprint 3.8 & 3.9: Filter domain proxy, penerjemah, dan search engine lain
         for proxy_dom in SEARCH_ENGINE_PROXY_DOMAINS:
             if domain == proxy_dom or domain.endswith("." + proxy_dom) or domain_no_www == proxy_dom:
                 return "search_engine_proxy"
-
-        if domain.endswith(".google.com") or domain.endswith(".google.co.id"):
-            return "search_engine_proxy"
 
         for blocked in VIDEO_SOCIAL_DOMAINS:
             if domain == blocked or domain.endswith("." + blocked) or domain_no_www == blocked:
@@ -194,6 +191,7 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
             if resp.status_code == 200:
                 html_content = resp.text
                 fetch_method = "success"
+                result["source_url"] = str(resp.url)
             elif resp.status_code in (401, 403) or resp.status_code >= 400:
                 logger.warning(f"HTTPX blocked/failed with status {resp.status_code} on {url}, falling back to curl_cffi")
                 trigger_curl_fallback = True
@@ -209,11 +207,13 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
         try:
             from curl_cffi.requests import AsyncSession
             async with AsyncSession(impersonate="chrome120") as s:
-                resp = await s.get(url, timeout=8.0)
+                resp = await s.get(url, timeout=8.0, allow_redirects=True)
                 status_code = resp.status_code
                 if resp.status_code == 200 and resp.text:
                     html_content = resp.text
                     fetch_method = "fallback_curl_cffi"
+                    if hasattr(resp, "url") and resp.url:
+                        result["source_url"] = str(resp.url)
                     logger.info(f"curl_cffi impersonate=chrome120 succeeded on {url}")
                 else:
                     logger.warning(f"curl_cffi returned status {resp.status_code} on {url}")
@@ -255,29 +255,35 @@ async def search_and_scrape_competitors(
     6. Mengumpulkan metrik ke audit_summary (serp_audit_summary).
     7. Graceful degradation: >=2 dokumen valid -> success; jika gagal dan fallback aktif -> fallback; jika tidak -> raises/returns.
     """
-    summary = audit_summary if audit_summary is not None else {
-        "skipped_video_social_count": 0,
-        "skipped_pdf_doc_count": 0,
-        "skipped_proxy_count": 0,
-        "skipped_short_text_count": 0,
-        "skipped_bot_protect_count": 0,
-        "total_candidates_evaluated": 0,
-    }
-    if "skipped_proxy_count" not in summary:
-        summary["skipped_proxy_count"] = 0
+    summary = audit_summary if audit_summary is not None else {}
+    for k in (
+        "skipped_video_social_count",
+        "skipped_pdf_doc_count",
+        "skipped_proxy_count",
+        "skipped_short_text_count",
+        "skipped_bot_protect_count",
+        "total_candidates_evaluated",
+    ):
+        if k not in summary:
+            summary[k] = 0
+
+    # Sprint 3.9: Bersihkan kueri dari koma dan ambil frase utama agar Google tidak membatasi hasil secara ekstrem
+    clean_query = target_query.split(",")[0].strip() if target_query else ""
+    if not clean_query:
+        clean_query = target_query.strip() if target_query else ""
 
     # 0. Cache-Aside Check (Fase 1 Production Roadmap - Redis / Multi-Tier)
-    cached_serp = await get_serp_cache(target_query)
+    cached_serp = await get_serp_cache(clean_query)
     if cached_serp and len(cached_serp) >= 2:
-        logger.info(f"Cache-Aside HIT: SERP snapshot for query '{target_query}' resolved in < 5ms.")
+        logger.info(f"Cache-Aside HIT: SERP snapshot for query '{clean_query}' resolved in < 5ms.")
         return cached_serp
 
     if not settings.SERPER_API_KEY:
         if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
             logger.warning("SERPER_API_KEY is not configured and FEATURE_OFFLINE_CORPUS_FALLBACK is disabled.")
             return []
-        logger.info(f"SERPER_API_KEY is not set. Using offline fallback corpus for query: {target_query}")
-        fallback_docs = get_fallback_corpus(target_query)
+        logger.info(f"SERPER_API_KEY is not set. Using offline fallback corpus for query: {clean_query}")
+        fallback_docs = get_fallback_corpus(clean_query)
         # SPRINT 3.0: Dokumen offline TIDAK di-cache sebagai data live
         return fallback_docs
 
@@ -288,7 +294,7 @@ async def search_and_scrape_competitors(
             "Content-Type": "application/json",
         }
         payload = {
-            "q": target_query,
+            "q": clean_query,
             "gl": "id",
             "hl": "id",
             "num": 15,
@@ -299,14 +305,14 @@ async def search_and_scrape_competitors(
                 logger.warning(f"Serper.dev returned {resp.status_code}")
                 if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
                     return []
-                return get_fallback_corpus(target_query)
+                return get_fallback_corpus(clean_query)
             data = resp.json()
 
         organic_results = data.get("organic", [])
         summary["total_candidates_evaluated"] = len(organic_results)
 
         candidate_urls = []
-        seen_domains = set()
+        candidate_domains = set()
 
         for item in organic_results:
             link = item.get("link", "")
@@ -328,10 +334,12 @@ async def search_and_scrape_competitors(
             if domain.startswith("www."):
                 domain = domain[4:]
 
-            # Seleksi kandidat: maks 1 dokumen per domain unik
-            if domain in seen_domains:
-                continue
-            seen_domains.add(domain)
+            # Sprint 3.9: Link redirect Google (/goto?url=) diizinkan jamak karena domain tujuan aslinya baru diketahui pasca-fetch
+            is_google_goto = "google.com/goto?" in link or "google.co.id/goto?" in link
+            if not is_google_goto:
+                if domain in candidate_domains:
+                    continue
+                candidate_domains.add(domain)
 
             candidate_urls.append(item)
 
@@ -339,7 +347,7 @@ async def search_and_scrape_competitors(
             logger.warning("Fewer than 2 valid candidate URLs found from SERP.")
             if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
                 return []
-            return get_fallback_corpus(target_query)
+            return get_fallback_corpus(clean_query)
 
         # Scrape paralel seluruh kandidat URL unik
         tasks = [fetch_page_content(item["link"]) for item in candidate_urls]
@@ -348,6 +356,7 @@ async def search_and_scrape_competitors(
         scraped_docs = []
         current_rank = 1
         min_words = settings.SERP_MIN_DOC_WORDS
+        seen_domains = set()
 
         for meta, res in zip(candidate_urls, fetched_results):
             if isinstance(res, Exception) or not isinstance(res, dict):
@@ -362,18 +371,40 @@ async def search_and_scrape_competitors(
                 summary["skipped_bot_protect_count"] += 1
                 continue
 
+            # Periksa URL akhir setelah redirect (misal redirect google goto ke detik, youtube, pdf, dll.)
+            final_url = res.get("source_url") or meta.get("link", "")
+            final_skip = classify_url_skip_reason(final_url)
+            if final_skip == "video_social":
+                summary["skipped_video_social_count"] += 1
+                continue
+            elif final_skip == "pdf_doc":
+                summary["skipped_pdf_doc_count"] += 1
+                continue
+            elif final_skip == "search_engine_proxy":
+                summary["skipped_proxy_count"] += 1
+                continue
+
             word_count = res.get("word_count", 0)
             if word_count < min_words:
                 # Teks terlalu pendek (< SERP_MIN_DOC_WORDS)
                 summary["skipped_short_text_count"] += 1
                 continue
 
-            domain = urlparse(meta.get("link", "")).netloc
+            # Sprint 3.9: Ambil domain dari URL tujuan akhir untuk deduplikasi seen_domains
+            final_parsed = urlparse(final_url.lower())
+            final_domain = final_parsed.netloc
+            if final_domain.startswith("www."):
+                final_domain = final_domain[4:]
+
+            if not final_domain or final_domain in seen_domains:
+                continue
+            seen_domains.add(final_domain)
+
             doc = {
                 "rank_position": current_rank,
                 "page_title": meta.get("title", f"Kompetitor {current_rank}"),
-                "source_url": meta.get("link", ""),
-                "domain_name": domain,
+                "source_url": final_url,
+                "domain_name": final_domain,
                 "snippet_text": meta.get("snippet", ""),
                 "clean_text": res.get("clean_text", ""),
                 "headings": res.get("headings", []),
@@ -389,16 +420,16 @@ async def search_and_scrape_competitors(
                 break
 
         if len(scraped_docs) >= 2:
-            await set_serp_cache(target_query, scraped_docs)
+            await set_serp_cache(clean_query, scraped_docs)
             return scraped_docs
         else:
             logger.warning(f"Scraping live articles yielded {len(scraped_docs)} usable documents (< 2).")
             if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
                 return scraped_docs
-            return get_fallback_corpus(target_query)
+            return get_fallback_corpus(clean_query)
 
     except Exception as e:
         logger.error(f"Error in search_and_scrape_competitors: {e}")
         if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
             return []
-        return get_fallback_corpus(target_query)
+        return get_fallback_corpus(clean_query)
