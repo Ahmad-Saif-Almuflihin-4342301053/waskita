@@ -100,22 +100,21 @@ def generate_annotated_spans(
     threshold_hko: float = 40.0,
 ) -> List[AnnotatedSpan]:
     """
-    Algoritma Anotasi Stabilo 4-Warna Resmi (Proposal TA Tabel 3.6):
-    - 'yellow': Klise / Generik / Repetisi HKO / TTR lokal < 0.50
-    - 'red': Redundansi VSM lokal (kemiripan kosinus terhadap kompetitor >= 0.65)
-    - 'blue': Rekomendasi celah topik defisit (Delta deficit penting)
+    Algoritma Anotasi Stabilo 4-Warna Resmi (Proposal TA Tabel 3.6 & Sprint 3.10):
+    - 'yellow': Klise / Generik (CLICHE_PHRASES)
+    - 'blue': Kosakata Monoton (local_ttr < 0.40 atau repetisi leksikal tinggi)
+    - 'red': Redundansi VSM lokal (kemiripan terhadap kompetitor >= 0.65)
     - 'green': Orisinalitas Kuat / Nilai Tambah Unik (memuat Delta gain)
+    
+    Catatan Sprint 3.10:
+    Naskah stabilo annotated_spans HANYA BERISI KALIMAT ASLI MILIK PENGGUNA.
+    Injeksi teks sintetis celah defisit dihilangkan total dan dipindahkan ke kartu mandiri.
     """
     sentences = _split_into_sentences(draft_content)
     spans: List[AnnotatedSpan] = []
 
-    # Himpunan stem entitas gain dan deficit (filter entitas komersial/sponsor)
+    # Himpunan stem entitas gain unik
     gain_stems = {item.term_string for item in entity_gaps.gain}
-    valid_deficits = [
-        d for d in entity_gaps.deficit
-        if not is_commercial_or_sponsor(d.term_string) and not is_commercial_or_sponsor(d.term_surface_form)
-    ]
-    top_deficit_items = valid_deficits[:3]
 
     # Gabungan kalimat dari artikel kompetitor untuk deteksi redundansi lokal
     competitor_sentences = []
@@ -123,17 +122,6 @@ def generate_annotated_spans(
         for s in _split_into_sentences(c_text):
             if len(s.split()) >= 6:
                 competitor_sentences.append(s)
-
-    # Injeksi saran defisit di awal jika ada celah signifikan
-    if top_deficit_items:
-        deficits_str = ", ".join([d.term_surface_form for d in top_deficit_items])
-        spans.append(
-            AnnotatedSpan(
-                text=f"[Saran Celah Defisit SERP: Naskah belum mengulas materi penting: {deficits_str}]",
-                color="blue",
-                label="Saran Celah Defisit",
-            )
-        )
 
     for sentence in sentences:
         s_lower = sentence.lower()
@@ -144,21 +132,32 @@ def generate_annotated_spans(
             spans.append(AnnotatedSpan(text=sentence, color=None, label=None))
             continue
 
-        # 1. Cek Kuning (Yellow): Klise / Generik / TTR Lokal Sangat Rendah
-        is_cliche = any(cliche in s_lower for cliche in CLICHE_PHRASES)
         local_ttr = len(set(words)) / word_count if word_count > 0 else 1.0
 
-        if is_cliche or local_ttr < 0.45:
+        # 1. Cek Kuning (Yellow): Frasa Klise / Generik
+        is_cliche = any(cliche in s_lower for cliche in CLICHE_PHRASES)
+        if is_cliche:
             spans.append(
                 AnnotatedSpan(
                     text=sentence,
                     color="yellow",
-                    label="Klise/Generik" if is_cliche else "Repetisi Leksikal Rendah",
+                    label="Frasa Klise",
                 )
             )
             continue
 
-        # 2. Cek Merah (Red): Redundansi VSM Kalimat Lokal terhadap Kalimat Kompetitor
+        # 2. Cek Biru (Blue - Sprint 3.10): Kosakata Monoton / Repetisi Leksikal Tinggi
+        if local_ttr < 0.40:
+            spans.append(
+                AnnotatedSpan(
+                    text=sentence,
+                    color="blue",
+                    label="Kosakata Monoton",
+                )
+            )
+            continue
+
+        # 3. Cek Merah (Red): Redundansi VSM Kalimat Lokal terhadap Kalimat Kompetitor
         # Cek kesamaan string/n-gram sederhana terlebih dahulu jika kalimat kompetitor tersedia
         is_redundant = False
         if competitor_sentences and word_count >= 8:
@@ -191,7 +190,7 @@ def generate_annotated_spans(
             )
             continue
 
-        # 3. Cek Hijau (Green): Memuat entitas Delta Gain unik
+        # 4. Cek Hijau (Green): Memuat entitas Delta Gain unik
         sentence_stems_all = {stem_word(w) for w in words if len(w) > 2}
         has_gain_entity = any(gs in sentence_stems_all for gs in gain_stems)
         if has_gain_entity:

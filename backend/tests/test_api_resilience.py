@@ -512,6 +512,16 @@ class TestSprint3SerpLiveIntegrity:
             assert classify_url_skip_reason(u) is None, f"Google goto URL {u} harus diizinkan (return None)"
             assert is_valid_article_url(u) is True
 
+        # Sprint 3.10: Wikipedia bukan artikel komersial/media, harus diblokir dari korpus kompetitor
+        wikipedia_urls = [
+            "https://id.wikipedia.org/wiki/Arsitektur_Brutalisme",
+            "https://en.wikipedia.org/wiki/Brutalist_architecture",
+            "https://wikipedia.org/wiki/Architecture",
+        ]
+        for u in wikipedia_urls:
+            assert classify_url_skip_reason(u) == "pdf_doc", f"Wikipedia URL {u} harus diklasifikasikan skip (pdf_doc)"
+            assert not is_valid_article_url(u), f"Wikipedia URL {u} tidak boleh dianggap valid article"
+
         valid_urls = [
             "https://arsitektur.uma.ac.id/mengenal-arsitektur-brutalisme/",
             "https://www.dekoruma.com/artikel/12345/arsitektur-brutalism",
