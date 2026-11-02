@@ -85,10 +85,21 @@ PROMPT_DRAFT_DELIMITER = (
 
 
 def _split_into_sentences(text: str) -> List[str]:
-    """Memecah paragraf/teks menjadi daftar kalimat yang utuh."""
-    # Pecah berdasarkan tanda titik, tanda tanya, tanda seru atau newline ganda
-    raw_sentences = re.split(r"(?<=[.!?])\s+|\n{2,}", text)
-    sentences = [s.strip() for s in raw_sentences if s.strip()]
+    """
+    Memecah naskah menjadi daftar segmen/kalimat utuh.
+    Memecah berdasarkan baris baru terlebih dahulu agar sub-judul tidak menyatu
+    dengan kalimat pembuka paragraf di bawahnya (Sprint 4.1).
+    """
+    sentences: List[str] = []
+    for line in re.split(r"\n+", text):
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+        parts = re.split(r"(?<=[.!?])\s+", line_clean)
+        for p in parts:
+            p_clean = p.strip()
+            if p_clean:
+                sentences.append(p_clean)
     return sentences
 
 
@@ -100,15 +111,15 @@ def generate_annotated_spans(
     threshold_hko: float = 40.0,
 ) -> List[AnnotatedSpan]:
     """
-    Algoritma Anotasi Stabilo 4-Warna Resmi (Proposal TA Tabel 3.6 & Sprint 3.10):
-    - 'yellow': Klise / Generik (CLICHE_PHRASES)
-    - 'blue': Kosakata Monoton (local_ttr < 0.40 atau repetisi leksikal tinggi)
-    - 'red': Redundansi VSM lokal (kemiripan terhadap kompetitor >= 0.65)
-    - 'green': Orisinalitas Kuat / Nilai Tambah Unik (memuat Delta gain)
+    Algoritma Anotasi Stabilo 4-Warna Resmi (Proposal TA Tabel 3.6, Sprint 3.10 & Sprint 4.1):
+    Urutan Prioritas Baru (Sprint 4.1):
+    1. 'red': Redundansi VSM lokal / Plagiarisme Kalimat (Jaccard >= 0.55 atau Containment >= 0.75)
+    2. 'yellow': Frasa Klise / Generik (CLICHE_PHRASES)
+    3. 'blue': Kosakata Monoton (local_ttr < 0.40 atau repetisi leksikal tinggi)
+    4. 'green': Orisinalitas Kuat / Nilai Tambah Unik (memuat Delta gain)
     
-    Catatan Sprint 3.10:
+    Catatan Sprint 3.10 & 4.1:
     Naskah stabilo annotated_spans HANYA BERISI KALIMAT ASLI MILIK PENGGUNA.
-    Injeksi teks sintetis celah defisit dihilangkan total dan dipindahkan ke kartu mandiri.
     """
     sentences = _split_into_sentences(draft_content)
     spans: List[AnnotatedSpan] = []
@@ -116,12 +127,19 @@ def generate_annotated_spans(
     # Himpunan stem entitas gain unik
     gain_stems = {item.term_string for item in entity_gaps.gain}
 
-    # Gabungan kalimat dari artikel kompetitor untuk deteksi redundansi lokal
-    competitor_sentences = []
+    # Pra-komputasi himpunan stem kalimat kompetitor satu kali (Sprint 4.1)
+    competitor_sentence_stems_list: List[Set[str]] = []
     for c_text in competitor_clean_texts:
         for s in _split_into_sentences(c_text):
-            if len(s.split()) >= 6:
-                competitor_sentences.append(s)
+            comp_words = re.findall(r"\b\w+\b", s.lower())
+            if len(comp_words) >= 6:
+                c_stems = {
+                    stem_word(w)
+                    for w in comp_words
+                    if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
+                }
+                if len(c_stems) >= 4:
+                    competitor_sentence_stems_list.append(c_stems)
 
     for sentence in sentences:
         s_lower = sentence.lower()
@@ -134,51 +152,22 @@ def generate_annotated_spans(
 
         local_ttr = len(set(words)) / word_count if word_count > 0 else 1.0
 
-        # 1. Cek Kuning (Yellow): Frasa Klise / Generik
-        is_cliche = any(cliche in s_lower for cliche in CLICHE_PHRASES)
-        if is_cliche:
-            spans.append(
-                AnnotatedSpan(
-                    text=sentence,
-                    color="yellow",
-                    label="Frasa Klise",
-                )
-            )
-            continue
-
-        # 2. Cek Biru (Blue - Sprint 3.10): Kosakata Monoton / Repetisi Leksikal Tinggi
-        if local_ttr < 0.40:
-            spans.append(
-                AnnotatedSpan(
-                    text=sentence,
-                    color="blue",
-                    label="Kosakata Monoton",
-                )
-            )
-            continue
-
-        # 3. Cek Merah (Red): Redundansi VSM Kalimat Lokal terhadap Kalimat Kompetitor
-        # Cek kesamaan string/n-gram sederhana terlebih dahulu jika kalimat kompetitor tersedia
+        # Prioritas #1: Cek Merah (Red - Sprint 4.1): Redundansi VSM Kalimat Lokal terhadap Kalimat Kompetitor
         is_redundant = False
-        if competitor_sentences and word_count >= 8:
-            # Bandingkan overlap kata non-stopword
+        if competitor_sentence_stems_list and word_count >= 6:
             sentence_stems = {
-                stem_word(w) for w in words if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
+                stem_word(w)
+                for w in words
+                if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
             }
             if len(sentence_stems) >= 4:
-                for comp_s in competitor_sentences:
-                    comp_words = re.findall(r"\b\w+\b", comp_s.lower())
-                    comp_stems = {
-                        stem_word(w)
-                        for w in comp_words
-                        if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
-                    }
-                    if comp_stems:
-                        overlap = len(sentence_stems.intersection(comp_stems))
-                        jaccard = overlap / len(sentence_stems.union(comp_stems))
-                        if jaccard >= 0.65:
-                            is_redundant = True
-                            break
+                for comp_stems in competitor_sentence_stems_list:
+                    overlap = len(sentence_stems.intersection(comp_stems))
+                    jaccard = overlap / len(sentence_stems.union(comp_stems))
+                    containment = overlap / min(len(sentence_stems), len(comp_stems))
+                    if jaccard >= 0.55 or (containment >= 0.75 and overlap >= 4):
+                        is_redundant = True
+                        break
 
         if is_redundant:
             spans.append(
@@ -190,18 +179,47 @@ def generate_annotated_spans(
             )
             continue
 
-        # 4. Cek Hijau (Green): Memuat entitas Delta Gain unik
-        sentence_stems_all = {stem_word(w) for w in words if len(w) > 2}
-        has_gain_entity = any(gs in sentence_stems_all for gs in gain_stems)
-        if has_gain_entity:
+        # Prioritas #2: Cek Kuning (Yellow): Frasa Klise / Generik
+        is_cliche = any(cliche in s_lower for cliche in CLICHE_PHRASES)
+        if is_cliche:
             spans.append(
                 AnnotatedSpan(
                     text=sentence,
-                    color="green",
-                    label="Orisinalitas Kuat",
+                    color="yellow",
+                    label="Frasa Klise",
                 )
             )
             continue
+
+        # Prioritas #3: Cek Biru (Blue): Kosakata Monoton / Repetisi Leksikal Tinggi
+        if local_ttr < 0.40:
+            spans.append(
+                AnnotatedSpan(
+                    text=sentence,
+                    color="blue",
+                    label="Kosakata Monoton",
+                )
+            )
+            continue
+
+        # Prioritas #4: Cek Hijau (Green - Sprint 4.1): Memuat entitas Delta Gain unik
+        # Syarat: word_count >= 7 dan kalimat diakhiri tanda baca (.!?) agar sub-judul pendek tidak diwarnai hijau
+        ends_with_punct = sentence.endswith((".", "!", "?"))
+        if word_count >= 7 and ends_with_punct:
+            sentence_stems_all = {stem_word(w) for w in words if len(w) > 2}
+            sentence_stems_list = [stem_word(w) for w in words if len(w) > 2]
+            for i in range(len(sentence_stems_list) - 1):
+                sentence_stems_all.add(f"{sentence_stems_list[i]} {sentence_stems_list[i+1]}")
+            has_gain_entity = any(gs in sentence_stems_all for gs in gain_stems)
+            if has_gain_entity:
+                spans.append(
+                    AnnotatedSpan(
+                        text=sentence,
+                        color="green",
+                        label="Orisinalitas Kuat",
+                    )
+                )
+                continue
 
         # Normal text tanpa stabilo
         spans.append(AnnotatedSpan(text=sentence, color=None, label=None))
@@ -237,8 +255,13 @@ def calculate_composite_cds(
     Vonis WAJIB menjadi "Perlu Revisi - Redundansi Kalimat Tinggi" dan CDS dipangkas maksimal 58.0%.
     """
     # 1. Skor Diferensiasi Vektor C_VSM (35%)
-    # Penalti linier jika S_cos_max > 0.25
-    c_vsm_raw = 100.0 * (1.0 - max(0.0, (max_cosine_sim - 0.25) / 0.75))
+    # Penalti linier jika S_cos_max > 0.25 dan integrasi red_span_ratio (Sprint 4.1)
+    c_vsm_doc = 100.0 * (1.0 - max(0.0, (max_cosine_sim - 0.25) / 0.75))
+    c_vsm_sent = 100.0 * (1.0 - min(1.0, red_span_ratio * 1.5))
+    if red_span_ratio >= 0.20:
+        c_vsm_raw = min(c_vsm_doc, 0.45 * c_vsm_doc + 0.55 * c_vsm_sent)
+    else:
+        c_vsm_raw = c_vsm_doc
     c_vsm = max(0.0, min(100.0, c_vsm_raw))
 
     # 2. Skor Cakupan & Kebaruan Entitas C_IG (30%)
@@ -319,19 +342,29 @@ def generate_overview_and_remediation(
     is_out_of_domain: bool = False,
     highest_competitor: Optional[Dict[str, any]] = None,
     redundant_snippets: Optional[List[str]] = None,
+    competitor_count: int = 5,
 ) -> Dict[str, any]:
     """Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt."""
     bullets: List[str] = []
     remediation_points: List[str] = []
 
-    # Format sitasi kompetitor tertinggi jika ada (Sprint 3.3)
+    # Format sitasi kompetitor tertinggi jika ada (Sprint 3.3 & 4.1)
     comp_citation = ""
     if highest_competitor:
-        comp_title = highest_competitor.get("title") or "Artikel Kompetitor Teratas"
-        comp_domain = highest_competitor.get("domain") or ""
-        if not comp_domain and highest_competitor.get("url"):
+        comp_title = (
+            highest_competitor.get("page_title")
+            or highest_competitor.get("title")
+            or "Artikel Kompetitor Teratas"
+        )
+        comp_domain = (
+            highest_competitor.get("domain_name")
+            or highest_competitor.get("domain")
+            or ""
+        )
+        comp_url = highest_competitor.get("source_url") or highest_competitor.get("url") or ""
+        if not comp_domain and comp_url:
             from urllib.parse import urlparse
-            comp_domain = urlparse(highest_competitor["url"]).netloc.replace("www.", "")
+            comp_domain = urlparse(comp_url).netloc.replace("www.", "")
 
         sim_val = highest_competitor.get("cosine_similarity", max_cosine_sim)
         sim_pct = round(sim_val * 100.0, 1)
@@ -349,10 +382,10 @@ def generate_overview_and_remediation(
         else:
             gain_terms = "konten orisinal naskah"
 
-        # Prompt Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6)
+        # Prompt Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6 & 4.1)
         remediation_prompt = (
             f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n"
-            f"Berdasarkan analisis perbandingan terhadap 5 artikel kompetitor teratas di Google SERP, draf ini memiliki diferensiasi dan nilai kebaruan materi yang kuat ({gain_terms}).\n\n"
+            f"Berdasarkan analisis perbandingan terhadap {competitor_count} artikel kompetitor teratas di Google SERP, draf ini memiliki diferensiasi dan nilai kebaruan materi yang kuat ({gain_terms}).\n\n"
             "Tolong siapkan paket materi pra-publikasi CMS & SEO untuk artikel ini tanpa mengubah isi naskah pokoknya:\n"
             f"1. Meta Title SEO: Buatkan judul menarik maksimal 60 karakter yang memuat kata kunci '{target_query}'.\n"
             "2. Meta Description: Buatkan deskripsi 140–155 karakter yang persuasif dan memicu CTR tinggi di Google.\n"
@@ -419,7 +452,7 @@ def generate_overview_and_remediation(
 
         points_text = "\n".join([f"{idx+1}. {pt}" for idx, pt in enumerate(remediation_points)])
         remediation_prompt = (
-            f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan 5 artikel kompetitor acuan Google SERP berikut:\n\n"
+            f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan {competitor_count} artikel kompetitor acuan Google SERP berikut:\n\n"
             f"{points_text}\n\n"
             "Instruksi Tambahan: Pertahankan keunikan sudut pandang tulisan dan hindari frasa pembuka yang klise."
             f"{PROMPT_DRAFT_DELIMITER}"

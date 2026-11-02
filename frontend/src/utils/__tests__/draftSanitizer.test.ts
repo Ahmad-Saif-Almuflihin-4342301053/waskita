@@ -349,6 +349,41 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertEqual(colorRed, '#EF4444', 'Skor 45% harus berwarna merah');
   });
 
+  // Test 17 (Sprint 4.1): Verifikasi Logika Accordion Top-K Kompetitor Dinamis
+  runCase('Logika pembatasan dan ekspansi accordion Top-K kompetitor (5 awal + toggle)', () => {
+    const INITIAL_VISIBLE_COUNT = 5;
+    const dummyCompetitors = Array.from({ length: 8 }, (_, i) => ({ rank_position: i + 1 }));
+    const n = dummyCompetitors.length;
+
+    // Default collapsed
+    let isExpanded = false;
+    let visible = isExpanded ? dummyCompetitors : dummyCompetitors.slice(0, INITIAL_VISIBLE_COUNT);
+    assertEqual(visible.length, 5, 'Saat awal harus menampilkan 5 kompetitor teratas');
+    assertEqual(Math.max(0, n - INITIAL_VISIBLE_COUNT), 3, 'Harus mencatat 3 kompetitor tersembunyi');
+
+    // Setelah toggle expanded
+    isExpanded = true;
+    visible = isExpanded ? dummyCompetitors : dummyCompetitors.slice(0, INITIAL_VISIBLE_COUNT);
+    assertEqual(visible.length, 8, 'Saat dibuka harus menampilkan seluruh 8 kompetitor');
+  });
+
+  // Test 18 (Sprint 4.1): Verifikasi Deteksi Span Heading Mandiri pada Naskah Teranotasi
+  runCase('Deteksi baris sub-judul polos mandiri untuk pemisahan blok heading di naskah teranotasi', () => {
+    const isHeading = (span: { text: string; color: string | null }): boolean => {
+      const wordsCount = span.text.trim().split(/\s+/).length;
+      const endsWithSentencePunct = /[.!?:;,]$/.test(span.text.trim());
+      return !span.color && wordsCount >= 2 && wordsCount <= 12 && !endsWithSentencePunct;
+    };
+
+    const spanHeading = { text: 'Karakteristik Utama Beton Ekspos', color: null };
+    const spanNormalSentence = { text: 'Permukaan beton mentah dibiarkan terlihat teksturnya.', color: null };
+    const spanMarkedSentence = { text: 'Arsitektur brutalisme sangat terkenal di eropa.', color: 'green' };
+
+    assertTrue(isHeading(spanHeading), 'Baris sub-judul polos harus terdeteksi sebagai heading span');
+    assertTrue(!isHeading(spanNormalSentence), 'Kalimat dengan titik penutup tidak boleh jadi heading span');
+    assertTrue(!isHeading(spanMarkedSentence), 'Kalimat dengan warna stabilo tidak boleh jadi heading span');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);

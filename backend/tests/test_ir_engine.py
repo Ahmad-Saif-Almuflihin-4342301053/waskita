@@ -239,10 +239,10 @@ class TestInformationGain:
         assert "kopi" not in gain_stems
         assert "tubruk" not in gain_stems
 
-        # Verifikasi Delta Deficit: "rasio" dan "gula" wajib muncul sebagai defisit
+        # Verifikasi Delta Deficit: "rasio" (konsensus 2) wajib muncul, "gula" (konsensus 1) terfilter (Sprint 4.1 Persamaan 2.5)
         deficit_stems = [d.term_string for d in gaps.deficit]
         assert "rasio" in deficit_stems
-        assert "gula" in deficit_stems
+        assert "gula" not in deficit_stems
         # "dampit" ada di draft, jadi BUKAN defisit
         assert "dampit" not in deficit_stems
 
@@ -585,3 +585,220 @@ class TestTopicShiftAndOutOfDomainPenalty:
         assert decision["is_out_of_domain"] is True
         assert decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan"
         assert decision["content_differentiation_score"] <= 20.0
+
+
+# =====================================================================
+# 8. UJI SPRINT 4.1: FULL ALGORITHMIC OVERHAUL (8 IR FIXES)
+# =====================================================================
+
+class TestSprint41AlgorithmicOverhaul:
+    """Pengujian verifikasi mandatori untuk 8 perbaikan algoritma IR pada Sprint 4.1."""
+
+    def test_extract_full_stem_set(self):
+        from app.services.nlp_pipeline import extract_full_stem_set
+        text = "Arsitektur brutalisme menampilkan struktur beton ekspos yang kokoh dan berkarakter kuat."
+        full_stems = extract_full_stem_set(text)
+        assert "arsitektur" in full_stems
+        assert "brutalisme" in full_stems
+        assert "beton" in full_stems
+        assert "ekspos" in full_stems
+        assert "beton ekspos" in full_stems
+
+    def test_no_false_deficit_with_full_stem_set(self):
+        """Kata yang ada di naskah (arsitek, menara, unit) atau kata derau (tahun, mengenal, bbc) TIDAK boleh jadi defisit."""
+        from app.services.nlp_pipeline import extract_candidate_entities, extract_full_stem_set
+        from app.services.information_gain import calculate_information_gain
+
+        draft = (
+            "Mengenal arsitektur brutalisme dan karya arsitek terkenal pada tahun 1950-an. "
+            "Bangunan menara apartemen Unité d'Habitation menjadi bukti otentik desain beton ekspos."
+        )
+        comp1 = (
+            "Arsitek legendaris merancang menara Unité d'Habitation pada era 1950-an dengan beton ekspos. "
+            "Gaya ini menampilkan fasad monumental yang megah di berbagai kota Eropa."
+        )
+        comp2 = (
+            "Ulasan bbc mengenai arsitek pelopor brutalisme yang mendirikan menara perkotaan. "
+            "Struktur fasad beton menampilkan karakter kokoh dan fasad monumental."
+        )
+
+        d_ent = extract_candidate_entities(draft, top_n=40)
+        c1_ent = extract_candidate_entities(comp1, top_n=35)
+        c2_ent = extract_candidate_entities(comp2, top_n=35)
+
+        full_d = extract_full_stem_set(draft)
+        full_c = [extract_full_stem_set(comp1), extract_full_stem_set(comp2)]
+
+        gaps = calculate_information_gain(
+            draft_entities=d_ent,
+            competitor_entities_list=[c1_ent, c2_ent],
+            full_draft_stems=full_d,
+            full_competitor_stems_list=full_c,
+        )
+
+        deficit_stems = [d.term_string for d in gaps.deficit]
+        # Pastikan kata yang ada di draf tidak dituduh defisit
+        assert "arsitek" not in deficit_stems
+        assert "menara" not in deficit_stems
+        assert "unit" not in deficit_stems
+        # Pastikan kata ekspositori & media terfilter
+        assert "tahun" not in deficit_stems
+        assert "mengenal" not in deficit_stems
+        assert "bbc" not in deficit_stems
+
+    def test_no_false_gain_on_plagiarized_text(self):
+        """Jika draf menjiplak artikel kompetitor, kata milik kompetitor tidak boleh diklaim sebagai gain baru."""
+        from app.services.nlp_pipeline import extract_candidate_entities, extract_full_stem_set
+        from app.services.information_gain import calculate_information_gain
+
+        comp1_text = (
+            "Gaya arsitektur brutalisme menonjolkan beton ekspos dan beton mentah secara jujur. "
+            "Bangunan brutalis dibangun dengan material semen masif tanpa polesan cat warna-warni."
+        )
+        # Draf adalah jiplakan langsung dari kalimat kompetitor
+        draft_text = (
+            "Arsitektur brutalisme memakai beton ekspos dan beton mentah. "
+            "Bangunan brutalis ini mengusung semen masif."
+        )
+
+        d_ent = extract_candidate_entities(draft_text, top_n=40)
+        c1_ent = extract_candidate_entities(comp1_text, top_n=35)
+
+        full_d = extract_full_stem_set(draft_text)
+        full_c = [extract_full_stem_set(comp1_text)]
+
+        gaps = calculate_information_gain(
+            draft_entities=d_ent,
+            competitor_entities_list=[c1_ent],
+            full_draft_stems=full_d,
+            full_competitor_stems_list=full_c,
+        )
+
+        gain_stems = [g.term_string for g in gaps.gain]
+        # Tidak boleh ada istilah dari comp1 yang masuk ke gain
+        assert "beton ekspos" not in gain_stems
+        assert "beton mentah" not in gain_stems
+        assert "bangun brutalis" not in gain_stems
+        assert "beton" not in gain_stems
+
+    def test_sliding_window_passage_cosine_similarity(self):
+        """Draf pendek 50 kata yang menjiplak bagian artikel kompetitor 200 kata mendapat similarity tinggi via sliding-window."""
+        from app.services.vsm_calculator import compute_vsm_similarity
+
+        plagiarized_passage = " ".join([
+            "karakteristik", "utama", "brutalisme", "terletak", "pada", "kejujuran",
+            "material", "beton", "ekspos", "struktur", "monumental", "geometri",
+            "tegas", "tanpa", "elemen", "dekorasi", "ornamen", "tambahan",
+        ] * 3)  # ~54 kata stem
+
+        other_content = " ".join(["sejarah", "perkembangan", "kota", "modern", "industri"] * 30)  # 150 kata
+        competitor_text = f"{other_content} {plagiarized_passage} {other_content}"
+
+        res = compute_vsm_similarity(
+            preprocessed_draft=plagiarized_passage,
+            preprocessed_competitors=[competitor_text],
+        )
+
+        assert res["max_cosine_similarity"] >= 0.60
+
+    def test_plain_text_subheading_heuristic_detection(self):
+        """Deteksi sub-judul teks polos tanpa simbol # Markdown."""
+        from app.services.stylometrics import extract_headings_from_markdown_or_text, calculate_hko
+
+        text = (
+            "Sejarah Perkembangan Arsitektur Brutalisme\n"
+            "Arsitektur brutalisme mulai berkembang pesat setelah Perang Dunia Kedua ketika rekonstruksi kota membutuhkan material murah dan kokoh.\n\n"
+            "Karakteristik Utama Beton Ekspos\n"
+            "Ciri paling menonjol adalah penggunaan permukaan beton mentah yang dibiarkan terlihat teksturnya tanpa lapisan plesteran halus.\n\n"
+            "Kritik dan Penerimaan Publik Modern\n"
+            "Meskipun sempat dianggap dingin dan kaku oleh masyarakat umum, kini banyak kalangan arsitek mulai mengapresiasi keaslian strukturnya."
+        )
+
+        headings = extract_headings_from_markdown_or_text(text)
+        assert len(headings) >= 2
+        assert "Sejarah Perkembangan Arsitektur Brutalisme" in headings
+        assert "Karakteristik Utama Beton Ekspos" in headings
+
+        hko = calculate_hko(headings, "arsitektur brutalisme beton ekspos")
+        assert hko > 0.0
+
+    def test_gatekeeper_span_priority_red_over_yellow_and_blue(self):
+        """Kalimat yang mirip kompetitor wajib diwarnai MERAH meskipun memiliki kata klise atau TTR rendah."""
+        from app.services.gatekeeper import generate_annotated_spans
+        from app.schemas.audit import EntityGapsGroup
+
+        comp_text = "Sebagaimana kita ketahui bersama arsitektur brutalisme dibangun menggunakan beton mentah tanpa cat hiasan."
+        # Kalimat draf memiliki frasa klise ("sebagaimana kita ketahui bersama") DAN mirip kompetitor
+        draft = "Sebagaimana kita ketahui bersama arsitektur brutalisme dibangun menggunakan beton mentah tanpa cat hiasan."
+
+        spans = generate_annotated_spans(
+            draft_content=draft,
+            competitor_clean_texts=[comp_text],
+            entity_gaps=EntityGapsGroup(deficit=[], gain=[]),
+            hko_percentage=20.0,
+        )
+
+        assert len(spans) == 1
+        assert spans[0].color == "red"
+        assert spans[0].label == "Redundansi VSM Tinggi"
+
+    def test_dynamic_competitor_citation_in_remediation(self):
+        """Prompt remediasi menampilkan page_title, domain_name asli, dan jumlah artikel kompetitor dinamis."""
+        from app.services.gatekeeper import generate_overview_and_remediation
+        from app.schemas.audit import EntityGapsGroup
+
+        highest_comp = {
+            "page_title": "Mengenal Arsitektur Brutalisme Modern",
+            "domain_name": "sipil.uma.ac.id",
+            "source_url": "https://sipil.uma.ac.id/arsitektur-brutalisme/",
+            "cosine_similarity": 0.78,
+        }
+
+        res = generate_overview_and_remediation(
+            verdict_status="Perlu Revisi",
+            cds_score=52.0,
+            is_redundant=True,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.78,
+            mattr_score=0.62,
+            hko_percentage=25.0,
+            entity_gaps=EntityGapsGroup(deficit=[], gain=[]),
+            target_query="arsitektur brutalisme",
+            highest_competitor=highest_comp,
+            competitor_count=8,
+        )
+
+        prompt = res["remediation_prompt"]
+        assert "sipil.uma.ac.id" in prompt or "sipil.uma.ac.id" in str(res["overview_bullets"])
+        assert "8 artikel kompetitor" in prompt
+
+    def test_three_tier_relevance_guard(self):
+        """Uji 3-Tier Relevance Guard: menyaring halaman jualan dan semantic drift."""
+        from app.services.serp_scraper import passes_three_tier_relevance_guard
+
+        # Test Lapis 3: Halaman jualan terfilter
+        assert passes_three_tier_relevance_guard(
+            title="Daftar Harga Jual Beton Ekspos Murah Diskon",
+            clean_text="Promo harga beton ekspos terbaik beli sekarang hubungi whatsapp toko online diskon besar.",
+            target_query="arsitektur brutalisme",
+            candidate_index=1,
+            anchor_stems={"arsitektur", "brutalisme", "beton"},
+        ) is False
+
+        # Test Lapis 1: Halaman 2 ke atas tanpa kata kunci inti terfilter
+        assert passes_three_tier_relevance_guard(
+            title="Resep Masakan Tradisional Padang",
+            clean_text="Rendang daging sapi lezat bumbu rempah kelapa santan gurih mantap khas minang.",
+            target_query="arsitektur brutalisme",
+            candidate_index=6,
+            anchor_stems={"arsitektur", "brutalisme", "beton"},
+        ) is False
+
+        # Test Lapis 1 & 2: Artikel relevan lolos
+        assert passes_three_tier_relevance_guard(
+            title="Karakteristik Beton Ekspos pada Arsitektur Brutalisme",
+            clean_text="Arsitektur brutalisme menampilkan kejujuran konstruksi material beton ekspos yang kokoh monumental di ruang kota.",
+            target_query="arsitektur brutalisme",
+            candidate_index=6,
+            anchor_stems={"arsitektur", "brutalisme", "beton", "ekspos", "konstruksi", "material", "bangunan", "struktur", "kota", "ruang"},
+        ) is True

@@ -139,9 +139,9 @@ class TestGracefulDegradationFR13:
             assert response.status_code == 200
 
             data = response.json()
-            # Wajib ada peringatan degradasi parsial
+            # Wajib ada peringatan degradasi parsial (Sprint 4.1 format)
             assert data["degradation_warning"] is not None
-            assert "Hanya 2 dari 3" in data["degradation_warning"]
+            assert "Hanya 2 artikel kompetitor" in data["degradation_warning"]
             # Audit tetap menghasilkan metrik dan keputusan
             assert "content_differentiation_score" in data["metrics"]
             assert data["verdict_status"] in ("Siap Terbit", "Perlu Revisi")

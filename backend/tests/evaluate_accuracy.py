@@ -24,8 +24,9 @@ sys.path.insert(0, BASE_DIR)
 from app.schemas.audit import ThresholdConfig
 from app.services.gatekeeper import calculate_composite_cds
 from app.services.information_gain import calculate_information_gain
-from app.services.nlp_pipeline import extract_candidate_entities, preprocess_text_async
+from app.services.nlp_pipeline import extract_candidate_entities, extract_full_stem_set, preprocess_text_async
 from app.services.serp_scraper import search_and_scrape_competitors
+from app.fixtures.benchmark_corpus import get_fallback_corpus
 from app.services.stylometrics import calculate_stylometrics
 from app.services.vsm_calculator import compute_vsm_similarity
 
@@ -37,8 +38,10 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     title = draft["draft_title"]
     ground_truth = draft["ground_truth_label"]
 
-    # 1. Akuisisi kompetitor SERP (Fallback offline benchmark deterministik jika tanpa Serper API Key)
-    competitor_docs = await search_and_scrape_competitors(query)
+    # 1. Akuisisi kompetitor SERP (Gunakan korpus benchmark deterministik offline untuk reproduktibilitas ilmiah)
+    competitor_docs = get_fallback_corpus(query)
+    if not competitor_docs:
+        competitor_docs = await search_and_scrape_competitors(query)
 
     # 2. Preprocessing & Stemming korpus via PySastrawi (async)
     prep_draft = await preprocess_text_async(content)
@@ -50,32 +53,48 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     # 3. VSM Sublinear TF-IDF, Cosine Similarity & Euclidean Distance
     vsm_results = compute_vsm_similarity(prep_draft, prep_competitors)
 
-    # 4. Ekstraksi Entitas & Information Gain
-    draft_entities = extract_candidate_entities(content, top_n=30)
+    # 4. Ekstraksi Entitas & Information Gain (Sprint 4.1 Full-Set & Consensus)
+    full_draft_stems = extract_full_stem_set(content)
+    full_comp_stems_list = [
+        extract_full_stem_set(c.get("clean_text", ""))
+        for c in competitor_docs
+    ]
+
+    draft_entities = extract_candidate_entities(content, top_n=40)
     competitor_entities_list = [
-        extract_candidate_entities(c.get("clean_text", ""), top_n=25)
+        extract_candidate_entities(c.get("clean_text", ""), top_n=35)
         for c in competitor_docs
     ]
     entity_gaps = calculate_information_gain(
         draft_entities=draft_entities,
         competitor_entities_list=competitor_entities_list,
         draft_tfidf_weights=vsm_results["draft_tfidf_weights"],
+        full_draft_stems=full_draft_stems,
+        full_competitor_stems_list=full_comp_stems_list,
     )
 
     # 5. Analisis Stilometri (TTR, MATTR w=50, HKO %)
     stylometrics = calculate_stylometrics(content, query)
 
-    # 6. Himpunan Irisan Entitas
-    draft_stems = {e[0] for e in draft_entities}
-    serp_stems = {e[0] for ce in competitor_entities_list for e in ce}
-    shared_entities = draft_stems.intersection(serp_stems)
+    # 6. Himpunan Irisan Entitas Konsensus (Sprint 4.1)
+    serp_candidate_stems = {e[0] for ce in competitor_entities_list for e in ce}
+    consensus_serp_stems = set()
+    if len(full_comp_stems_list) >= 2:
+        for st in serp_candidate_stems:
+            doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
+            if doc_freq >= 2:
+                consensus_serp_stems.add(st)
+    if not consensus_serp_stems:
+        consensus_serp_stems = serp_candidate_stems
+
+    shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
 
     # 7. Gatekeeper Composite CDS & Aturan Vonis
     decision = calculate_composite_cds(
         max_cosine_sim=vsm_results["max_cosine_similarity"],
-        draft_entities_count=len(draft_stems),
-        serp_entities_count=len(serp_stems),
-        shared_entities_count=len(shared_entities),
+        draft_entities_count=len(full_draft_stems),
+        serp_entities_count=len(consensus_serp_stems),
+        shared_entities_count=len(shared_consensus),
         gain_count=len(entity_gaps.gain),
         mattr_score=stylometrics["mattr_score"],
         hko_percentage=stylometrics["hko_percentage"],
