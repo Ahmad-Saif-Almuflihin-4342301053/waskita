@@ -110,6 +110,27 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
       >
         {audit.annotated_spans && audit.annotated_spans.length > 0 ? (
           audit.annotated_spans.map((span, idx) => {
+            const wordsCount = span.text.trim().split(/\s+/).length;
+            const endsWithSentencePunct = /[.!?:;,]$/.test(span.text.trim());
+            const isHeadingSpan = !span.color && wordsCount >= 2 && wordsCount <= 12 && !endsWithSentencePunct;
+
+            if (isHeadingSpan) {
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    fontWeight: 700,
+                    color: 'var(--waskita-text-heading, #0F172A)',
+                    marginTop: idx === 0 ? '0px' : '12px',
+                    marginBottom: '4px',
+                    fontSize: '13.5px',
+                  }}
+                >
+                  {span.text}
+                </div>
+              );
+            }
+
             if (!span.color) {
               return <span key={idx}>{span.text} </span>;
             }
