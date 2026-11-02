@@ -4,6 +4,36 @@ from app.services.gatekeeper import is_commercial_or_sponsor
 from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS
 
 
+def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 10) -> List[EntityGapItem]:
+    """
+    Bigram Subsumption Filter (Sprint 4.1):
+    Jika suatu bigram 'A B' sudah masuk daftar teratas, hilangkan unigram 'A' atau 'B'
+    yang konsensusnya tidak lebih tinggi dari bigram tersebut agar tidak terjadi duplikasi chip
+    (misal mencegah munculnya 'Beton Ekspos' dan 'Ekspos' secara bersamaan).
+    """
+    bigram_parts_consensus: Dict[str, int] = {}
+    for it in items:
+        parts = it.term_string.split()
+        if len(parts) >= 2:
+            for p in parts:
+                bigram_parts_consensus[p] = max(
+                    bigram_parts_consensus.get(p, -1),
+                    it.competitor_consensus_count,
+                )
+
+    filtered: List[EntityGapItem] = []
+    for it in items:
+        parts = it.term_string.split()
+        if len(parts) == 1:
+            uni = parts[0]
+            if uni in bigram_parts_consensus and it.competitor_consensus_count <= bigram_parts_consensus[uni]:
+                continue
+        filtered.append(it)
+        if len(filtered) >= limit:
+            break
+    return filtered
+
+
 def calculate_information_gain(
     draft_entities: List[Tuple[str, str, int]],
     competitor_entities_list: List[List[Tuple[str, str, int]]],
@@ -62,30 +92,31 @@ def calculate_information_gain(
                         all_serp_full_stems.add(p)
 
         for candidate_stem in serp_map.keys():
-            count_docs = 0
-            for comp_full_set in full_competitor_stems_list:
-                if candidate_stem in comp_full_set:
-                    count_docs += 1
+            count_docs = sum(1 for comp_full_set in full_competitor_stems_list if candidate_stem in comp_full_set)
             serp_consensus[candidate_stem] = max(1, count_docs)
     else:
         all_serp_full_stems = set(serp_map.keys())
         for comp_entities in competitor_entities_list:
-            seen = {s for s, _, _ in comp_entities}
+            seen = {s for s, _, _ in comp_entities if s not in ALL_INDONESIAN_STOPWORDS}
             for s in seen:
                 serp_consensus[s] = serp_consensus.get(s, 0) + 1
                 for p in s.split():
                     if len(p) > 2:
                         all_serp_full_stems.add(p)
 
-    # 1. Delta Gain: Kandidat di draft yang TIDAK ADA di seluruh kosakata utuh kompetitor SERP
+    # 1. Delta Gain: Ada di draft, TIDAK ADA di seluruh kosakata utuh kompetitor SERP
     gain_stems = set(draft_map.keys()) - all_serp_full_stems
     gain_items: List[EntityGapItem] = []
     for stem in gain_stems:
         surface = draft_map[stem]
         if is_commercial_or_sponsor(stem) or is_commercial_or_sponsor(surface):
             continue
-        # Jika bigram, pastikan minimal salah satu katanya benar-benar baru atau bobot TF-IDF tinggi
+        parts = stem.split()
+        if len(parts) > 1 and all(p in all_serp_full_stems for p in parts):
+            continue
         weight = draft_tfidf_weights.get(stem, 0.75)
+        if len(parts) >= 2:
+            weight = round(weight * 1.15, 4)
         gain_items.append(
             EntityGapItem(
                 term_string=stem,
@@ -95,9 +126,9 @@ def calculate_information_gain(
             )
         )
     gain_items.sort(key=lambda x: x.tfidf_weight, reverse=True)
-    top_gain = gain_items[:10]
+    top_gain = _deduplicate_subsumed_unigrams(gain_items, limit=10)
 
-    # 2. Delta Deficit: Kandidat di SERP yang 100% ABSEN dari kosakata utuh draft
+    # 2. Delta Deficit: Ada di SERP (consensus >= 2), 100% ABSEN dari kosakata utuh draft
     deficit_stems = set(serp_map.keys()) - complete_draft_stems
     deficit_items: List[EntityGapItem] = []
     min_required_consensus = 2 if num_competitors >= 2 else 1
@@ -126,6 +157,6 @@ def calculate_information_gain(
         )
 
     deficit_items.sort(key=lambda x: (x.competitor_consensus_count, x.tfidf_weight), reverse=True)
-    top_deficit = deficit_items[:10]
+    top_deficit = _deduplicate_subsumed_unigrams(deficit_items, limit=10)
 
     return EntityGapsGroup(deficit=top_deficit, gain=top_gain)

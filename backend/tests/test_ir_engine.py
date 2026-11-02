@@ -599,10 +599,11 @@ class TestSprint41AlgorithmicOverhaul:
         text = "Arsitektur brutalisme menampilkan struktur beton ekspos yang kokoh dan berkarakter kuat."
         full_stems = extract_full_stem_set(text)
         assert "arsitektur" in full_stems
-        assert "brutalisme" in full_stems
+        assert "brutalis" in full_stems  # Sprint 4.1: LOANWORD_CANONICAL_MAP normalizes brutalisme -> brutalis
         assert "beton" in full_stems
         assert "ekspos" in full_stems
         assert "beton ekspos" in full_stems
+        assert "arsitektur brutalis" in full_stems
 
     def test_no_false_deficit_with_full_stem_set(self):
         """Kata yang ada di naskah (arsitek, menara, unit) atau kata derau (tahun, mengenal, bbc) TIDAK boleh jadi defisit."""
