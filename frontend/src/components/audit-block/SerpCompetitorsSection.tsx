@@ -25,12 +25,13 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
   const hiddenCount = Math.max(0, n - INITIAL_VISIBLE_COUNT);
 
   // SERP Audit Summary Transparency metrics
-  const summary = audit.serp_audit_summary;
-  const skippedVideo = summary?.skipped_video_social ?? summary?.reasons?.video_social ?? 0;
-  const skippedPdf = summary?.skipped_pdf_doc ?? summary?.reasons?.pdf_doc ?? 0;
-  const skippedBot = summary?.skipped_bot_protected ?? summary?.reasons?.bot_protected ?? 0;
-  const skippedShort = summary?.skipped_short_text ?? summary?.reasons?.short_text ?? 0;
-  const xSkipped = summary?.skipped_total ?? (skippedVideo + skippedPdf + skippedBot + skippedShort);
+  const summary = audit.serp_audit_summary as any;
+  const skippedVideo = summary?.skipped_video_social_count ?? summary?.skipped_video_social ?? summary?.reasons?.video_social ?? 0;
+  const skippedPdf = summary?.skipped_pdf_doc_count ?? summary?.skipped_pdf_doc ?? summary?.reasons?.pdf_doc ?? 0;
+  const skippedBot = summary?.skipped_bot_protect_count ?? summary?.skipped_bot_protected ?? summary?.reasons?.bot_protected ?? 0;
+  const skippedShort = summary?.skipped_short_text_count ?? summary?.skipped_short_text ?? summary?.reasons?.short_text ?? 0;
+  const skippedProxy = summary?.skipped_proxy_count ?? 0;
+  const xSkipped = summary?.skipped_total ?? (skippedVideo + skippedPdf + skippedBot + skippedShort + skippedProxy);
 
   // Helper untuk mengecek apakah domain dummy example.*
   const isDummyDomain = (domain?: string, url?: string): boolean => {
