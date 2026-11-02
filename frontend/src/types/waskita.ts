@@ -70,6 +70,12 @@ export interface SerpAuditSummary {
   skipped_pdf_doc?: number;
   skipped_bot_protected?: number;
   skipped_short_text?: number;
+  skipped_video_social_count?: number;
+  skipped_pdf_doc_count?: number;
+  skipped_proxy_count?: number;
+  skipped_short_text_count?: number;
+  skipped_bot_protect_count?: number;
+  total_candidates_evaluated?: number;
   reasons?: {
     video_social?: number;
     pdf_doc?: number;
