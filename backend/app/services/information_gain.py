@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Set, Tuple
 from app.schemas.audit import EntityGapItem, EntityGapsGroup
 from app.services.gatekeeper import is_commercial_or_sponsor
-from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS
+from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, NON_TOPICAL_VERBS_AND_ADJECTIVES
 
 
 def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 10) -> List[EntityGapItem]:
@@ -111,6 +111,8 @@ def calculate_information_gain(
         surface = draft_map[stem]
         if is_commercial_or_sponsor(stem) or is_commercial_or_sponsor(surface):
             continue
+        if stem in NON_TOPICAL_VERBS_AND_ADJECTIVES or surface.lower() in NON_TOPICAL_VERBS_AND_ADJECTIVES:
+            continue
         parts = stem.split()
         if len(parts) > 1 and all(p in all_serp_full_stems for p in parts):
             continue
@@ -137,8 +139,16 @@ def calculate_information_gain(
         surface = serp_map[stem]
         if is_commercial_or_sponsor(stem) or is_commercial_or_sponsor(surface):
             continue
-        # Jika bigram yang semua kata penyusunnya sudah ada di draf, lewati agar tidak redundan
+        # Filter kata kerja/sifat non-topikal & kata terlalu pendek (Sprint 4.2)
+        if stem in NON_TOPICAL_VERBS_AND_ADJECTIVES or surface.lower() in NON_TOPICAL_VERBS_AND_ADJECTIVES:
+            continue
+        if len(stem) < 4 and " " not in stem:
+            continue
         parts = stem.split()
+        if any(p in NON_TOPICAL_VERBS_AND_ADJECTIVES for p in parts):
+            continue
+
+        # Jika bigram yang semua kata penyusunnya sudah ada di draf, lewati agar tidak redundan
         if len(parts) > 1 and all(p in complete_draft_stems for p in parts):
             continue
 

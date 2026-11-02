@@ -60,21 +60,21 @@ def extract_headings_from_markdown_or_text(text: str) -> List[str]:
         if idx >= num_lines - 1:
             continue
 
-        # Tidak boleh diakhiri tanda baca kalimat berita
-        if line_clean[-1] in (".", ",", ";", ":", "!"):
+        # Tidak boleh diakhiri tanda baca kalimat berita (izinkan '?' untuk heading bergaya FAQ - Sprint 4.2)
+        if line_clean[-1] in (".", ",", ";", ":", "!") and line_clean[-1] != "?":
             continue
 
         words = line_clean.split()
         word_count = len(words)
-        if not (2 <= word_count <= 12 and 10 <= len(line_clean) <= 95):
+        if not (2 <= word_count <= 14 and 8 <= len(line_clean) <= 100):
             continue
 
         if not line_clean[0].isupper():
             continue
 
-        # Cek apakah baris berikutnya adalah kalimat paragraf (> 12 kata atau berakhiran titik)
+        # Cek apakah baris berikutnya adalah kalimat paragraf (> 10 kata atau berakhiran titik/tanda baca)
         next_line = raw_lines[idx + 1]
-        next_is_paragraph = len(next_line.split()) >= 12 or next_line.endswith(".")
+        next_is_paragraph = len(next_line.split()) >= 10 or next_line.endswith((".", "!", "?"))
 
         # Hitung proporsi kata berhuruf kapital (Title Case)
         content_words = [w for w in words if w.lower() not in ALL_INDONESIAN_STOPWORDS]
@@ -84,7 +84,8 @@ def extract_headings_from_markdown_or_text(text: str) -> List[str]:
             else 0.0
         )
 
-        if next_is_paragraph and cap_ratio >= 0.50:
+        # Izinkan sub-judul jika berakhiran '?' atau Title Case >= 40%
+        if next_is_paragraph and (line_clean.endswith("?") or cap_ratio >= 0.40):
             headings.append(line_clean)
 
     return headings

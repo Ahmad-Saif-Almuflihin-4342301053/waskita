@@ -369,10 +369,19 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
 
   // Test 18 (Sprint 4.1): Verifikasi Deteksi Span Heading Mandiri pada Naskah Teranotasi
   runCase('Deteksi baris sub-judul polos mandiri untuk pemisahan blok heading di naskah teranotasi', () => {
-    const isHeading = (span: { text: string; color: string | null }): boolean => {
-      const wordsCount = span.text.trim().split(/\s+/).length;
-      const endsWithSentencePunct = /[.!?:;,]$/.test(span.text.trim());
-      return !span.color && wordsCount >= 2 && wordsCount <= 12 && !endsWithSentencePunct;
+    const isHeading = (span: { text: string; color: string | null; is_heading?: boolean }): boolean => {
+      const trimmed = span.text.trim();
+      const wordsCount = trimmed.split(/\s+/).length;
+      const isMarkdownHeading = /^#{1,4}\s+/.test(trimmed);
+      const cleanText = trimmed.replace(/^#{1,4}\s+/, '');
+      const endsWithSentencePunct = /[.!;:,]$/.test(cleanText) && !cleanText.endsWith('?');
+      return Boolean(
+        span.is_heading ||
+        (!span.color && (
+          isMarkdownHeading ||
+          (wordsCount >= 2 && wordsCount <= 14 && (!endsWithSentencePunct || cleanText.endsWith('?')) && cleanText[0] === cleanText[0].toUpperCase())
+        ))
+      );
     };
 
     const spanHeading = { text: 'Karakteristik Utama Beton Ekspos', color: null };
@@ -382,6 +391,74 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertTrue(isHeading(spanHeading), 'Baris sub-judul polos harus terdeteksi sebagai heading span');
     assertTrue(!isHeading(spanNormalSentence), 'Kalimat dengan titik penutup tidak boleh jadi heading span');
     assertTrue(!isHeading(spanMarkedSentence), 'Kalimat dengan warna stabilo tidak boleh jadi heading span');
+  });
+
+  // Test 19 (Sprint 4.2): Deteksi Sub-Judul Kalimat Tanya FAQ dan Markdown
+  runCase('Deteksi sub-judul bergaya tanya FAQ (?) dan markdown heading terpisah rapi', () => {
+    const isHeading = (span: { text: string; color: string | null; is_heading?: boolean }): boolean => {
+      const trimmed = span.text.trim();
+      const wordsCount = trimmed.split(/\s+/).length;
+      const isMarkdownHeading = /^#{1,4}\s+/.test(trimmed);
+      const cleanText = trimmed.replace(/^#{1,4}\s+/, '');
+      const endsWithSentencePunct = /[.!;:,]$/.test(cleanText) && !cleanText.endsWith('?');
+      return Boolean(
+        span.is_heading ||
+        (!span.color && (
+          isMarkdownHeading ||
+          (wordsCount >= 2 && wordsCount <= 14 && (!endsWithSentencePunct || cleanText.endsWith('?')) && cleanText[0] === cleanText[0].toUpperCase())
+        ))
+      );
+    };
+
+    const spanFaqHeading = { text: 'Apa Itu Arsitektur Brutalisme?', color: null };
+    const spanMarkdownHeading = { text: '## Karakteristik Desain', color: null };
+    const spanWithBackendFlag = { text: 'Relevansi Material', color: null, is_heading: true };
+
+    assertTrue(isHeading(spanFaqHeading), 'Heading pertanyaan bertanda tanya harus terdeteksi');
+    assertTrue(isHeading(spanMarkdownHeading), 'Heading markdown ## harus terdeteksi');
+    assertTrue(isHeading(spanWithBackendFlag), 'Heading dengan bendera is_heading backend harus terdeteksi');
+  });
+
+  // Test 20 (Sprint 4.2): Target Query Locking pada Paste Revisi
+  runCase('Target Query Locking mencegah mutasi kueri saat paste revisi pada sesi aktif', () => {
+    let currentTargetQuery = 'arsitektur brutalisme';
+    let isQueryLocked = true;
+    let toastShown = false;
+
+    const handlePaste = (pastedText: string, keywordCandidate: string) => {
+      if (isQueryLocked) {
+        toastShown = true;
+        return; // Kueri tidak berubah
+      }
+      if (keywordCandidate) {
+        currentTargetQuery = keywordCandidate;
+      }
+    };
+
+    // User paste teks revisi yang memuat topik baru
+    handlePaste('Ini adalah naskah revisi hasil perbaikan ChatGPT...', 'rumah kaca modern');
+
+    assertEqual(currentTargetQuery, 'arsitektur brutalisme', 'Target query harus tetap terkunci pada kueri awal');
+    assertTrue(toastShown, 'Toast pemberitahuan kueri terkunci harus ditampilkan');
+  });
+
+  // Test 21 (Sprint 4.2): Dual-Tab Prompt Remediasi untuk Status Siap Terbit
+  runCase('Dual-Tab Prompt Remediasi menghasilkan CMS Pack dan Perfectionist Prompt saat Siap Terbit', () => {
+    const auditMock = {
+      verdict_status: 'Siap Terbit',
+      remediation_prompt: 'Prompt Standar',
+      remediation_prompt_cms: 'Prompt Meta SEO CMS Pack',
+      remediation_prompt_perfectionist: 'Prompt Micro-Tuning Kesempurnaan 100%',
+    };
+
+    const getPromptForTab = (tab: 'cms' | 'perfectionist') => {
+      const isReady = auditMock.verdict_status === 'Siap Terbit';
+      if (!isReady) return auditMock.remediation_prompt;
+      return tab === 'cms' ? auditMock.remediation_prompt_cms : auditMock.remediation_prompt_perfectionist;
+    };
+
+    assertEqual(getPromptForTab('cms'), 'Prompt Meta SEO CMS Pack', 'Tab CMS harus memuat prompt pra-publikasi SEO');
+    assertEqual(getPromptForTab('perfectionist'), 'Prompt Micro-Tuning Kesempurnaan 100%', 'Tab perfectionist harus memuat micro-tuning');
   });
 
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);

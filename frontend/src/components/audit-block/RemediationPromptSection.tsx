@@ -10,15 +10,26 @@ export interface RemediationPromptSectionProps {
 export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> = ({ audit }) => {
   const { showToast } = useToast();
   const [promptCopied, setPromptCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'cms' | 'perfectionist'>('cms');
+
+  const isReadyToPublish = audit.verdict_status === 'Siap Terbit' || audit.verdict_status === 'Layak Terbit';
+
+  const currentPromptText = isReadyToPublish
+    ? (activeTab === 'cms'
+        ? (audit.remediation_prompt_cms || audit.remediation_prompt)
+        : (audit.remediation_prompt_perfectionist || audit.remediation_prompt))
+    : audit.remediation_prompt;
 
   const handleCopyPrompt = () => {
-    if (!audit.remediation_prompt) return;
-    navigator.clipboard.writeText(audit.remediation_prompt);
+    if (!currentPromptText) return;
+    navigator.clipboard.writeText(currentPromptText);
     setPromptCopied(true);
     showToast({
       type: 'success',
       title: 'Prompt Tersalin ✓',
-      message: 'Prompt remediasi berhasil disalin ke papan klip.',
+      message: isReadyToPublish && activeTab === 'perfectionist'
+        ? 'Prompt Micro-Tuning (Perfeksionis) berhasil disalin.'
+        : 'Prompt remediasi berhasil disalin ke papan klip.',
     });
     setTimeout(() => setPromptCopied(false), 2000);
   };
@@ -102,7 +113,59 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
         </ul>
       )}
 
-      {audit.remediation_prompt && (
+      {/* Dual Tab Mode untuk Siap Terbit (Sprint 4.2: CMS Pack vs Perfectionist Micro-Tuning) */}
+      {isReadyToPublish && (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            type="button"
+            data-testid="tab-cms-pack"
+            onClick={() => setActiveTab('cms')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: activeTab === 'cms' ? 700 : 500,
+              border: '1px solid',
+              borderColor: activeTab === 'cms' ? 'var(--waskita-emerald-accent, #059669)' : 'var(--waskita-border, rgba(30, 41, 59, 0.15))',
+              background: activeTab === 'cms' ? 'var(--waskita-emerald-bg, #D1FAE5)' : 'var(--waskita-card, #E9DFCA)',
+              color: activeTab === 'cms' ? 'var(--waskita-emerald-text, #065F46)' : COLORS.deepSlate,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Tab 1: Paket Pra-Publikasi CMS &amp; SEO (Rekomendasi)
+          </button>
+          <button
+            type="button"
+            data-testid="tab-perfectionist"
+            onClick={() => setActiveTab('perfectionist')}
+            style={{
+              padding: '6px 12px',
+              borderRadius: '8px',
+              fontSize: '11.5px',
+              fontWeight: activeTab === 'perfectionist' ? 700 : 500,
+              border: '1px solid',
+              borderColor: activeTab === 'perfectionist' ? 'var(--waskita-amber-accent, #D97706)' : 'var(--waskita-border, rgba(30, 41, 59, 0.15))',
+              background: activeTab === 'perfectionist' ? 'var(--waskita-amber-bg, #FEF3C7)' : 'var(--waskita-card, #E9DFCA)',
+              color: activeTab === 'perfectionist' ? 'var(--waskita-amber-text, #B45309)' : COLORS.deepSlate,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            Tab 2: Micro-Tuning Menuju 100% (Perfeksionis)
+          </button>
+        </div>
+      )}
+
+      {currentPromptText && (
         <div
           style={{
             background: 'var(--waskita-surface-white, #FFFFFF)',
@@ -122,7 +185,9 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
               letterSpacing: '0.4px',
             }}
           >
-            Prompt Siap Pakai untuk Penulisan Ulang (LLM Prompt):
+            {isReadyToPublish
+              ? (activeTab === 'cms' ? 'Prompt Pra-Publikasi CMS & SEO (LLM Prompt):' : 'Prompt Micro-Tuning Kesempurnaan (LLM Prompt):')
+              : 'Prompt Siap Pakai untuk Penulisan Ulang (LLM Prompt):'}
           </div>
           <pre
             style={{
@@ -134,7 +199,7 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
               color: COLORS.deepSlate,
             }}
           >
-            {audit.remediation_prompt}
+            {currentPromptText}
           </pre>
         </div>
       )}

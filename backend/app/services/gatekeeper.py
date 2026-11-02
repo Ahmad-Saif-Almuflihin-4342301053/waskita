@@ -1,10 +1,11 @@
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from app.schemas.audit import AnnotatedSpan, EntityGapsGroup, ThresholdConfig
-from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, stem_word
+from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, NON_TOPICAL_VERBS_AND_ADJECTIVES, stem_word
+from app.services.stylometrics import extract_headings_from_markdown_or_text
 
 # Pola AI Klise dan Frasa Generik Bahasa Indonesia (FR-11)
 CLICHE_PHRASES = [
@@ -88,13 +89,22 @@ def _split_into_sentences(text: str) -> List[str]:
     """
     Memecah naskah menjadi daftar segmen/kalimat utuh.
     Memecah berdasarkan baris baru terlebih dahulu agar sub-judul tidak menyatu
-    dengan kalimat pembuka paragraf di bawahnya (Sprint 4.1).
+    dengan kalimat pembuka paragraf di bawahnya (Sprint 4.1 & 4.2).
     """
     sentences: List[str] = []
     for line in re.split(r"\n+", text):
         line_clean = line.strip()
         if not line_clean:
             continue
+        # Jika satu baris adalah heading Markdown atau sub-judul mandiri
+        is_heading_line = (
+            bool(re.match(r"^#{1,4}\s+", line_clean))
+            or (len(line_clean.split()) <= 14 and (line_clean.endswith("?") or not line_clean.endswith((".", "!", ":", ";"))))
+        )
+        if is_heading_line and len(line_clean.split()) <= 14:
+            sentences.append(line_clean)
+            continue
+
         parts = re.split(r"(?<=[.!?])\s+", line_clean)
         for p in parts:
             p_clean = p.strip()
@@ -111,18 +121,21 @@ def generate_annotated_spans(
     threshold_hko: float = 40.0,
 ) -> List[AnnotatedSpan]:
     """
-    Algoritma Anotasi Stabilo 4-Warna Resmi (Proposal TA Tabel 3.6, Sprint 3.10 & Sprint 4.1):
-    Urutan Prioritas Baru (Sprint 4.1):
-    1. 'red': Redundansi VSM lokal / Plagiarisme Kalimat (Jaccard >= 0.55 atau Containment >= 0.75)
-    2. 'yellow': Frasa Klise / Generik (CLICHE_PHRASES)
-    3. 'blue': Kosakata Monoton (local_ttr < 0.40 atau repetisi leksikal tinggi)
-    4. 'green': Orisinalitas Kuat / Nilai Tambah Unik (memuat Delta gain)
+    Algoritma Anotasi Stabilo 4-Warna Resmi (Proposal TA Tabel 3.6, Sprint 3.10 & Sprint 4.1 & 4.2):
+    Urutan Prioritas:
+    1. 'is_heading': Sub-Judul / Heading teks polos atau Markdown (display: block)
+    2. 'red': Redundansi VSM lokal / Plagiarisme Kalimat (Jaccard >= 0.50 atau Containment >= 0.72)
+    3. 'yellow': Frasa Klise / Generik (CLICHE_PHRASES)
+    4. 'blue': Kosakata Monoton (local_ttr < 0.40 atau repetisi leksikal tinggi)
+    5. 'green': Orisinalitas Kuat / Nilai Tambah Unik (memuat Delta gain)
     
-    Catatan Sprint 3.10 & 4.1:
-    Naskah stabilo annotated_spans HANYA BERISI KALIMAT ASLI MILIK PENGGUNA.
+    Catatan: Naskah stabilo annotated_spans HANYA BERISI KALIMAT ASLI MILIK PENGGUNA.
     """
     sentences = _split_into_sentences(draft_content)
     spans: List[AnnotatedSpan] = []
+
+    # Ekstraksi heading resmi
+    detected_headings = set(extract_headings_from_markdown_or_text(draft_content))
 
     # Himpunan stem entitas gain unik
     gain_stems = {item.term_string for item in entity_gaps.gain}
@@ -142,12 +155,22 @@ def generate_annotated_spans(
                     competitor_sentence_stems_list.append(c_stems)
 
     for sentence in sentences:
+        # Cek apakah segmen merupakan sub-judul / heading (Sprint 4.2)
+        is_heading = (
+            sentence in detected_headings
+            or bool(re.match(r"^#{1,4}\s+", sentence))
+            or any(h in sentence for h in detected_headings)
+        )
+        if is_heading:
+            spans.append(AnnotatedSpan(text=sentence, color=None, label="Sub-Judul / Heading", is_heading=True))
+            continue
+
         s_lower = sentence.lower()
         words = re.findall(r"\b\w+\b", s_lower)
         word_count = len(words)
 
         if word_count < 4:
-            spans.append(AnnotatedSpan(text=sentence, color=None, label=None))
+            spans.append(AnnotatedSpan(text=sentence, color=None, label=None, is_heading=False))
             continue
 
         local_ttr = len(set(words)) / word_count if word_count > 0 else 1.0
@@ -351,13 +374,20 @@ def generate_overview_and_remediation(
     highest_competitor: Optional[Dict[str, any]] = None,
     redundant_snippets: Optional[List[str]] = None,
     competitor_count: int = 5,
+    serp_competitors: Optional[List[Dict[str, any]]] = None,
+    draft_word_count: int = 0,
 ) -> Dict[str, any]:
-    """Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt."""
+    """
+    Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt (Sprint 4.2).
+    Mendukung Dual-Mode Prompt (CMS Pack & Perfectionist Micro-Tuning) untuk Siap Terbit,
+    serta 4-Pilar Prompt Presisi Multi-Kompetitor dengan Batasan Word Budget untuk Perlu Revisi.
+    """
     bullets: List[str] = []
     remediation_points: List[str] = []
 
-    # Format sitasi kompetitor tertinggi jika ada (Sprint 3.3 & 4.1)
+    # 1. Format sitasi kompetitor tertinggi jika ada (Sprint 3.3, 4.1 & 4.2)
     comp_citation = ""
+    highest_domain = ""
     if highest_competitor:
         comp_title = (
             highest_competitor.get("page_title")
@@ -374,6 +404,7 @@ def generate_overview_and_remediation(
             from urllib.parse import urlparse
             comp_domain = urlparse(comp_url).netloc.replace("www.", "")
 
+        highest_domain = comp_domain.lower()
         sim_val = highest_competitor.get("cosine_similarity", max_cosine_sim)
         sim_pct = round(sim_val * 100.0, 1)
         if comp_domain:
@@ -381,17 +412,50 @@ def generate_overview_and_remediation(
         else:
             comp_citation = f"Artikel '{comp_title}' dengan kemiripan {sim_pct}%"
 
+    # 2. Himpun domain kompetitor acuan lainnya untuk matriks konsensus pasar
+    other_domains: List[str] = []
+    if serp_competitors:
+        for c in serp_competitors:
+            d = (c.get("domain_name") or c.get("domain") or "").lower()
+            if d and d != highest_domain and d not in other_domains and "example" not in d:
+                other_domains.append(d)
+    other_domains_str = ", ".join(other_domains[:3]) if other_domains else "kompetitor teratas lainnya"
+
+    # 3. Hitung Plafon & Batasan Kata Ketat (Word Budget Enforcement)
+    if draft_word_count >= 300:
+        min_target_words = max(800, int(draft_word_count * 0.85))
+        max_target_words = max(min_target_words + 150, min(1400, int(draft_word_count * 1.05)))
+    else:
+        min_target_words = 900
+        max_target_words = 1200
+
+    # 4. Filter entitas defisit dari noise komersial/sponsor dan verba/adjektiva non-topikal (Sprint 4.2)
+    valid_deficits = [
+        d for d in entity_gaps.deficit
+        if not is_commercial_or_sponsor(d.term_string)
+        and not is_commercial_or_sponsor(d.term_surface_form)
+        and d.term_string not in NON_TOPICAL_VERBS_AND_ADJECTIVES
+        and d.term_surface_form.lower() not in NON_TOPICAL_VERBS_AND_ADJECTIVES
+    ]
+    valid_deficits_str = ", ".join([d.term_surface_form for d in valid_deficits[:4]]) if valid_deficits else "aspek teknis penting yang relevan"
+
+    # 5. Entitas gain draf
+    if entity_gaps.gain:
+        gain_terms = ", ".join([g.term_surface_form for g in entity_gaps.gain[:4]])
+    else:
+        gain_terms = "konten orisinal naskah"
+
+    remediation_prompt_cms: Optional[str] = None
+    remediation_prompt_perfectionist: Optional[str] = None
+
     if verdict_status in ("Siap Terbit", "Layak Terbit"):
         bullets.append(f"Skor diferensiasi semantik draf sangat baik ({cds_score}%), melampaui ambang batas.")
         bullets.append("Variasi leksikal tinggi dan struktur sub-judul proporsional tanpa repetisi berlebih.")
         if entity_gaps.gain:
-            gain_terms = ", ".join([g.term_surface_form for g in entity_gaps.gain[:4]])
             bullets.append(f"Draf berhasil menyajikan nilai tambah informasi orisinal: {gain_terms}.")
-        else:
-            gain_terms = "konten orisinal naskah"
 
-        # Prompt Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6 & 4.1)
-        remediation_prompt = (
+        # Tab 1: Paket Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6 & 4.1 & 4.2)
+        cms_pack_prompt = (
             f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n"
             f"Berdasarkan analisis perbandingan terhadap {competitor_count} artikel kompetitor teratas di Google SERP, draf ini memiliki diferensiasi dan nilai kebaruan materi yang kuat ({gain_terms}).\n\n"
             "Tolong siapkan paket materi pra-publikasi CMS & SEO untuk artikel ini tanpa mengubah isi naskah pokoknya:\n"
@@ -402,6 +466,26 @@ def generate_overview_and_remediation(
             f"5. Pertahankan Nilai Orisinal: Pastikan poin-poin kebaruan materi draf berikut tetap terjaga: {gain_terms}."
             f"{PROMPT_DRAFT_DELIMITER}"
         )
+
+        # Tab 2: Micro-Tuning Menuju 100% (Perfeksionis - Sprint 4.2)
+        perfectionist_prompt = (
+            f"Draf artikel ini telah mencapai skor {cds_score}% untuk topik '{target_query}'.\n"
+            "Jika Anda ingin melakukan penyempurnaan mikro (micro-tuning) menuju kesempurnaan 100%, terapkan instruksi berikut:\n\n"
+            "1. Perkaya Kosakata & Variasi Leksikal (MATTR):\n"
+            "   - Variasikan kosakata pada kalimat yang monoton untuk meningkatkan kekayaan diksi artikel.\n"
+            "2. Lengkapi Celah Topik Minor:\n"
+            f"   - Sisipkan sedikit ulasan kontekstual mengenai aspek berikut tanpa memanjangkan artikel: {valid_deficits_str}.\n"
+            "3. Pertahankan Nilai Orisinalitas Unggul:\n"
+            f"   - Jaga agar entitas nilai tambah unik berikut tetap dominan di naskah: {gain_terms}.\n"
+            "4. Disiplin Panjang Naskah:\n"
+            f"   - Pertahankan panjang artikel di rentang {min_target_words} – {max_target_words} kata tanpa menambah kalimat klise."
+            f"{PROMPT_DRAFT_DELIMITER}"
+        )
+
+        remediation_prompt = cms_pack_prompt
+        remediation_prompt_cms = cms_pack_prompt
+        remediation_prompt_perfectionist = perfectionist_prompt
+
     else:
         bullets.append(f"Draf memerlukan kurasi editorial (Skor CDS: {cds_score}%).")
         if is_out_of_domain:
@@ -409,64 +493,52 @@ def generate_overview_and_remediation(
             remediation_points.append(f"Topik naskah tidak relevan dengan sesi/kueri '{target_query}'. Mulai sesi analisis baru jika naskah ini membahas topik yang berbeda agar dievaluasi terhadap kompetitor SERP yang sesuai.")
         if verdict_status == "Perlu Revisi - Redundansi Kalimat Tinggi":
             bullets.append("Naskah terdeteksi memiliki kepadatan kalimat redundan langsung yang tinggi (≥ 20% kalimat naskah mirip kompetitor). Skor CDS dipangkas secara proporsional.")
-            if comp_citation:
-                remediation_points.append(
-                    f"Rombak total struktur kalimat yang terindikasi meniru {comp_citation} agar terbebas dari penalti redundansi kalimat."
-                )
-            else:
-                remediation_points.append("Rombak total kalimat naskah yang ditandai stabilo merah agar tidak menjiplak struktur kalimat kompetitor.")
         elif is_redundant:
             if comp_citation:
                 bullets.append(f"Tingkat kemiripan semantik tinggi terhadap {comp_citation} (melampaui ambang batas).")
-                remediation_points.append(
-                    f"Tulis ulang paragraf naskah yang memiliki kemiripan tinggi dengan {comp_citation} agar struktur kalimat dan sudut pandang menjadi orisinal."
-                )
             else:
                 bullets.append(f"Tingkat kemiripan semantik dengan artikel kompetitor terlalu tinggi ({max_cosine_sim:.2f} > ambang batas).")
-                remediation_points.append("Tulis ulang paragraf yang ditandai merah agar tidak menjiplak struktur kalimat kompetitor.")
-
-            # Sertakan cuplikan naskah yang terindikasi plagiasi/parafrase langsung (Sprint 3.3)
-            if redundant_snippets:
-                unique_snippets = []
-                for s in redundant_snippets:
-                    s_clean = s.strip()
-                    if s_clean and s_clean not in unique_snippets:
-                        unique_snippets.append(s_clean)
-                    if len(unique_snippets) >= 3:
-                        break
-                if unique_snippets:
-                    snippets_block = "\n".join([f'   > "{s}"' for s in unique_snippets])
-                    remediation_points.append(
-                        f"Cuplikan kalimat naskah yang terindikasi parafrase/jiplak langsung:\n{snippets_block}"
-                    )
 
         if is_keyword_stuffed:
             if hko_percentage > 40.0:
                 bullets.append(f"Sub-judul terindikasi keyword stuffing ({hko_percentage:.1f}% memuat kata kunci).")
-                remediation_points.append("Variasikan teks sub-judul (H2/H3) agar lebih deskriptif dan natural tanpa mengulang kata kunci utama secara monoton.")
             if mattr_score < 0.55:
                 bullets.append(f"Kosakata artikel cenderung repetitif (MATTR: {mattr_score:.2f} < 0.55).")
-                remediation_points.append("Gunakan sinonim kata yang lebih bervariasi untuk memperkaya stilometri teks.")
 
-        # Filter entitas defisit dari noise komersial/sponsor seperti Colorbond (Sprint 3.3)
-        valid_deficits = [
-            d for d in entity_gaps.deficit
-            if not is_commercial_or_sponsor(d.term_string) and not is_commercial_or_sponsor(d.term_surface_form)
-        ]
         if valid_deficits:
-            deficit_terms = ", ".join([d.term_surface_form for d in valid_deficits[:3]])
-            bullets.append(f"Terdapat celah topik penting SERP yang belum dicakup: {deficit_terms}.")
-            remediation_points.append(f"Sertakan pembahasan topik berikut untuk melengkapi draf: {deficit_terms}.")
+            bullets.append(f"Terdapat celah topik penting SERP yang belum dicakup: {valid_deficits_str}.")
 
-        points_text = "\n".join([f"{idx+1}. {pt}" for idx, pt in enumerate(remediation_points)])
+        # Cuplikan kalimat plagiasi jika ada (Sprint 3.3 & 4.2)
+        snippets_block = ""
+        if redundant_snippets:
+            unique_snippets = []
+            for s in redundant_snippets:
+                s_clean = s.strip()
+                if s_clean and s_clean not in unique_snippets:
+                    unique_snippets.append(s_clean)
+                if len(unique_snippets) >= 3:
+                    break
+            if unique_snippets:
+                snippets_block = "\n   - Cuplikan kalimat naskah yang terindikasi parafrase/jiplak langsung:\n" + "\n".join([f'     > "{s}"' for s in unique_snippets])
+
+        # Prompt Terstruktur 4-Pilar Multi-Kompetitor Presisi & Word Budget (Sprint 4.2)
         remediation_prompt = (
             f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan {competitor_count} artikel kompetitor acuan Google SERP berikut:\n\n"
-            f"{points_text}\n\n"
-            "Instruksi Tambahan: Pertahankan keunikan sudut pandang tulisan dan hindari frasa pembuka yang klise."
+            f"1. ELIMINASI JIPLAKAN DARI SUMBER UTAMA:\n"
+            f"   - Draf memiliki kemiripan struktur tinggi dengan {comp_citation or 'artikel kompetitor utama'}. Rombak total struktur kalimat dan susunan paragrafnya agar terbebas dari penalti plagiasi semantik.{snippets_block}\n\n"
+            f"2. LENGKAPI CELAH KONSENSUS DARI KOMPETITOR LAIN:\n"
+            f"   - Sebagaimana dibahas oleh kompetitor SERP lainnya ({other_domains_str}), sertakan pembahasan aspek penting yang masih absen di naskah Anda: {valid_deficits_str}.\n\n"
+            f"3. CIPTAKAN NILAI TAMBAH BARU (KALAHKAN {competitor_count} KOMPETITOR SERP):\n"
+            f"   - Ke-{competitor_count} kompetitor acuan belum mengulas sudut pandang spesifik ini secara mendalam. Sertakan minimal 2 pembahasan baru atau studi kasus kontekstual yang bernilai tinggi bagi pembaca.\n\n"
+            f"4. BATASAN PANJANG KATA KETAT (SERP WORD BUDGET):\n"
+            f"   - Target panjang artikel: {min_target_words} – {max_target_words} kata (DILARANG melebihi {max_target_words} kata).\n"
+            f"   - Hapus basa-basi pembuka dan pengantar klise. Langsung bahas substansi pokok secara padat dan lugas."
             f"{PROMPT_DRAFT_DELIMITER}"
         )
 
     return {
         "overview_bullets": bullets,
         "remediation_prompt": remediation_prompt,
+        "remediation_prompt_cms": remediation_prompt_cms,
+        "remediation_prompt_perfectionist": remediation_prompt_perfectionist,
     }

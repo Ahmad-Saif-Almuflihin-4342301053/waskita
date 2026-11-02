@@ -803,3 +803,174 @@ class TestSprint41AlgorithmicOverhaul:
             candidate_index=6,
             anchor_stems={"arsitektur", "brutalisme", "beton", "ekspos", "konstruksi", "material", "bangunan", "struktur", "kota", "ruang"},
         ) is True
+
+
+# =====================================================================
+# 11. UJI SPRINT 4.2: MULTI-COMPETITOR REMEDIATION & LONG-TAIL GAIN
+# =====================================================================
+class TestSprint42PrecisionMultiCompetitorAndLongtailGain:
+    def test_faq_question_heading_detection(self):
+        """Sprint 4.2: Sub-judul berakhiran tanda tanya '?' terdeteksi sebagai sub-judul valid."""
+        text = """
+        Pengantar arsitektur brutalisme di masa pascaperang dunia kedua yang sarat eksperimen material.
+
+        Apa Itu Arsitektur Brutalisme?
+        Arsitektur brutalisme adalah salah satu aliran desain modern yang mengutamakan kejujuran bahan beton mentah tanpa polesan plesteran dekoratif.
+
+        ## Apakah Cocok Diterapkan pada Hunian Tropis?
+        Penerapan pada rumah tinggal membutuhkan ventilasi silang yang sangat baik demi mencegah akumulasi panas berlebih di siang hari.
+        """
+        headings = extract_headings_from_markdown_or_text(text)
+        assert len(headings) >= 2
+        # Cek apakah heading bertanda tanya terdeteksi
+        assert any("Apa Itu Arsitektur Brutalisme?" in h for h in headings)
+        assert any("Apakah Cocok Diterapkan" in h for h in headings)
+
+        # Hitung HKO terhadap kueri arsitektur brutalisme
+        hko = calculate_hko(headings, "arsitektur brutalisme")
+        assert hko >= 50.0
+
+    def test_ascii_folding_and_canonical_normalization(self):
+        """Sprint 4.2: Normalisasi aksen Unité -> Unite dan Perancis -> Prancis."""
+        from app.services.nlp_pipeline import normalize_text_ascii, stem_word
+
+        raw = "Gedung apartemen monumental Unité d'Habitation di Marseille, Perancis."
+        folded = normalize_text_ascii(raw)
+        assert "Unite" in folded
+        assert "Habitation" in folded
+
+        # Canonical mapping
+        assert stem_word("perancis") == "prancis"
+        assert stem_word("prancis") == "prancis"
+        assert stem_word("unite") == "unite"
+
+    def test_extract_candidate_gain_entities_longtail(self):
+        """Sprint 4.2: Mengekstrak proper noun dan entitas teknis langka dari draf."""
+        from app.services.nlp_pipeline import extract_candidate_gain_entities
+
+        text = """
+        Arsitek Alison Smithson dan Peter Smithson merancang kompleks perumahan Robin Hood Gardens.
+        Kritikus Reyner Banham memperkenalkan istilah New Brutalism untuk menggambarkan etos kejujuran desain ini.
+        Menara Trellick Tower karya Erno Goldfinger menjadi salah satu contoh paling ikonik di London.
+        Penerapan konsep Kenyamanan Termal pasif di daerah tropis menjadi fokus modern.
+        """
+        gain_cands = extract_candidate_gain_entities(text)
+        stems = [c[0] for c in gain_cands]
+        surfaces = [c[1] for c in gain_cands]
+
+        assert any("alison smithson" in s for s in stems)
+        assert any("peter smithson" in s for s in stems)
+        assert any("reyner banham" in s for s in stems)
+        assert any("trellick tower" in s for s in stems)
+
+    def test_deficit_cleans_non_topical_verbs_and_adjectives(self):
+        """Sprint 4.2: Verba proses dan adjektiva non-topikal difilter dari celah defisit."""
+        from app.services.information_gain import calculate_information_gain
+
+        draft_entities = [("brutalis", "Brutalis", 5)]
+        comp_entities = [
+            [
+                ("brutalis", "Brutalis", 5),
+                ("sederhana", "Sederhana", 4),
+                ("muncul", "Muncul", 3),
+                ("memiliki", "Memiliki", 3),
+                ("fasad modular", "Fasad Modular", 3),
+            ],
+            [
+                ("brutalis", "Brutalis", 4),
+                ("sederhana", "Sederhana", 3),
+                ("muncul", "Muncul", 3),
+                ("memiliki", "Memiliki", 3),
+                ("fasad modular", "Fasad Modular", 2),
+            ]
+        ]
+
+        gaps = calculate_information_gain(draft_entities, comp_entities)
+        def_stems = [d.term_string for d in gaps.deficit]
+
+        assert "sederhana" not in def_stems
+        assert "muncul" not in def_stems
+        assert "memiliki" not in def_stems
+        assert "fasad modular" in def_stems
+
+    def test_four_pillar_remediation_prompt_and_word_budget(self):
+        """Sprint 4.2: Prompt remediasi 4-pilar terstruktur dengan SERP Word Budget."""
+        from app.services.gatekeeper import generate_overview_and_remediation
+
+        highest_comp = {
+            "title": "Mengenal Arsitektur Brutalisme dan Contoh Bangunannya",
+            "domain_name": "sipil.uma.ac.id",
+            "cosine_similarity": 0.985,
+        }
+        other_comps = [
+            {"domain_name": "student-activity.binus.ac.id"},
+            {"domain_name": "detik.com"},
+            {"domain_name": "setiapgedung.id"},
+        ]
+        gaps = EntityGapsGroup(
+            deficit=[
+                EntityGapItem(term_string="fasad modular", term_surface_form="Fasad Modular", tfidf_weight=0.8, competitor_consensus_count=3),
+            ],
+            gain=[],
+        )
+
+        res = generate_overview_and_remediation(
+            verdict_status="Perlu Revisi - Redundansi Kalimat Tinggi",
+            cds_score=38.5,
+            is_redundant=True,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.985,
+            mattr_score=0.58,
+            hko_percentage=25.0,
+            entity_gaps=gaps,
+            target_query="arsitektur brutalisme",
+            highest_competitor=highest_comp,
+            serp_competitors=other_comps,
+            competitor_count=10,
+            draft_word_count=1170,
+        )
+
+        prompt = res["remediation_prompt"]
+
+        # Cek 4 pilar terstruktur
+        assert "1. ELIMINASI JIPLAKAN DARI SUMBER UTAMA:" in prompt
+        assert "sipil.uma.ac.id" in prompt
+        assert "2. LENGKAPI CELAH KONSENSUS DARI KOMPETITOR LAIN:" in prompt
+        assert "binus.ac.id" in prompt or "detik.com" in prompt
+        assert "Fasad Modular" in prompt
+        assert "3. CIPTAKAN NILAI TAMBAH BARU (KALAHKAN 10 KOMPETITOR SERP):" in prompt
+        assert "4. BATASAN PANJANG KATA KETAT (SERP WORD BUDGET):" in prompt
+        assert "DILARANG melebihi" in prompt
+
+    def test_dual_mode_prompt_when_siap_terbit(self):
+        """Sprint 4.2: Draf Siap Terbit menghasilkan dual-mode prompt (CMS Pack & Perfectionist)."""
+        from app.services.gatekeeper import generate_overview_and_remediation
+
+        gaps = EntityGapsGroup(
+            deficit=[],
+            gain=[
+                EntityGapItem(term_string="alison smithson", term_surface_form="Alison Smithson", tfidf_weight=0.85, competitor_consensus_count=0),
+            ],
+        )
+
+        res = generate_overview_and_remediation(
+            verdict_status="Siap Terbit",
+            cds_score=94.5,
+            is_redundant=False,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.12,
+            mattr_score=0.78,
+            hko_percentage=10.0,
+            entity_gaps=gaps,
+            target_query="arsitektur brutalisme",
+            competitor_count=10,
+            draft_word_count=980,
+        )
+
+        assert res["remediation_prompt_cms"] is not None
+        assert "Meta Title SEO" in res["remediation_prompt_cms"]
+        assert "Alison Smithson" in res["remediation_prompt_cms"]
+
+        assert res["remediation_prompt_perfectionist"] is not None
+        assert "micro-tuning" in res["remediation_prompt_perfectionist"].lower()
+        assert "Alison Smithson" in res["remediation_prompt_perfectionist"]

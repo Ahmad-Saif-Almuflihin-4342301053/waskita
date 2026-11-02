@@ -103,6 +103,7 @@ export const App: React.FC = () => {
   // Penyimpan draf aktif per session_id (mencegah kebocoran & kehilangan teks antar-sesi, Sprint 3.7)
   const [sessionDrafts, setSessionDrafts] = useState<Record<string, string>>({});
   const [targetQuery, setTargetQuery] = useState<string>('resep kopi tubruk tradisional');
+  const [isQueryLocked, setIsQueryLocked] = useState<boolean>(false);
   const [isPlusGlowing, setIsPlusGlowing] = useState<boolean>(false);
   const [detectedKeywordHint, setDetectedKeywordHint] = useState<string | null>(null);
 
@@ -212,9 +213,21 @@ export const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  // Handle Paste with auto sanitization & keyword detection
+  // Handle Paste with auto sanitization & keyword detection (Sprint 4.2 Query Lock)
   const handlePasteSanitized = (cleanText: string, keywordCandidate: string) => {
     handleDraftInputChange(cleanText);
+    const isLocked = isQueryLocked || (activeSessionId !== 'session-new' && currentTurns.length > 0);
+    if (isLocked) {
+      if (targetQuery) {
+        showToast({
+          type: 'info',
+          title: 'Kueri Terkunci 🔒',
+          message: `Kueri target dikunci pada '${targetQuery}' untuk menjaga konsistensi benchmark audit.`,
+        });
+      }
+      return;
+    }
+
     if (keywordCandidate) {
       setTargetQuery(keywordCandidate);
       setDetectedKeywordHint(keywordCandidate);
@@ -387,6 +400,7 @@ export const App: React.FC = () => {
         ...(activeSessionId ? { [activeSessionId]: '' } : {}),
       }));
       setDraftInput('');
+      setIsQueryLocked(true);
       showToast({
         type: 'success',
         title: 'Audit Berhasil',
@@ -733,6 +747,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     setCurrentTurns([]);
     setTargetQuery('');
     setDraftInput(sessionDrafts['session-new'] || '');
+    setIsQueryLocked(false);
     setIsTransitioningToDock(false);
   };
 
@@ -745,6 +760,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     setActiveSessionId('session-new');
     setCurrentTurns([]);
     setDraftInput(text);
+    setIsQueryLocked(false);
     setIsTransitioningToDock(false);
 
     // 2. Ekstrak kueri semantik baru dari teks tersebut
@@ -938,6 +954,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                       activeTargetQuery={targetQuery}
                       targetQuery={targetQuery}
                       onTargetQueryChange={setTargetQuery}
+                      isQueryLocked={isQueryLocked || (activeSessionId !== 'session-new' && currentTurns.length > 0)}
+                      onToggleQueryLock={() => setIsQueryLocked(prev => !prev)}
                       thresholds={thresholds}
                     />
                   </div>
@@ -976,6 +994,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                 activeTargetQuery={targetQuery}
                 targetQuery={targetQuery}
                 onTargetQueryChange={setTargetQuery}
+                isQueryLocked={isQueryLocked || (activeSessionId !== 'session-new' && currentTurns.length > 0)}
+                onToggleQueryLock={() => setIsQueryLocked(prev => !prev)}
                 thresholds={thresholds}
               />
             )}
