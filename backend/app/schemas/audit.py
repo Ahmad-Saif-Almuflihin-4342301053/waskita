@@ -100,6 +100,7 @@ class AnnotatedSpan(BaseModel):
     text: str
     color: Optional[StabiloColor] = None
     label: Optional[str] = None
+    is_heading: bool = False
 
 
 class SerpAuditSummary(BaseModel):
@@ -141,6 +142,8 @@ class AuditExecuteResponse(BaseModel):
     annotated_spans: List[AnnotatedSpan]
     overview_bullets: List[str]
     remediation_prompt: str
+    remediation_prompt_cms: Optional[str] = None
+    remediation_prompt_perfectionist: Optional[str] = None
     serp_competitors: List[SerpCompetitorItem]
     serp_source: Optional[Literal["live", "offline_curated", "offline_synthetic"]] = "live"
     serp_audit_summary: Optional[SerpAuditSummary] = None

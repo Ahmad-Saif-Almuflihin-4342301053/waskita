@@ -4,6 +4,7 @@ export interface AnnotatedSpan {
   text: string;
   color: HighlightColor;
   label: string | null;
+  is_heading?: boolean;
 }
 
 export interface EntityGapItem {
@@ -102,6 +103,8 @@ export interface AuditExecuteResponse {
   annotated_spans: AnnotatedSpan[];
   overview_bullets: string[];
   remediation_prompt: string;
+  remediation_prompt_cms?: string | null;
+  remediation_prompt_perfectionist?: string | null;
   serp_competitors?: SerpCompetitorItem[];
   serp_source?: SerpSource;
   serp_audit_summary?: SerpAuditSummary;

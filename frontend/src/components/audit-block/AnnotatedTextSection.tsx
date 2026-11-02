@@ -110,9 +110,18 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
       >
         {audit.annotated_spans && audit.annotated_spans.length > 0 ? (
           audit.annotated_spans.map((span, idx) => {
-            const wordsCount = span.text.trim().split(/\s+/).length;
-            const endsWithSentencePunct = /[.!?:;,]$/.test(span.text.trim());
-            const isHeadingSpan = !span.color && wordsCount >= 2 && wordsCount <= 12 && !endsWithSentencePunct;
+            const trimmed = span.text.trim();
+            const wordsCount = trimmed.split(/\s+/).length;
+            const isMarkdownHeading = /^#{1,4}\s+/.test(trimmed);
+            const cleanText = trimmed.replace(/^#{1,4}\s+/, '');
+            const endsWithSentencePunct = /[.!;:,]$/.test(cleanText) && !cleanText.endsWith('?');
+            const isHeadingSpan = Boolean(
+              span.is_heading ||
+              (!span.color && (
+                isMarkdownHeading ||
+                (wordsCount >= 2 && wordsCount <= 14 && (!endsWithSentencePunct || cleanText.endsWith('?')) && cleanText[0] === cleanText[0].toUpperCase())
+              ))
+            );
 
             if (isHeadingSpan) {
               return (
@@ -121,12 +130,13 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
                   style={{
                     fontWeight: 700,
                     color: 'var(--waskita-text-heading, #0F172A)',
-                    marginTop: idx === 0 ? '0px' : '12px',
+                    marginTop: idx === 0 ? '0px' : '14px',
                     marginBottom: '4px',
                     fontSize: '13.5px',
+                    display: 'block',
                   }}
                 >
-                  {span.text}
+                  {cleanText}
                 </div>
               );
             }

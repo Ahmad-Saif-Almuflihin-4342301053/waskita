@@ -33,6 +33,8 @@ export interface FloatingComposerDockProps {
   activeTargetQuery?: string;
   targetQuery?: string;
   onTargetQueryChange?: (query: string) => void;
+  isQueryLocked?: boolean;
+  onToggleQueryLock?: () => void;
   thresholds?: { min_cds_score?: number };
   showDisclaimer?: boolean;
 }
@@ -53,6 +55,8 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   activeTurnNumber,
   activeTargetQuery,
   targetQuery = "",
+  isQueryLocked = false,
+  onToggleQueryLock,
   showDisclaimer = false,
 }) => {
   const isCentered = layoutMode === "centered";
@@ -229,14 +233,14 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
           position: "relative",
         }}
       >
-        {/* Turn revision banner if active turn > 1 and in docked mode */}
-        {!isCentered && activeTurnNumber && activeTurnNumber > 1 && (
+        {/* Turn revision banner if active turn > 1 and in docked mode, or Query Lock indicator */}
+        {!isCentered && ((activeTurnNumber && activeTurnNumber > 1) || isQueryLocked) && (
           <div
             style={{
               fontSize: "11.5px",
               fontWeight: 600,
-              color: "var(--waskita-emerald-text, #065F46)",
-              background: "var(--waskita-emerald-bg, #D1FAE5)",
+              color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : "var(--waskita-emerald-text, #065F46)",
+              background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "var(--waskita-emerald-bg, #D1FAE5)",
               padding: "3px 12px",
               borderRadius: "9999px",
               marginBottom: "8px",
@@ -258,9 +262,32 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 }}
               />
             )}
-            {isLoading
-              ? "Sedang menganalisis revisi draf..."
-              : `Mode Revisi Turn #${activeTurnNumber} untuk kata kunci "${activeTargetQuery || targetQuery || "Target"}"`}
+            <span>
+              {isLoading
+                ? "Sedang menganalisis revisi draf..."
+                : (activeTurnNumber && activeTurnNumber > 1
+                    ? `Mode Revisi Turn #${activeTurnNumber} (Kueri: "${activeTargetQuery || targetQuery || "Target"}")`
+                    : `Kueri Terkunci: "${targetQuery}"`)}
+            </span>
+            {onToggleQueryLock && (
+              <button
+                type="button"
+                onClick={onToggleQueryLock}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: isQueryLocked ? "#B45309" : "#065F46",
+                  textDecoration: "underline",
+                  padding: "0 2px",
+                }}
+                title={isQueryLocked ? "Buka kunci kueri" : "Kunci kueri target"}
+              >
+                {isQueryLocked ? "Buka Kunci" : "Kunci"}
+              </button>
+            )}
           </div>
         )}
 
@@ -439,15 +466,40 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 padding: "0 2px",
               }}
             >
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 600,
-                  color: "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
-                }}
-              >
-                Naskah Draf Artikel
-              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span
+                  style={{
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    color: "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
+                  }}
+                >
+                  Naskah Draf Artikel
+                </span>
+                {targetQuery && (
+                  <button
+                    type="button"
+                    onClick={onToggleQueryLock}
+                    title={isQueryLocked ? "Kueri Terkunci (Klik untuk buka kunci)" : "Kunci Kueri (Mencegah penimpaan saat paste)"}
+                    style={{
+                      background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "rgba(30, 41, 59, 0.06)",
+                      border: "none",
+                      borderRadius: "6px",
+                      padding: "2px 6px",
+                      fontSize: "10.5px",
+                      fontWeight: 600,
+                      color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : COLORS.deepSlate,
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "3px",
+                    }}
+                  >
+                    <span>{isQueryLocked ? "🔒" : "🔓"}</span>
+                    <span>{targetQuery}</span>
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"

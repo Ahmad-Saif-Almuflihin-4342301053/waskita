@@ -38,6 +38,7 @@ from app.services.gatekeeper import (
 from app.services.information_gain import calculate_information_gain
 from app.services.nlp_pipeline import (
     extract_candidate_entities,
+    extract_candidate_gain_entities,
     extract_full_stem_set,
     preprocess_text_async,
     strip_media_placeholders,
@@ -192,6 +193,8 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         annotated_spans=annotated_spans,
         overview_bullets=overview_bullets,
         remediation_prompt=session.remediation_prompt or "",
+        remediation_prompt_cms=session.remediation_prompt or "",
+        remediation_prompt_perfectionist=None,
         serp_competitors=serp_items,
         serp_source=serp_source,
         serp_audit_summary=None,
@@ -373,8 +376,15 @@ async def execute_audit(
             "Korpus acuan sesi lama tidak relevan dengan draf revisi ini."
         )
 
-    # 5. Ekstraksi Entitas & Information Gain (Persamaan 2.4 - 2.5 & Sprint 4.1 Full-Set)
+    # 5. Ekstraksi Entitas & Information Gain (Persamaan 2.4 - 2.5, Sprint 4.1 & Sprint 4.2 Long-Tail Gain)
     draft_entities = extract_candidate_entities(draft_content, top_n=40)
+    longtail_gain_entities = extract_candidate_gain_entities(draft_content)
+    existing_draft_stems = {e[0] for e in draft_entities}
+    for item in longtail_gain_entities:
+        if item[0] not in existing_draft_stems:
+            draft_entities.append(item)
+            existing_draft_stems.add(item[0])
+
     competitor_entities_list = [
         extract_candidate_entities(c.get("clean_text", ""), top_n=35)
         for c in competitor_docs
@@ -454,7 +464,7 @@ async def execute_audit(
         highest_comp = max(competitor_docs, key=lambda d: d.get("cosine_similarity", 0.0))
     red_snippets = [span.text for span in red_spans]
 
-    # 9. Poin Editorial & Remediasi Kurasi (Sprint 4.1: competitor_count dinamis)
+    # 9. Poin Editorial & Remediasi Kurasi (Sprint 4.1: competitor_count dinamis & Sprint 4.2: Word Budget & Multi-Competitor)
     overview_remediation = generate_overview_and_remediation(
         verdict_status=final_verdict_status,
         cds_score=cds_decision["content_differentiation_score"],
@@ -469,6 +479,8 @@ async def execute_audit(
         highest_competitor=highest_comp,
         redundant_snippets=red_snippets,
         competitor_count=len(competitor_docs),
+        serp_competitors=competitor_docs,
+        draft_word_count=draft_word_count,
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)
@@ -609,6 +621,8 @@ async def execute_audit(
         annotated_spans=annotated_spans,
         overview_bullets=overview_remediation["overview_bullets"],
         remediation_prompt=overview_remediation["remediation_prompt"],
+        remediation_prompt_cms=overview_remediation.get("remediation_prompt_cms"),
+        remediation_prompt_perfectionist=overview_remediation.get("remediation_prompt_perfectionist"),
         serp_competitors=serp_competitor_items,
         serp_source=serp_source,
         serp_audit_summary=SerpAuditSummary(**serp_audit_summary_dict),
