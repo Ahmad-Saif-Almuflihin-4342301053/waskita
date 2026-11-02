@@ -197,35 +197,38 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
     status_code = 0
     trigger_curl_fallback = False
 
-    # Attempt 1: httpx HTTP/2
+    # Attempt 1: httpx HTTP/2 with Fast-Fail Timeout (Sprint 4.1)
     try:
         headers = {
             "User-Agent": settings.USER_AGENT,
             "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
         }
-        async with httpx.AsyncClient(http2=True, timeout=7.0, follow_redirects=True, headers=headers) as client:
+        fast_timeout = httpx.Timeout(4.5, connect=2.5)
+        async with httpx.AsyncClient(http2=True, timeout=fast_timeout, follow_redirects=True, headers=headers) as client:
             resp = await client.get(url)
             status_code = resp.status_code
             if resp.status_code == 200:
                 html_content = resp.text
                 fetch_method = "success"
                 result["source_url"] = str(resp.url)
-            elif resp.status_code in (401, 403) or resp.status_code >= 400:
-                logger.warning(f"HTTPX blocked/failed with status {resp.status_code} on {url}, falling back to curl_cffi")
+            elif resp.status_code in (401, 403, 406, 429, 503):
+                logger.warning(f"HTTPX blocked by bot guard with status {resp.status_code} on {url}, falling back to curl_cffi")
                 trigger_curl_fallback = True
-    except (httpx.TimeoutException, httpx.RequestError) as e:
-        logger.warning(f"HTTPX timeout or request error on {url}: {e}, falling back to curl_cffi")
-        trigger_curl_fallback = True
+            else:
+                logger.warning(f"HTTPX failed with non-bot status {resp.status_code} on {url}")
+    except (httpx.TimeoutException, httpx.ConnectError) as e:
+        logger.warning(f"HTTPX fast-fail (timeout/connect error) on {url}: {e} - skipping curl_cffi")
+        trigger_curl_fallback = False
     except Exception as e:
         logger.warning(f"HTTPX fetch error on {url}: {e}")
-        trigger_curl_fallback = True
+        trigger_curl_fallback = False
 
-    # Attempt 2: Fallback curl_cffi chrome120 seketika saat HTTPX 403/401/timeout/gagal/kosong
-    if (trigger_curl_fallback or not html_content or status_code >= 400) and settings.FEATURE_CURL_CFFI_FALLBACK:
+    # Attempt 2: Fallback curl_cffi chrome120 HANYA saat diblokir bot (401, 403, 406, 429, 503)
+    if trigger_curl_fallback and settings.FEATURE_CURL_CFFI_FALLBACK:
         try:
             from curl_cffi.requests import AsyncSession
             async with AsyncSession(impersonate="chrome120") as s:
-                resp = await s.get(url, timeout=8.0, allow_redirects=True)
+                resp = await s.get(url, timeout=4.5, allow_redirects=True)
                 status_code = resp.status_code
                 if resp.status_code == 200 and resp.text:
                     html_content = resp.text
@@ -471,6 +474,7 @@ async def search_and_scrape_competitors(
         current_rank = 1
         min_words = settings.SERP_MIN_DOC_WORDS
         seen_domains = set()
+        seen_text_hashes: Set[str] = set()
         anchor_stems: Set[str] = set()
 
         for idx_cand, (meta, res) in enumerate(zip(candidate_urls, fetched_results)):
@@ -527,6 +531,15 @@ async def search_and_scrape_competitors(
 
             if not final_domain or final_domain in seen_domains:
                 continue
+
+            # Deduplikasi konten kembar lintas-domain (Sprint 4.1)
+            text_hash = res.get("main_text_hash", "")
+            if text_hash and text_hash in seen_text_hashes:
+                logger.info(f"Skipping duplicate syndicated content hash {text_hash} on {final_domain}")
+                continue
+            if text_hash:
+                seen_text_hashes.add(text_hash)
+
             seen_domains.add(final_domain)
 
             # Bangun anchor_stems dari 3 dokumen valid pertama

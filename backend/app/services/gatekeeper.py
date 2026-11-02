@@ -165,7 +165,7 @@ def generate_annotated_spans(
                     overlap = len(sentence_stems.intersection(comp_stems))
                     jaccard = overlap / len(sentence_stems.union(comp_stems))
                     containment = overlap / min(len(sentence_stems), len(comp_stems))
-                    if jaccard >= 0.55 or (containment >= 0.75 and overlap >= 4):
+                    if jaccard >= 0.50 or (containment >= 0.72 and overlap >= 4):
                         is_redundant = True
                         break
 
@@ -297,6 +297,9 @@ def calculate_composite_cds(
     # Sprint 4.0: Red-Span Density Veto Gate (ambang batas >= 20% kalimat redundan)
     is_sentence_redundant = red_span_ratio >= 0.20
 
+    # Non-Compensatory Pillar Floor (Sprint 4.1): C_IG wajib >= 45.0% untuk lolos Siap Terbit jika ada >= 3 entitas SERP
+    is_superficial_content = (serp_entities_count >= 3) and (c_ig < 45.0)
+
     # Aturan Vonis & Penalti Skor
     if is_out_of_domain:
         verdict_status = "Perlu Revisi - Topik Tidak Relevan"
@@ -305,7 +308,12 @@ def calculate_composite_cds(
         verdict_status = "Perlu Revisi - Redundansi Kalimat Tinggi"
         # Skor CDS tidak boleh melebihi 58.0% jika lebih dari seperlima draf menjiplak kompetitor
         cds = min(cds, round(58.0 * (1.0 - (red_span_ratio - 0.20)), 1))
-    elif (cds >= thresholds.min_cds_score) and (not is_redundant) and (not is_keyword_stuffed):
+    elif (
+        (cds >= thresholds.min_cds_score)
+        and (not is_redundant)
+        and (not is_keyword_stuffed)
+        and (not is_superficial_content)
+    ):
         verdict_status = "Siap Terbit"
     else:
         verdict_status = "Perlu Revisi"

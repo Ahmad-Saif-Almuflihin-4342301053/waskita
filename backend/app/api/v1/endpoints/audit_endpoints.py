@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import hashlib
 import json
@@ -134,10 +135,45 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         is_keyword_stuffed=m.is_keyword_stuffed if m else False,
     )
 
-    overview_bullets = [
+    # Rekonstruksi overview_bullets & remediation_prompt asli saat memuat riwayat (Sprint 4.1)
+    highest_comp = None
+    if serp_items:
+        highest_comp = max(
+            [
+                {
+                    "page_title": item.page_title,
+                    "domain_name": item.domain_name,
+                    "source_url": item.source_url,
+                    "cosine_similarity": item.cosine_similarity or 0.0,
+                }
+                for item in serp_items
+            ],
+            key=lambda d: d["cosine_similarity"],
+        )
+    red_snippets = [span.text for span in annotated_spans if span.color == "red"]
+    is_ood = (session.verdict_status == "Perlu Revisi - Topik Tidak Relevan") or (
+        metrics_schema.avg_cosine_similarity is not None and metrics_schema.avg_cosine_similarity < 0.05
+    )
+
+    ov_rem = generate_overview_and_remediation(
+        verdict_status=session.verdict_status,
+        cds_score=metrics_schema.content_differentiation_score,
+        is_redundant=metrics_schema.is_redundant,
+        is_keyword_stuffed=metrics_schema.is_keyword_stuffed,
+        max_cosine_sim=metrics_schema.max_cosine_similarity,
+        mattr_score=metrics_schema.mattr_score,
+        hko_percentage=metrics_schema.hko_percentage,
+        entity_gaps=EntityGapsGroup(deficit=deficit_items, gain=gain_items),
+        target_query=session.target_query,
+        is_out_of_domain=is_ood,
+        highest_competitor=highest_comp,
+        redundant_snippets=red_snippets,
+        competitor_count=len(serp_items) if serp_items else 5,
+    )
+    overview_bullets = ov_rem.get("overview_bullets", [
         f"Audit selesai dengan status vonis {session.verdict_status}.",
         f"Skor diferensiasi semantik CDS tercatat {metrics_schema.content_differentiation_score}%.",
-    ]
+    ])
 
     return AuditExecuteResponse(
         session_id=session.session_id,
@@ -307,13 +343,13 @@ async def execute_audit(
             "Kalkulasi VSM dan celah defisit dihitung secara proporsional berdasarkan korpus parsial."
         )
 
-    # 3. CPU Berat #2: Preprocessing & Stemming Korpus via Sastrawi (asyncio.to_thread)
-    prep_draft = await preprocess_text_async(draft_content)
-    prep_competitors = []
-    for c in competitor_docs:
-        c_clean = c.get("clean_text", "")
-        prep_c = await preprocess_text_async(c_clean)
-        prep_competitors.append(prep_c)
+    # 3. CPU Berat #2: Preprocessing & Stemming Korpus via Sastrawi secara paralel (asyncio.gather - Sprint 4.1)
+    prep_tasks = [preprocess_text_async(draft_content)] + [
+        preprocess_text_async(c.get("clean_text", "")) for c in competitor_docs
+    ]
+    prep_results = await asyncio.gather(*prep_tasks)
+    prep_draft = prep_results[0]
+    prep_competitors = list(prep_results[1:])
 
     # 4. CPU Berat #3: VSM TF-IDF & Cosine Similarity via run_in_threadpool
     vsm_results = await run_in_threadpool(
@@ -373,14 +409,17 @@ async def execute_audit(
     red_spans = [span for span in annotated_spans if span.color == "red"]
     red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
 
-    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.1 Consensus Set)
+    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.1 Top-25 Consensus Set)
     serp_candidate_stems = {e[0] for ce in competitor_entities_list for e in ce}
     consensus_serp_stems = set()
     if len(full_comp_stems_list) >= 2:
+        stem_freqs = []
         for st in serp_candidate_stems:
             doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
             if doc_freq >= 2:
-                consensus_serp_stems.add(st)
+                stem_freqs.append((st, doc_freq))
+        stem_freqs.sort(key=lambda x: x[1], reverse=True)
+        consensus_serp_stems = {st for st, _ in stem_freqs[:25]}
     if not consensus_serp_stems:
         consensus_serp_stems = serp_candidate_stems
 
