@@ -3,7 +3,7 @@ import hashlib
 import json
 import logging
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import urlparse
 
 import httpx
@@ -259,6 +259,78 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
     return result
 
 
+TRANSACTIONAL_NOISE_TERMS = {
+    "keranjang", "checkout", "beli sekarang", "tambah ke keranjang",
+    "hubungi whatsapp", "pesan sekarang", "stok tersedia", "ongkos kirim",
+    "cicilan", "toko online", "kode voucher", "garansi resmi",
+}
+
+
+def passes_three_tier_relevance_guard(
+    title: str,
+    clean_text: str,
+    target_query: str,
+    candidate_index: int,
+    anchor_stems: Set[str],
+) -> bool:
+    """
+    3 Lapis Saringan Penjaga (3-Tier Relevance Guard - Sprint 4.1):
+    Melindungi korpus dari Semantic Drift (topik melenceng) & halaman jualan
+    ketika menarik hingga Halaman 4 Google SERP.
+    """
+    from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, stem_word
+
+    t_lower = (title or "").lower()
+    text_lower = (clean_text or "").lower()
+
+    # Ekstrak stem kata kunci utama
+    q_words = re.findall(r"\b\w+\b", (target_query or "").lower())
+    q_stems = {
+        stem_word(w)
+        for w in q_words
+        if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
+    }
+
+    # --- LAPIS 3: Detektor Niat Komersial / Katalog Toko (Berlaku untuk semua halaman) ---
+    query_is_commercial = any(w in q_words for w in ("harga", "jual", "beli", "biaya", "toko"))
+    if not query_is_commercial:
+        if re.search(r"\b(jual|daftar harga|promo murah|diskon besar)\b", t_lower):
+            return False
+        trans_hits = sum(1 for term in TRANSACTIONAL_NOISE_TERMS if term in text_lower)
+        if trans_hits >= 4:
+            return False
+
+    # Kandidat peringkat teratas Halaman 1 (index 0..4) sudah melalui kurasi ketat Google Page 1
+    if candidate_index < 5 or not q_stems:
+        return True
+
+    # --- LAPIS 1: Saringan Judul & Paragraf Pembuka (Lexical Anchor untuk Halaman 2–4) ---
+    opening_words = re.findall(r"\b\w+\b", f"{t_lower} {' '.join(text_lower.split()[:200])}")
+    opening_stems = {stem_word(w) for w in opening_words if len(w) > 2}
+    matched_q_stems = q_stems.intersection(opening_stems)
+
+    # Wajib memuat minimal 1 kata kunci inti di judul/pembuka (atau >= 50% jika kueri >= 2 kata)
+    min_q_match = 1 if len(q_stems) == 1 else max(1, len(q_stems) // 2)
+    if len(matched_q_stems) < min_q_match:
+        return False
+
+    # --- LAPIS 2: Jangkar Emas Semantik (Anchor Centroid Similarity terhadap Halaman 1) ---
+    if anchor_stems and len(anchor_stems) >= 10:
+        doc_words = re.findall(r"\b\w+\b", text_lower)
+        doc_stems = {
+            stem_word(w)
+            for w in doc_words
+            if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
+        }
+        if doc_stems:
+            overlap_ratio = len(doc_stems.intersection(anchor_stems)) / max(1, len(anchor_stems))
+            # Gugurkan jika irisan kosakata domain terhadap Jangkar Emas Halaman 1 < 8%
+            if overlap_ratio < 0.08:
+                return False
+
+    return True
+
+
 async def _fetch_serper_page(client: httpx.AsyncClient, query: str, page_num: int = 1) -> List[Dict[str, Any]]:
     """Helper untuk mengambil hasil organik Google per halaman dari Serper.dev."""
     url = "https://google.serper.dev/search"
@@ -334,24 +406,14 @@ async def search_and_scrape_competitors(
     try:
         organic_results: List[Dict[str, Any]] = []
         async with httpx.AsyncClient(timeout=12.0) as client:
-            # Sprint 4.0: Ambil Page 1 dan Page 2 secara paralel agar kandidat kompetitor selalu mencukupi
-            p1_task = _fetch_serper_page(client, clean_query, page_num=1)
-            p2_task = _fetch_serper_page(client, clean_query, page_num=2)
-            p1_res, p2_res = await asyncio.gather(p1_task, p2_task)
-            organic_results.extend(p1_res)
-            organic_results.extend(p2_res)
-
-            # Hitung kandidat lolos filter dari Page 1 & 2
-            valid_candidates = [
-                item for item in organic_results
-                if classify_url_skip_reason(item.get("link", "")) is None
+            # Sprint 4.1: Tarik 4 halaman paralel (40 hasil mentah Google)
+            page_tasks = [
+                _fetch_serper_page(client, clean_query, page_num=p)
+                for p in (1, 2, 3, 4)
             ]
-
-            # Jika kandidat bersih masih < 8, ambil Page 3
-            if len(valid_candidates) < 8:
-                logger.info(f"Page 1 & 2 yielded {len(valid_candidates)} candidates (< 8). Fetching page 3...")
-                p3_res = await _fetch_serper_page(client, clean_query, page_num=3)
-                organic_results.extend(p3_res)
+            pages_data = await asyncio.gather(*page_tasks)
+            for p_res in pages_data:
+                organic_results.extend(p_res)
 
         if not organic_results:
             logger.warning("Serper.dev returned 0 organic results across queried pages.")
@@ -392,7 +454,7 @@ async def search_and_scrape_competitors(
                 candidate_domains.add(domain)
 
             candidate_urls.append(item)
-            if len(candidate_urls) >= 15:
+            if len(candidate_urls) >= 35:
                 break
 
         if len(candidate_urls) < 2:
@@ -409,8 +471,9 @@ async def search_and_scrape_competitors(
         current_rank = 1
         min_words = settings.SERP_MIN_DOC_WORDS
         seen_domains = set()
+        anchor_stems: Set[str] = set()
 
-        for meta, res in zip(candidate_urls, fetched_results):
+        for idx_cand, (meta, res) in enumerate(zip(candidate_urls, fetched_results)):
             if isinstance(res, Exception) or not isinstance(res, dict):
                 summary["skipped_bot_protect_count"] += 1
                 continue
@@ -442,6 +505,20 @@ async def search_and_scrape_competitors(
                 summary["skipped_short_text_count"] += 1
                 continue
 
+            clean_text = res.get("clean_text", "")
+            page_title = meta.get("title", f"Kompetitor {current_rank}")
+
+            # 3 Lapis Saringan Penjaga (Sprint 4.1)
+            if not passes_three_tier_relevance_guard(
+                title=page_title,
+                clean_text=clean_text,
+                target_query=clean_query,
+                candidate_index=idx_cand,
+                anchor_stems=anchor_stems,
+            ):
+                summary["skipped_short_text_count"] += 1
+                continue
+
             # Sprint 3.9: Ambil domain dari URL tujuan akhir untuk deduplikasi seen_domains
             final_parsed = urlparse(final_url.lower())
             final_domain = final_parsed.netloc
@@ -452,13 +529,21 @@ async def search_and_scrape_competitors(
                 continue
             seen_domains.add(final_domain)
 
+            # Bangun anchor_stems dari 3 dokumen valid pertama
+            if len(scraped_docs) < 3:
+                from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, stem_word
+                doc_w = re.findall(r"\b\w+\b", clean_text.lower())
+                for w in doc_w:
+                    if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2:
+                        anchor_stems.add(stem_word(w))
+
             doc = {
                 "rank_position": current_rank,
-                "page_title": meta.get("title", f"Kompetitor {current_rank}"),
+                "page_title": page_title,
                 "source_url": final_url,
                 "domain_name": final_domain,
                 "snippet_text": meta.get("snippet", ""),
-                "clean_text": res.get("clean_text", ""),
+                "clean_text": clean_text,
                 "headings": res.get("headings", []),
                 "word_count": word_count,
                 "fetch_status": fetch_st,

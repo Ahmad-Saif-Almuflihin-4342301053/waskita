@@ -7,6 +7,7 @@ from app.services.nlp_pipeline import (
     stem_word,
     preprocess_text_async,
     extract_candidate_entities,
+    extract_full_stem_set,
 )
 from app.services.vsm_calculator import compute_vsm_similarity
 from app.services.information_gain import calculate_information_gain
@@ -29,6 +30,7 @@ __all__ = [
     "stem_word",
     "preprocess_text_async",
     "extract_candidate_entities",
+    "extract_full_stem_set",
     "compute_vsm_similarity",
     "calculate_information_gain",
     "calculate_stylometrics",
