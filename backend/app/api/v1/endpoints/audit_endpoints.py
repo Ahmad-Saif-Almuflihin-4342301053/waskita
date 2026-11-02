@@ -37,6 +37,7 @@ from app.services.gatekeeper import (
 from app.services.information_gain import calculate_information_gain
 from app.services.nlp_pipeline import (
     extract_candidate_entities,
+    extract_full_stem_set,
     preprocess_text_async,
     strip_media_placeholders,
 )
@@ -302,7 +303,7 @@ async def execute_audit(
         )
     elif k_docs == 2:
         degradation_warning = (
-            "Perhatian: Hanya 2 dari 3 artikel kompetitor yang berhasil dianalisis. "
+            "Perhatian: Hanya 2 artikel kompetitor yang berhasil dianalisis. "
             "Kalkulasi VSM dan celah defisit dihitung secara proporsional berdasarkan korpus parsial."
         )
 
@@ -336,16 +337,24 @@ async def execute_audit(
             "Korpus acuan sesi lama tidak relevan dengan draf revisi ini."
         )
 
-    # 5. Ekstraksi Entitas & Information Gain (Persamaan 2.4 - 2.5)
-    draft_entities = extract_candidate_entities(draft_content, top_n=30)
+    # 5. Ekstraksi Entitas & Information Gain (Persamaan 2.4 - 2.5 & Sprint 4.1 Full-Set)
+    draft_entities = extract_candidate_entities(draft_content, top_n=40)
     competitor_entities_list = [
-        extract_candidate_entities(c.get("clean_text", ""), top_n=25)
+        extract_candidate_entities(c.get("clean_text", ""), top_n=35)
         for c in competitor_docs
     ]
+    full_draft_stems = extract_full_stem_set(draft_content)
+    full_comp_stems_list = [
+        extract_full_stem_set(c.get("clean_text", ""))
+        for c in competitor_docs
+    ]
+
     entity_gaps = calculate_information_gain(
         draft_entities,
         competitor_entities_list,
         draft_tfidf_weights=vsm_results["draft_tfidf_weights"],
+        full_draft_stems=full_draft_stems,
+        full_competitor_stems_list=full_comp_stems_list,
     )
 
     # 6. Analisis Stilometri (TTR, MATTR, HKO)
@@ -364,19 +373,24 @@ async def execute_audit(
     red_spans = [span for span in annotated_spans if span.color == "red"]
     red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
 
-    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.0)
-    draft_stems_set = {e[0] for e in draft_entities}
-    serp_stems_set = set()
-    for ce in competitor_entities_list:
-        for e in ce:
-            serp_stems_set.add(e[0])
-    shared_entities = draft_stems_set.intersection(serp_stems_set)
+    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.1 Consensus Set)
+    serp_candidate_stems = {e[0] for ce in competitor_entities_list for e in ce}
+    consensus_serp_stems = set()
+    if len(full_comp_stems_list) >= 2:
+        for st in serp_candidate_stems:
+            doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
+            if doc_freq >= 2:
+                consensus_serp_stems.add(st)
+    if not consensus_serp_stems:
+        consensus_serp_stems = serp_candidate_stems
+
+    shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
 
     cds_decision = calculate_composite_cds(
         max_cosine_sim=vsm_results["max_cosine_similarity"],
-        draft_entities_count=len(draft_stems_set),
-        serp_entities_count=len(serp_stems_set),
-        shared_entities_count=len(shared_entities),
+        draft_entities_count=len(full_draft_stems),
+        serp_entities_count=len(consensus_serp_stems),
+        shared_entities_count=len(shared_consensus),
         gain_count=len(entity_gaps.gain),
         mattr_score=stylometrics["mattr_score"],
         hko_percentage=stylometrics["hko_percentage"],
@@ -401,7 +415,7 @@ async def execute_audit(
         highest_comp = max(competitor_docs, key=lambda d: d.get("cosine_similarity", 0.0))
     red_snippets = [span.text for span in red_spans]
 
-    # 9. Poin Editorial & Remediasi Kurasi
+    # 9. Poin Editorial & Remediasi Kurasi (Sprint 4.1: competitor_count dinamis)
     overview_remediation = generate_overview_and_remediation(
         verdict_status=final_verdict_status,
         cds_score=cds_decision["content_differentiation_score"],
@@ -415,6 +429,7 @@ async def execute_audit(
         is_out_of_domain=cds_decision.get("is_out_of_domain", False),
         highest_competitor=highest_comp,
         redundant_snippets=red_snippets,
+        competitor_count=len(competitor_docs),
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)

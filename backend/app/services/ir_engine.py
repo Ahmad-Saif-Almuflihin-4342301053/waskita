@@ -7,6 +7,7 @@ Menggabungkan VSM, Information Gain, Stilometri, dan Gatekeeper Decision.
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.schemas.audit import AnnotatedSpan, EntityGapsGroup, ThresholdConfig
+from app.services.nlp_pipeline import extract_candidate_entities, extract_full_stem_set
 from app.services.vsm_calculator import compute_vsm_similarity
 from app.services.information_gain import calculate_information_gain
 from app.services.stylometrics import (
@@ -29,6 +30,8 @@ calculate_stylometry = calculate_stylometrics
 aggregate_gatekeeper_decision = calculate_composite_cds
 
 __all__ = [
+    "extract_candidate_entities",
+    "extract_full_stem_set",
     "compute_vsm_similarity",
     "calculate_information_gain",
     "calculate_stylometrics",
