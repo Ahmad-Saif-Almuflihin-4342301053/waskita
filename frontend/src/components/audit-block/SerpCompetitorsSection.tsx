@@ -18,6 +18,12 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
   const isSynthetic = audit.serp_source === 'offline_synthetic';
   const isCurated = audit.serp_source === 'offline_curated';
 
+  // Sprint 4.1: Accordion toggle untuk menjaga kerapian layar jika kompetitor > 5 artikel
+  const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
+  const INITIAL_VISIBLE_COUNT = 5;
+  const visibleCompetitors = isExpanded ? competitors : competitors.slice(0, INITIAL_VISIBLE_COUNT);
+  const hiddenCount = Math.max(0, n - INITIAL_VISIBLE_COUNT);
+
   // SERP Audit Summary Transparency metrics
   const summary = audit.serp_audit_summary;
   const skippedVideo = summary?.skipped_video_social ?? summary?.reasons?.video_social ?? 0;
@@ -152,9 +158,9 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
         Artikel kompetitor acuan hasil pencarian Google SERP untuk pembanding VSM Cosine Similarity &amp; Information Gain
       </p>
 
-      {/* Daftar Top 10 Kompetitor tanpa .slice() */}
+      {/* Daftar Top 10 Kompetitor (Sprint 4.1 Accordion: 5 awal + toggle ekspansi) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {competitors.map((item) => {
+        {visibleCompetitors.map((item) => {
           const isDummy = (!isLive && isDummyDomain(item.domain_name, item.source_url)) || isSynthetic;
 
           return (
@@ -357,6 +363,36 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
           );
         })}
       </div>
+
+      {/* Tombol Lipat / Buka Accordion Kompetitor (Sprint 4.1) */}
+      {n > INITIAL_VISIBLE_COUNT && (
+        <button
+          type="button"
+          data-testid="toggle-more-competitors-btn"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          style={{
+            marginTop: '10px',
+            width: '100%',
+            padding: '9px 14px',
+            borderRadius: '10px',
+            border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+            background: 'var(--waskita-card, #E9DFCA)',
+            color: COLORS.deepSlate,
+            fontSize: '12px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            transition: 'all 0.15s ease',
+          }}
+        >
+          {isExpanded
+            ? 'Sembunyikan Kompetitor Tambahan ▲'
+            : `Tampilkan ${hiddenCount} Kompetitor Lainnya (Total Top ${n} Google Competitor) ▼`}
+        </button>
+      )}
     </section>
   );
 };
