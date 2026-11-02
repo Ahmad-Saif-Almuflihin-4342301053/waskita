@@ -224,13 +224,48 @@ WEB_NOISE_STOPWORDS: Set[str] = {
 
 ALL_INDONESIAN_STOPWORDS: Set[str] = _sastrawi_stopwords.union(WEB_NOISE_STOPWORDS)
 
+# Peta kanonikalisasi serapan teknis & ejaan dwibahasa (Sprint 4.1)
+LOANWORD_CANONICAL_MAP: Dict[str, str] = {
+    "exposed": "ekspos",
+    "ekspose": "ekspos",
+    "brutalist": "brutalis",
+    "brutalism": "brutalis",
+    "brutalisme": "brutalis",
+    "minimalist": "minimalis",
+    "minimalism": "minimalis",
+    "minimalisme": "minimalis",
+    "modernist": "modernis",
+    "modernism": "modernis",
+    "modernisme": "modernis",
+    "architecture": "arsitektur",
+    "architectural": "arsitektur",
+    "architect": "arsitek",
+}
+
 
 @functools.lru_cache(maxsize=100_000)
 def stem_word(word: str) -> str:
-    """Stemming kata tunggal Bahasa Indonesia dengan LRU Cache untuk kecepatan komputasi tinggi."""
+    """
+    Stemming kata tunggal Bahasa Indonesia dengan LRU Cache + normalisasi serapan teknis (Sprint 4.1).
+    Menyatukan variasi sufiks '-isme' / '-ist' / '-is' dan padanan istilah serapan.
+    """
     if not word or len(word) <= 2:
         return word
-    return _sastrawi_stemmer.stem(word)
+    w_low = word.lower().strip()
+    if w_low in LOANWORD_CANONICAL_MAP:
+        return LOANWORD_CANONICAL_MAP[w_low]
+
+    stemmed = _sastrawi_stemmer.stem(w_low)
+    if stemmed in LOANWORD_CANONICAL_MAP:
+        return LOANWORD_CANONICAL_MAP[stemmed]
+
+    # Normalisasi akhiran '-isme' -> '-is' untuk kata serapan panjang (misal 'fungsionalisme' -> 'fungsionalis')
+    if len(stemmed) > 7 and stemmed.endswith("isme"):
+        stemmed = stemmed[:-2]
+    elif len(stemmed) > 6 and stemmed.endswith("ist"):
+        stemmed = stemmed[:-1]
+
+    return stemmed
 
 
 def _sync_clean_and_tokenize(text: str) -> List[str]:
