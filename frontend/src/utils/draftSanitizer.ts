@@ -320,6 +320,9 @@ const INDONESIAN_STOPWORDS = new Set([
   'faktor', 'mengapa', 'kenapa', 'bagaimana', 'apa', 'siapa', 'kapan', 'dimana',
   'ternyata', 'simak', 'inilah', 'berikut', 'ampuh', 'mudah', 'cepat', 'tepat',
   'paling', 'sering', 'kurang', 'terlalu', 'selalu', 'belum', 'masih', 'pernah',
+  // Konjungsi & Kata Penghubung Ekspositori Tambahan (Sprint 4.4):
+  'bila', 'apabila', 'jikalau', 'meski', 'meskipun', 'walau', 'walaupun', 'kendati',
+  'adapun', 'sehingga', 'supaya', 'itulah', 'dinamika', 'tinjauan', 'seputar', 'pembahasan', 'eksplorasi',
   // Kata lokasional, struktural, fungsional & transisi (Sprint 3.2 Hotfix):
   'bagian', 'bawah', 'atas', 'tengah', 'depan', 'belakang', 'samping', 'luar',
   'sisi', 'aspek', 'bentuk', 'macam', 'jenis', 'melampaui', 'sekadar', 'berupa',
@@ -344,12 +347,18 @@ export function extractSmartKeyword(text: string): string {
   const lines = clean.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
   if (lines.length === 0) return '';
 
-  // Deteksi judul: lines[0] hanya dianggap judul jika <= 100 karakter dan <= 15 kata
+  // Deteksi judul: lines[0] hanya dianggap judul jika <= 140 karakter dan <= 20 kata (Sprint 4.4 Title Boundary)
   let titleText = '';
   const firstLineClean = lines[0].replace(/^#+\s*/, '').trim();
   const firstLineWords = firstLineClean.split(/\s+/).filter(Boolean);
-  if (firstLineClean.length <= 100 && firstLineWords.length <= 15) {
-    titleText = firstLineClean.toLowerCase();
+  if (firstLineClean.length <= 140 && firstLineWords.length <= 20) {
+    // Jika judul memiliki pemisah subjudul seperti ':' atau ' - ', prioritaskan klausa pokok sebelum pemisah
+    const colonSplit = firstLineClean.split(/\s*[:\-–—]\s*/);
+    const mainTitleClause =
+      colonSplit.length > 1 && colonSplit[0].split(/\s+/).length >= 2
+        ? colonSplit[0]
+        : firstLineClean;
+    titleText = mainTitleClause.toLowerCase();
   }
 
   const bodyLines = titleText && lines.length > 1 ? lines.slice(1) : lines;
@@ -500,7 +509,9 @@ export function extractSmartKeyword(text: string): string {
   }
 
   // Gabungkan dengan koma jika panjangnya proporsional (<= 45 karakter)
-  if (secondary && (primary + ', ' + secondary).length <= 45) {
+  // dan jika primary belum cukup spesifik (< 3 kata)
+  const primaryWordCount = primary.split(/\s+/).length;
+  if (secondary && primaryWordCount < 3 && (primary + ', ' + secondary).length <= 45) {
     return `${primary}, ${secondary}`;
   }
 

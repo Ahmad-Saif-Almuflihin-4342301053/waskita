@@ -522,27 +522,51 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                   Naskah Draf Artikel
                 </span>
                 {targetQuery && (
-                  <button
-                    type="button"
-                    onClick={onToggleQueryLock}
-                    title={isQueryLocked ? "Kueri Terkunci (Klik untuk buka kunci)" : "Kunci Kueri (Mencegah penimpaan saat paste)"}
-                    style={{
-                      background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "rgba(30, 41, 59, 0.06)",
-                      border: "none",
-                      borderRadius: "6px",
-                      padding: "2px 6px",
-                      fontSize: "10.5px",
-                      fontWeight: 600,
-                      color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : COLORS.deepSlate,
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "3px",
-                    }}
-                  >
-                    <span>{isQueryLocked ? "🔒" : "🔓"}</span>
-                    <span>{targetQuery}</span>
-                  </button>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                    <button
+                      type="button"
+                      onClick={onOpenPlus}
+                      title="Klik untuk memeriksa atau mengubah kueri target di menu tombol (+)"
+                      style={{
+                        background: "rgba(5, 150, 105, 0.08)",
+                        border: "1px solid rgba(5, 150, 105, 0.25)",
+                        borderRadius: "6px",
+                        padding: "2px 8px",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                        color: COLORS.deepSlate,
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <span style={{ fontSize: "10px" }}>🎯 Topik:</span>
+                      <span style={{ color: "#065F46" }}>"{targetQuery}"</span>
+                      <span style={{ fontSize: "10px", opacity: 0.7 }}>✏️</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onToggleQueryLock}
+                      title={isQueryLocked ? "Kueri Terkunci (Klik untuk buka kunci)" : "Kunci Kueri (Mencegah penimpaan saat paste draf baru)"}
+                      style={{
+                        background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "transparent",
+                        border: isQueryLocked ? "1px solid rgba(180, 83, 9, 0.3)" : "none",
+                        borderRadius: "6px",
+                        padding: "2px 6px",
+                        fontSize: "11px",
+                        fontWeight: 600,
+                        color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : "var(--waskita-text-muted, #64748B)",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "2px",
+                      }}
+                    >
+                      <span>{isQueryLocked ? "🔒" : "🔓"}</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
