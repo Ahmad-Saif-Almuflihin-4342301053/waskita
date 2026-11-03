@@ -56,6 +56,13 @@ DOC_DOMAINS = {
     "www.scribd.com",
     "academia.edu",
     "www.academia.edu",
+    # Sprint 4.3: Pemblokiran dokumen presentasi, skripsi, dan riset OCR
+    "slideshare.net",
+    "www.slideshare.net",
+    "researchgate.net",
+    "www.researchgate.net",
+    "studocu.com",
+    "www.studocu.com",
     # Sprint 3.10: Ensiklopedia publik diblokir agar tidak mendistorsi bobot TF-IDF artikel komersial
     "wikipedia.org",
     "www.wikipedia.org",

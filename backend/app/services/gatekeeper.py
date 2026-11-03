@@ -4,10 +4,15 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from app.schemas.audit import AnnotatedSpan, EntityGapsGroup, ThresholdConfig
-from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, NON_TOPICAL_VERBS_AND_ADJECTIVES, stem_word
+from app.services.nlp_pipeline import (
+    ALL_INDONESIAN_STOPWORDS,
+    NON_TOPICAL_VERBS_AND_ADJECTIVES,
+    normalize_text_ascii,
+    stem_word,
+)
 from app.services.stylometrics import extract_headings_from_markdown_or_text
 
-# Pola AI Klise dan Frasa Generik Bahasa Indonesia (FR-11)
+# Pola AI Klise dan Frasa Generik Bahasa Indonesia (FR-11 & Sprint 4.3)
 CLICHE_PHRASES = [
     "di era digital saat ini",
     "di era globalisasi",
@@ -24,6 +29,14 @@ CLICHE_PHRASES = [
     "sebagaimana telah disebutkan",
     "kesimpulannya adalah",
     "sebagai kesimpulan",
+    "tak ayal",
+    "hingga saat ini",
+    "tidak terlepas dari",
+    "seiring perkembangan zaman",
+    "bukan sekadar",
+    "memainkan peran penting",
+    "perlu diketahui bahwa",
+    "dapat disimpulkan bahwa",
 ]
 
 # Daftar Kata Kunci / Merek Sponsor & Komersial Non-Substantif (Sprint 3.3)
@@ -96,9 +109,11 @@ def _split_into_sentences(text: str) -> List[str]:
         line_clean = line.strip()
         if not line_clean:
             continue
-        # Jika satu baris adalah heading Markdown atau sub-judul mandiri
+        # Jika satu baris adalah heading Markdown atau sub-judul mandiri (Sprint 4.1, 4.2 & 4.3)
+        is_numbered_heading = bool(re.match(r"^\d+[\.\)]\s+[A-Z\u00C0-\u024F]", line_clean))
         is_heading_line = (
             bool(re.match(r"^#{1,4}\s+", line_clean))
+            or is_numbered_heading
             or (len(line_clean.split()) <= 14 and (line_clean.endswith("?") or not line_clean.endswith((".", "!", ":", ";"))))
         )
         if is_heading_line and len(line_clean.split()) <= 14:
@@ -155,9 +170,16 @@ def generate_annotated_spans(
                     competitor_sentence_stems_list.append(c_stems)
 
     for sentence in sentences:
-        # Cek apakah segmen merupakan sub-judul / heading (Sprint 4.2)
+        # Cek apakah segmen merupakan token slot visual media [gambar N: ...] (Sprint 4.3)
+        if re.match(r"^\[gambar\s+\d+", sentence, re.IGNORECASE):
+            spans.append(AnnotatedSpan(text=sentence, color=None, label="Slot Visual Media", is_heading=False))
+            continue
+
+        # Cek apakah segmen merupakan sub-judul / heading (Sprint 4.2 & 4.3)
+        is_numbered_heading = bool(re.match(r"^\d+[\.\)]\s+[A-Z\u00C0-\u024F]", sentence))
         is_heading = (
             sentence in detected_headings
+            or is_numbered_heading
             or bool(re.match(r"^#{1,4}\s+", sentence))
             or any(h in sentence for h in detected_headings)
         )
@@ -214,8 +236,15 @@ def generate_annotated_spans(
             )
             continue
 
-        # Prioritas #3: Cek Biru (Blue): Kosakata Monoton / Repetisi Leksikal Tinggi
-        if local_ttr < 0.40:
+        # Prioritas #3: Cek Biru (Blue - Sprint 4.3): Kosakata Monoton / Repetisi Leksikal Tinggi
+        content_words = [w for w in words if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2]
+        word_freq = {}
+        for cw in content_words:
+            word_freq[cw] = word_freq.get(cw, 0) + 1
+        has_repetitive_words = any(cnt >= 3 for cnt in word_freq.values())
+        content_ttr = len(set(content_words)) / len(content_words) if len(content_words) >= 6 else 1.0
+
+        if has_repetitive_words or (len(words) >= 10 and content_ttr < 0.60) or local_ttr < 0.40:
             spans.append(
                 AnnotatedSpan(
                     text=sentence,
@@ -225,15 +254,27 @@ def generate_annotated_spans(
             )
             continue
 
-        # Prioritas #4: Cek Hijau (Green - Sprint 4.1): Memuat entitas Delta Gain unik
+        # Prioritas #4: Cek Hijau (Green - Sprint 4.1 & 4.3): Memuat entitas Delta Gain unik
         # Syarat: word_count >= 7 dan kalimat diakhiri tanda baca (.!?) agar sub-judul pendek tidak diwarnai hijau
         ends_with_punct = sentence.endswith((".", "!", "?"))
         if word_count >= 7 and ends_with_punct:
-            sentence_stems_all = {stem_word(w) for w in words if len(w) > 2}
-            sentence_stems_list = [stem_word(w) for w in words if len(w) > 2]
+            sentence_clean = normalize_text_ascii(s_lower)
+            words_for_gain = re.findall(r"\b[\w\-]+\b", sentence_clean)
+            sentence_stems_all = {stem_word(w) for w in words_for_gain if len(w) > 2}
+            sentence_stems_list = [stem_word(w) for w in words_for_gain if len(w) > 2]
             for i in range(len(sentence_stems_list) - 1):
                 sentence_stems_all.add(f"{sentence_stems_list[i]} {sentence_stems_list[i+1]}")
-            has_gain_entity = any(gs in sentence_stems_all for gs in gain_stems)
+            for i in range(len(sentence_stems_list) - 2):
+                sentence_stems_all.add(f"{sentence_stems_list[i]} {sentence_stems_list[i+1]} {sentence_stems_list[i+2]}")
+
+            gain_surfaces = [
+                normalize_text_ascii(item.term_surface_form.lower())
+                for item in entity_gaps.gain
+                if item.term_surface_form
+            ]
+            has_gain_entity = any(gs in sentence_stems_all for gs in gain_stems) or any(
+                len(surf) > 3 and surf in sentence_clean for surf in gain_surfaces
+            )
             if has_gain_entity:
                 spans.append(
                     AnnotatedSpan(
@@ -288,7 +329,9 @@ def calculate_composite_cds(
     c_vsm = max(0.0, min(100.0, c_vsm_raw))
 
     # 2. Skor Cakupan & Kebaruan Entitas C_IG (30%)
-    coverage_ratio = shared_entities_count / max(1, serp_entities_count)
+    # Ambang jenuh cakupan pasar 80% (Sprint 4.3)
+    saturated_serp_target = max(1, int(serp_entities_count * 0.80))
+    coverage_ratio = min(1.0, shared_entities_count / saturated_serp_target)
     gain_ratio = min(1.0, gain_count / 5.0)
     c_ig_raw = 100.0 * (0.6 * coverage_ratio + 0.4 * gain_ratio)
     c_ig = max(0.0, min(100.0, c_ig_raw))

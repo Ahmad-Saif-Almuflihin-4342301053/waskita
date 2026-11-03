@@ -213,16 +213,16 @@ export const App: React.FC = () => {
     }
   }, [isAuthenticated]);
 
-  // Handle Paste with auto sanitization & keyword detection (Sprint 4.2 Query Lock)
+  // Handle Paste with auto sanitization & keyword detection (Sprint 4.2 & 4.3 Query Lock)
   const handlePasteSanitized = (cleanText: string, keywordCandidate: string) => {
     handleDraftInputChange(cleanText);
-    const isLocked = isQueryLocked || (activeSessionId !== 'session-new' && currentTurns.length > 0);
+    const isLocked = isQueryLocked;
     if (isLocked) {
       if (targetQuery) {
         showToast({
           type: 'info',
           title: 'Kueri Terkunci 🔒',
-          message: `Kueri target dikunci pada '${targetQuery}' untuk menjaga konsistensi benchmark audit.`,
+          message: `Kueri target dikunci pada '${targetQuery}' untuk menjaga konsistensi benchmark audit. Klik ikon gembok untuk membuka kunci.`,
         });
       }
       return;
@@ -235,6 +235,20 @@ export const App: React.FC = () => {
       setTimeout(() => setIsPlusGlowing(false), 3500);
       setTimeout(() => setDetectedKeywordHint(null), 6000);
     }
+  };
+
+  const handleToggleQueryLock = () => {
+    setIsQueryLocked((prev) => {
+      const nextState = !prev;
+      showToast({
+        type: 'info',
+        title: nextState ? 'Kueri Terkunci 🔒' : 'Kueri Terbuka 🔓',
+        message: nextState
+          ? `Kueri target terkunci pada '${targetQuery || 'kueri saat ini'}' untuk menjaga konsistensi audit.`
+          : 'Kueri target berhasil dibuka. Anda bebas menyunting atau menimpa kueri target.',
+      });
+      return nextState;
+    });
   };
 
   const handleSelectSampleDraft = (sampleKey: 'revisionNeeded' | 'approvedReady') => {
@@ -700,6 +714,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     }
 
     if (sessionId === 'session-1') {
+      setIsQueryLocked(true);
       setTargetQuery('resep kopi tubruk tradisional');
       setCurrentTurns([
         {
@@ -714,6 +729,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
         },
       ]);
     } else if (sessionId === 'session-2') {
+      setIsQueryLocked(true);
       setTargetQuery('restorasi vespa klasik px150');
       setCurrentTurns([
         {
@@ -954,8 +970,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                       activeTargetQuery={targetQuery}
                       targetQuery={targetQuery}
                       onTargetQueryChange={setTargetQuery}
-                      isQueryLocked={isQueryLocked || (activeSessionId !== 'session-new' && currentTurns.length > 0)}
-                      onToggleQueryLock={() => setIsQueryLocked(prev => !prev)}
+                      isQueryLocked={isQueryLocked}
+                      onToggleQueryLock={handleToggleQueryLock}
                       thresholds={thresholds}
                     />
                   </div>
@@ -994,8 +1010,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                 activeTargetQuery={targetQuery}
                 targetQuery={targetQuery}
                 onTargetQueryChange={setTargetQuery}
-                isQueryLocked={isQueryLocked || (activeSessionId !== 'session-new' && currentTurns.length > 0)}
-                onToggleQueryLock={() => setIsQueryLocked(prev => !prev)}
+                isQueryLocked={isQueryLocked}
+                onToggleQueryLock={handleToggleQueryLock}
                 thresholds={thresholds}
               />
             )}
