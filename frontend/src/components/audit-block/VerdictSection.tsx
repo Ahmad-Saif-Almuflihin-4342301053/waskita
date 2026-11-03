@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo, COLORS } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
-import { ConsensusInspectorModal } from '../ConsensusInspectorModal';
 
 export interface VerdictSectionProps {
   audit: AuditExecuteResponse;
@@ -9,7 +8,6 @@ export interface VerdictSectionProps {
 }
 
 export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop = false }) => {
-  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const isDemo = audit.verdict_status === 'Mode Demo' || audit.serp_source === 'offline_synthetic';
   const isOutOfDomain = audit.verdict_status.includes('Topik Tidak Relevan') || !!audit.metrics.is_out_of_domain;
   const isRedundantSentence = audit.verdict_status.includes('Redundansi Kalimat Tinggi');
@@ -350,13 +348,6 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
           />
         )}
       </div>
-      <ConsensusInspectorModal
-        isOpen={isInspectorOpen}
-        onClose={() => setIsInspectorOpen(false)}
-        consensusEntities={audit.consensus_entities || []}
-        targetQuery={audit.target_query}
-        totalCompetitors={audit.serp_competitors?.length || 10}
-      />
     </section>
   );
 };

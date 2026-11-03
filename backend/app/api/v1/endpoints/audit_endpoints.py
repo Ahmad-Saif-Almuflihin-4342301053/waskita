@@ -23,6 +23,7 @@ from app.schemas.audit import (
     AnnotatedSpan,
     AuditExecuteRequest,
     AuditExecuteResponse,
+    ConsensusEntityItem,
     EntityGapItem,
     EntityGapsGroup,
     MetricResultSchema,
@@ -35,7 +36,10 @@ from app.services.gatekeeper import (
     generate_annotated_spans,
     generate_overview_and_remediation,
 )
-from app.services.information_gain import calculate_information_gain
+from app.services.information_gain import (
+    calculate_information_gain,
+    find_snippet_and_domain,
+)
 from app.services.nlp_pipeline import (
     ALL_INDONESIAN_STOPWORDS,
     NON_TOPICAL_VERBS_AND_ADJECTIVES,
@@ -204,9 +208,6 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
     ])
 
     # Rekonstruksi consensus_entities saat memuat riwayat sesi (Sprint 4.4)
-    from app.schemas.audit import ConsensusEntityItem
-    from app.services.information_gain import find_snippet_and_domain
-
     history_consensus_items: List[ConsensusEntityItem] = []
     comp_docs_for_snippet = []
     if session.snapshot and session.snapshot.documents:
@@ -480,9 +481,6 @@ async def execute_audit(
         for s, surf, _ in comp_ents:
             if s not in stem_to_surface:
                 stem_to_surface[s] = surf
-
-    from app.schemas.audit import ConsensusEntityItem
-    from app.services.information_gain import find_snippet_and_domain
 
     consensus_entity_items: List[ConsensusEntityItem] = []
     top_consensus_stems_sorted = stem_freqs[:25] if stem_freqs else [(st, 1) for st in list(consensus_serp_stems)[:25]]

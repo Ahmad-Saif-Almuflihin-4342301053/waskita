@@ -9,24 +9,15 @@ export interface EntityGapsSectionProps {
 
 export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isDesktop = false }) => {
   const [selectedItem, setSelectedItem] = useState<EntityGapItem | null>(null);
-  const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [copiedTerm, setCopiedTerm] = useState<string | null>(null);
   const [isConsensusExpanded, setIsConsensusExpanded] = useState<boolean>(false);
   const [consensusFilter, setConsensusFilter] = useState<'all' | 'deficit' | 'present'>('all');
-  const [copiedConsensusTerm, setCopiedConsensusTerm] = useState<string | null>(null);
 
   const handleCopyTerm = (term: string) => {
     navigator.clipboard.writeText(term);
-    setCopiedItem(term);
+    setCopiedTerm(term);
     setTimeout(() => {
-      setCopiedItem((prev) => (prev === term ? null : prev));
-    }, 2000);
-  };
-
-  const handleCopyConsensusTerm = (term: string) => {
-    navigator.clipboard.writeText(term);
-    setCopiedConsensusTerm(term);
-    setTimeout(() => {
-      setCopiedConsensusTerm((prev) => (prev === term ? null : prev));
+      setCopiedTerm((prev) => (prev === term ? null : prev));
     }, 2000);
   };
 
@@ -302,8 +293,8 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                       alignItems: 'center',
                       gap: '4px',
                       background:
-                        copiedItem === selectedItem.term_surface_form ? '#059669' : COLORS.softPeriwinkle,
-                      color: copiedItem === selectedItem.term_surface_form ? '#FFFFFF' : COLORS.deepSlate,
+                        copiedTerm === selectedItem.term_surface_form ? '#059669' : COLORS.softPeriwinkle,
+                      color: copiedTerm === selectedItem.term_surface_form ? '#FFFFFF' : COLORS.deepSlate,
                       border: 'none',
                       borderRadius: '6px',
                       padding: '4px 8px',
@@ -315,9 +306,9 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                   >
                     <IconCopy
                       size={12}
-                      color={copiedItem === selectedItem.term_surface_form ? '#FFFFFF' : COLORS.deepSlate}
+                      color={copiedTerm === selectedItem.term_surface_form ? '#FFFFFF' : COLORS.deepSlate}
                     />
-                    <span>{copiedItem === selectedItem.term_surface_form ? 'Tersalin ✓' : 'Salin Kata'}</span>
+                    <span>{copiedTerm === selectedItem.term_surface_form ? 'Tersalin ✓' : 'Salin Kata'}</span>
                   </button>
                   <button
                     type="button"
@@ -649,7 +640,7 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                         </span>
                         <button
                           type="button"
-                          onClick={() => handleCopyConsensusTerm(ent.term_surface_form)}
+                          onClick={() => handleCopyTerm(ent.term_surface_form)}
                           style={{
                             display: 'inline-flex',
                             alignItems: 'center',
@@ -658,15 +649,15 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                             fontSize: '10.5px',
                             fontWeight: 600,
                             borderRadius: '6px',
-                            background: copiedConsensusTerm === ent.term_surface_form ? '#059669' : COLORS.softPeriwinkle,
-                            color: copiedConsensusTerm === ent.term_surface_form ? '#FFFFFF' : COLORS.deepSlate,
+                            background: copiedTerm === ent.term_surface_form ? '#059669' : COLORS.softPeriwinkle,
+                            color: copiedTerm === ent.term_surface_form ? '#FFFFFF' : COLORS.deepSlate,
                             border: 'none',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
                           title="Salin kata kunci ini"
                         >
-                          {copiedConsensusTerm === ent.term_surface_form ? (
+                          {copiedTerm === ent.term_surface_form ? (
                             <>
                               <IconCheck size={11} />
                               <span>Tersalin</span>
