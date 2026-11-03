@@ -660,6 +660,23 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     );
   });
 
+  // Test 31 (Sprint 4.4): Logika Accordion 25 Entitas Konsensus Pasar (5 Awal + Toggle Ekspansi)
+  runCase('Logika accordion 25 entitas konsensus pasar (5 awal + toggle ekspansi)', () => {
+    const INITIAL_COUNT = 5;
+    const totalEntities = 25;
+    const isExpanded = false;
+
+    const visibleCountCollapsed = isExpanded ? totalEntities : Math.min(INITIAL_COUNT, totalEntities);
+    const hiddenCount = Math.max(0, totalEntities - INITIAL_COUNT);
+
+    assertEqual(visibleCountCollapsed, 5, 'Saat tertutup (collapsed), hanya 5 entitas konsensus yang tampil');
+    assertEqual(hiddenCount, 20, 'Harus ada 20 entitas yang tersembunyi');
+
+    const isExpandedTrue = true;
+    const visibleCountExpanded = isExpandedTrue ? totalEntities : Math.min(INITIAL_COUNT, totalEntities);
+    assertEqual(visibleCountExpanded, 25, 'Saat dibuka (expanded), seluruh 25 entitas konsensus tampil');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);

@@ -149,28 +149,31 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                     <strong>Veto Redundansi Aktif:</strong> Naskah memiliki kemiripan kalimat langsung yang tinggi dengan artikel kompetitor (stabilo merah). Rombak kalimat merah sebagai syarat utama sebelum mengejar diferensiasi.
                   </span>
                 </div>
-                {(audit.consensus_entities?.length || 0) > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setIsInspectorOpen(true)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: COLORS.deepSlate,
-                      color: '#FFFFFF',
-                      border: 'none',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    🔍 Bedah 25 Entitas &amp; Klausul SERP
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('consensus-serp-section');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    background: COLORS.deepSlate,
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  🔍 Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓
+                </button>
               </div>
             ) : (
               (audit.metrics?.consensus_target_count || 0) > 0 && (
@@ -205,28 +208,31 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                       </span>
                     )}
                   </span>
-                  {(audit.consensus_entities?.length || 0) > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsInspectorOpen(true)}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        padding: '4px 10px',
-                        borderRadius: '6px',
-                        background: COLORS.deepSlate,
-                        color: '#FFFFFF',
-                        border: 'none',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      🔍 Bedah 25 Entitas &amp; Klausul SERP
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById('consensus-serp-section');
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: COLORS.deepSlate,
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    🔍 Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓
+                  </button>
                 </div>
               )
             )}

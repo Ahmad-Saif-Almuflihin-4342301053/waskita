@@ -203,6 +203,38 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         f"Skor diferensiasi semantik CDS tercatat {metrics_schema.content_differentiation_score}%.",
     ])
 
+    # Rekonstruksi consensus_entities saat memuat riwayat sesi (Sprint 4.4)
+    from app.schemas.audit import ConsensusEntityItem
+    from app.services.information_gain import find_snippet_and_domain
+
+    history_consensus_items: List[ConsensusEntityItem] = []
+    comp_docs_for_snippet = []
+    if session.snapshot and session.snapshot.documents:
+        comp_docs_for_snippet = [
+            {
+                "clean_text": doc.clean_text or doc.snippet_text or "",
+                "domain_name": doc.domain_name or "",
+            }
+            for doc in session.snapshot.documents
+        ]
+
+    for d in deficit_items:
+        snip = d.competitor_snippet
+        dom = None
+        if not snip and comp_docs_for_snippet:
+            snip, dom = find_snippet_and_domain(d.term_string, d.term_surface_form, comp_docs_for_snippet)
+        history_consensus_items.append(
+            ConsensusEntityItem(
+                term_string=d.term_string,
+                term_surface_form=d.term_surface_form,
+                doc_frequency=d.competitor_consensus_count or 2,
+                total_competitors=len(serp_items) or 10,
+                is_present_in_draft=False,
+                competitor_snippet=snip,
+                competitor_domain=dom,
+            )
+        )
+
     return AuditExecuteResponse(
         session_id=session.session_id,
         parent_session_id=session.parent_session_id,
@@ -225,7 +257,7 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         serp_competitors=serp_items,
         serp_source=serp_source,
         serp_audit_summary=None,
-        consensus_entities=[],
+        consensus_entities=history_consensus_items,
     )
 
 
