@@ -12,6 +12,8 @@ export interface EntityGapItem {
   term_surface_form: string;
   tfidf_weight: number;
   competitor_consensus_count: number;
+  is_consensus_priority?: boolean;
+  competitor_snippet?: string;
 }
 
 export interface EntityGaps {
@@ -32,6 +34,10 @@ export interface AuditMetrics {
   is_out_of_domain?: boolean;
   topic_shift_detected?: boolean;
   is_topic_shift?: boolean;
+  sub_scores?: Record<string, number>;
+  consensus_matched_count?: number;
+  consensus_target_count?: number;
+  consensus_total_count?: number;
 }
 
 export interface QualityThresholds {
@@ -39,6 +45,9 @@ export interface QualityThresholds {
   min_mattr: number;
   max_hko_percentage: number;
   min_cds_score: number;
+  word_budget_min?: number;
+  word_budget_max?: number;
+  word_budget_mode?: 'adaptive' | 'compact' | 'standard' | 'pillar' | 'custom';
 }
 
 export interface AuditExecuteRequest {
@@ -48,6 +57,8 @@ export interface AuditExecuteRequest {
   parent_session_id?: string | null;
   use_cached_serp?: boolean;
   thresholds?: QualityThresholds;
+  word_budget_min?: number;
+  word_budget_max?: number;
 }
 
 export interface SerpCompetitorItem {

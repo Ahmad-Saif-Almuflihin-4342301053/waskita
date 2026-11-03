@@ -6,6 +6,7 @@ import {
   IconSearch,
   IconAlertTriangle,
   IconAlertCircle,
+  IconFileText,
 } from './shared-ui';
 import { QualityThresholds } from '../types/waskita';
 
@@ -26,7 +27,26 @@ export const DEFAULT_THRESHOLDS: QualityThresholds = {
   min_mattr: 0.55,
   max_hko_percentage: 40.0,
   min_cds_score: 75.0,
+  word_budget_mode: 'adaptive',
+  word_budget_min: undefined,
+  word_budget_max: undefined,
 };
+
+export interface WordBudgetPreset {
+  id: 'adaptive' | 'compact' | 'standard' | 'pillar' | 'custom';
+  label: string;
+  min?: number;
+  max?: number;
+  desc: string;
+}
+
+export const WORD_BUDGET_PRESETS: WordBudgetPreset[] = [
+  { id: 'adaptive', label: '⚡ Adaptif SERP', desc: 'Disesuaikan dinamis dengan artikel acuan SERP' },
+  { id: 'compact', label: '📝 Ringkas (500–800)', min: 500, max: 800, desc: 'Berita ringkas, rangkuman, atau update kilat' },
+  { id: 'standard', label: '📄 Standar SEO (800–1.200)', min: 800, max: 1200, desc: 'Format ideal untuk SEO blog informatif' },
+  { id: 'pillar', label: '📚 Pillar Riset (1.200–1.800)', min: 1200, max: 1800, desc: 'Pillar post komprehensif atau riset mendalam' },
+  { id: 'custom', label: '⚙️ Kustom', desc: 'Atur batas kata minimum dan maksimum sendiri' },
+];
 
 export const PRESET_OPTIONS = [
   {
@@ -245,9 +265,36 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
     }
   };
 
+  const handleSelectBudgetPreset = (preset: WordBudgetPreset) => {
+    if (onThresholdsChange) {
+      onThresholdsChange({
+        ...thresholds,
+        word_budget_mode: preset.id,
+        word_budget_min: preset.min,
+        word_budget_max: preset.max,
+      });
+    }
+  };
+
+  const handleBudgetCustomChange = (minVal?: number, maxVal?: number) => {
+    if (onThresholdsChange) {
+      onThresholdsChange({
+        ...thresholds,
+        word_budget_mode: 'custom',
+        word_budget_min: minVal,
+        word_budget_max: maxVal,
+      });
+    }
+  };
+
   const applyPreset = (presetThresholds: QualityThresholds) => {
     if (onThresholdsChange) {
-      onThresholdsChange(presetThresholds);
+      onThresholdsChange({
+        ...presetThresholds,
+        word_budget_mode: thresholds.word_budget_mode,
+        word_budget_min: thresholds.word_budget_min,
+        word_budget_max: thresholds.word_budget_max,
+      });
     }
   };
 
@@ -271,6 +318,11 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
     thresholds.min_cds_score > 90 ||
     thresholds.min_mattr > 0.78 ||
     thresholds.max_hko_percentage < 20;
+
+  const currentBudgetMode: 'adaptive' | 'compact' | 'standard' | 'pillar' | 'custom' =
+    thresholds.word_budget_mode || (
+      thresholds.word_budget_min || thresholds.word_budget_max ? 'custom' : 'adaptive'
+    );
 
   if (!isOpen) return null;
 
@@ -585,7 +637,151 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             </div>
           </div>
 
-          {/* 3. Ambang Batas (4 Range Sliders) & 3 Segmented Preset Pills */}
+          {/* 3. Target Panjang Naskah (Word Budget - Sprint 4.4) */}
+          <div
+            style={{
+              background: COLORS.warmSand,
+              borderRadius: '16px',
+              padding: '14px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <IconFileText size={16} color={COLORS.deepSlate} />
+                <div style={{ fontSize: '13px', fontWeight: 700, color: COLORS.deepSlate }}>
+                  Target Panjang Naskah (Word Budget)
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--waskita-text-muted, #64748B)',
+                }}
+              >
+                {currentBudgetMode === 'adaptive'
+                  ? '⚡ Adaptif SERP'
+                  : `${thresholds.word_budget_min ?? 300}–${thresholds.word_budget_max ?? 1200} kata`}
+              </span>
+            </div>
+
+            {/* Segmented Preset Pills */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isDesktop ? 'repeat(5, 1fr)' : 'repeat(2, 1fr)',
+                gap: '6px',
+              }}
+            >
+              {WORD_BUDGET_PRESETS.map((preset) => {
+                const active = currentBudgetMode === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleSelectBudgetPreset(preset)}
+                    style={{
+                      borderRadius: '10px',
+                      padding: '7px 6px',
+                      fontSize: '11px',
+                      fontWeight: active ? 700 : 500,
+                      background: active
+                        ? 'var(--waskita-accent-primary, #C0CEE8)'
+                        : 'rgba(30, 41, 59, 0.06)',
+                      border: active
+                        ? '1px solid rgba(30, 41, 59, 0.2)'
+                        : '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+                      color: COLORS.deepSlate,
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                    title={preset.desc}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Input Numerik Min & Max kata */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'var(--waskita-surface-white, #FFFFFF)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+                borderRadius: '10px',
+                padding: '8px 12px',
+                fontSize: '12px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                <span style={{ color: 'var(--waskita-text-muted, #64748B)', fontWeight: 600 }}>Min:</span>
+                <input
+                  type="number"
+                  min={300}
+                  max={5000}
+                  step={50}
+                  value={thresholds.word_budget_min ?? ''}
+                  placeholder={currentBudgetMode === 'adaptive' ? 'Auto (SERP)' : '300'}
+                  disabled={currentBudgetMode === 'adaptive'}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                    handleBudgetCustomChange(val, thresholds.word_budget_max);
+                  }}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.deepSlate,
+                  }}
+                />
+                <span style={{ color: 'var(--waskita-text-muted, #94A3B8)', fontSize: '11px' }}>kata</span>
+              </div>
+
+              <div style={{ width: '1px', height: '18px', background: 'var(--waskita-border, rgba(30, 41, 59, 0.15))' }} />
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1 }}>
+                <span style={{ color: 'var(--waskita-text-muted, #64748B)', fontWeight: 600 }}>Max:</span>
+                <input
+                  type="number"
+                  min={400}
+                  max={6000}
+                  step={50}
+                  value={thresholds.word_budget_max ?? ''}
+                  placeholder={currentBudgetMode === 'adaptive' ? 'Auto (SERP)' : '1200'}
+                  disabled={currentBudgetMode === 'adaptive'}
+                  onChange={(e) => {
+                    const val = e.target.value ? parseInt(e.target.value, 10) : undefined;
+                    handleBudgetCustomChange(thresholds.word_budget_min, val);
+                  }}
+                  style={{
+                    width: '100%',
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: COLORS.deepSlate,
+                  }}
+                />
+                <span style={{ color: 'var(--waskita-text-muted, #94A3B8)', fontSize: '11px' }}>kata</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Ambang Batas (4 Range Sliders) & 3 Segmented Preset Pills */}
           <div
             style={{
               background: COLORS.warmSand,

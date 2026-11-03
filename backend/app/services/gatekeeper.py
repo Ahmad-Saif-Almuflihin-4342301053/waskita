@@ -419,6 +419,8 @@ def generate_overview_and_remediation(
     competitor_count: int = 5,
     serp_competitors: Optional[List[Dict[str, any]]] = None,
     draft_word_count: int = 0,
+    word_budget_min: Optional[int] = None,
+    word_budget_max: Optional[int] = None,
 ) -> Dict[str, any]:
     """
     Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt (Sprint 4.2).
@@ -464,8 +466,11 @@ def generate_overview_and_remediation(
                 other_domains.append(d)
     other_domains_str = ", ".join(other_domains[:3]) if other_domains else "kompetitor teratas lainnya"
 
-    # 3. Hitung Plafon & Batasan Kata Ketat (Word Budget Enforcement)
-    if draft_word_count >= 300:
+    # 3. Hitung Plafon & Batasan Kata Ketat (Word Budget Enforcement - Sprint 4.4 Dynamic Budget)
+    if word_budget_min and word_budget_max and word_budget_max > word_budget_min:
+        min_target_words = word_budget_min
+        max_target_words = word_budget_max
+    elif draft_word_count >= 300:
         min_target_words = max(800, int(draft_word_count * 0.85))
         max_target_words = max(min_target_words + 150, min(1400, int(draft_word_count * 1.05)))
     else:

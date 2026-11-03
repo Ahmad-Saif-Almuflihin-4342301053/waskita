@@ -276,6 +276,40 @@ FORBIDDEN_GAIN_CONNECTOR_WORDS: Set[str] = {
     "di", "ke", "dari", "dan", "atau", "yaitu", "tanpa", "karya", "untuk", "dengan",
 }
 
+# Pola akhiran klitik naratif dan kata sambung ekspositori (Sprint 4.4)
+NARRATIVE_CLITIC_SUFFIXES = ("nya", "kah", "lah", "pun")
+NARRATIVE_PASSIVE_VERB_PREFIXES = ("di", "ter")
+
+
+def is_narrative_noise(word: str) -> bool:
+    """
+    Morphological Narrative Filter (Sprint 4.4):
+    Mendeteksi kata transisi naratif, unigram klitik '-nya', dan verba pasif non-substantif
+    agar tidak mencemari daftar konsensus SERP dan celah defisit.
+    """
+    if not word:
+        return True
+    w = word.lower().strip()
+    if len(w) <= 3:
+        return True
+    # Cek kata transisi berakhiran -nya (misal: kecintaannya, menariknya, umumnya, tampaknya, rupanya)
+    if w.endswith("nya") and len(w) >= 6:
+        root = w[:-3]
+        if root in ALL_INDONESIAN_STOPWORDS or root in NON_TOPICAL_VERBS_AND_ADJECTIVES or len(root) <= 3:
+            return True
+        if w in {
+            "kecintaannya", "menariknya", "sebenarnya", "khususnya", "akhirnya",
+            "awalnya", "umumnya", "tampaknya", "biasanya", "rupanya", "pastinya",
+        }:
+            return True
+    # Verba pasif non-substantif
+    if w in {
+        "tersebar", "dikritik", "dibangun", "dibuat", "diterapkan", "dikenal",
+        "disebut", "dilihat", "terdapat", "terletak",
+    }:
+        return True
+    return False
+
 
 @functools.lru_cache(maxsize=100_000)
 def stem_word(word: str) -> str:
@@ -389,9 +423,19 @@ def extract_candidate_entities(text: str, top_n: int = 40) -> List[Tuple[str, st
     # 1. Unigram
     unigram_counts: Dict[str, Dict[str, Any]] = {}
     for tok in tokens:
-        if len(tok) > 2 and tok not in ALL_INDONESIAN_STOPWORDS and not tok.isdigit():
+        if (
+            len(tok) > 2
+            and tok not in ALL_INDONESIAN_STOPWORDS
+            and not tok.isdigit()
+            and not is_narrative_noise(tok)
+        ):
             stem = stem_word(tok)
-            if stem and len(stem) > 2 and stem not in ALL_INDONESIAN_STOPWORDS:
+            if (
+                stem
+                and len(stem) > 2
+                and stem not in ALL_INDONESIAN_STOPWORDS
+                and not is_narrative_noise(stem)
+            ):
                 if stem not in unigram_counts:
                     unigram_counts[stem] = {"surface": tok, "count": 0}
                 unigram_counts[stem]["count"] += 1
@@ -407,6 +451,8 @@ def extract_candidate_entities(text: str, top_n: int = 40) -> List[Tuple[str, st
             and t2 not in ALL_INDONESIAN_STOPWORDS
             and not t1.isdigit()
             and not t2.isdigit()
+            and not is_narrative_noise(t1)
+            and not is_narrative_noise(t2)
         ):
             stem1 = stem_word(t1)
             stem2 = stem_word(t2)
@@ -414,9 +460,11 @@ def extract_candidate_entities(text: str, top_n: int = 40) -> List[Tuple[str, st
                 stem1
                 and len(stem1) > 2
                 and stem1 not in ALL_INDONESIAN_STOPWORDS
+                and not is_narrative_noise(stem1)
                 and stem2
                 and len(stem2) > 2
                 and stem2 not in ALL_INDONESIAN_STOPWORDS
+                and not is_narrative_noise(stem2)
                 and stem1 != stem2
             ):
                 bigram_stem = f"{stem1} {stem2}"
@@ -543,6 +591,7 @@ def extract_candidate_gain_entities(text: str) -> List[Tuple[str, str, int]]:
                             low_w in ALL_INDONESIAN_STOPWORDS
                             or low_w in FORBIDDEN_GAIN_CONNECTOR_WORDS
                             or low_w in NON_TOPICAL_VERBS_AND_ADJECTIVES
+                            or is_narrative_noise(low_w)
                         ):
                             continue
                         st = stem_word(low_w)
@@ -552,6 +601,7 @@ def extract_candidate_gain_entities(text: str) -> List[Tuple[str, str, int]]:
                             and st not in ALL_INDONESIAN_STOPWORDS
                             and st not in FORBIDDEN_GAIN_CONNECTOR_WORDS
                             and st not in NON_TOPICAL_VERBS_AND_ADJECTIVES
+                            and not is_narrative_noise(st)
                         ):
                             if st not in candidates_map:
                                 candidates_map[st] = (w, 0)
