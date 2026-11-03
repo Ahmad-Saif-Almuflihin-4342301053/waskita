@@ -339,9 +339,22 @@ const INDONESIAN_STOPWORDS = new Set([
 export function extractSmartKeyword(text: string): string {
   if (!text || !text.trim()) return '';
 
-  // 1. Bersihkan token media [gambar N], [video N], dsb.
+  // 1. Bersihkan token media [gambar N], [video N], dsb. serta baris metadata footer/author/reviewer
   const clean = text
     .replace(/\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]/gi, ' ')
+    .split('\n')
+    .filter((line) => {
+      const l = line.trim().toLowerCase();
+      if (!l) return false;
+      if (/^(?:ditinjau oleh|penulis|ditulis oleh|editor|author|reviewed by|sumber|referensi|terakhir diperbarui|tag|kategori|baca juga|artikel terkait)\s*[:\-]/i.test(l)) {
+        return false;
+      }
+      if (/^(?:dr\.|drg\.|prof\.|ners\.)\s+[a-z]/i.test(l)) {
+        return false;
+      }
+      return true;
+    })
+    .join('\n')
     .trim();
 
   const lines = clean.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
@@ -349,16 +362,37 @@ export function extractSmartKeyword(text: string): string {
 
   // Deteksi judul: lines[0] hanya dianggap judul jika <= 140 karakter dan <= 20 kata (Sprint 4.4 Title Boundary)
   let titleText = '';
+  let titleSubstantivePhrase = '';
   const firstLineClean = lines[0].replace(/^#+\s*/, '').trim();
   const firstLineWords = firstLineClean.split(/\s+/).filter(Boolean);
   if (firstLineClean.length <= 140 && firstLineWords.length <= 20) {
-    // Jika judul memiliki pemisah subjudul seperti ':' atau ' - ', prioritaskan klausa pokok sebelum pemisah
-    const colonSplit = firstLineClean.split(/\s*[:\-–—]\s*/);
-    const mainTitleClause =
-      colonSplit.length > 1 && colonSplit[0].split(/\s+/).length >= 2
-        ? colonSplit[0]
-        : firstLineClean;
-    titleText = mainTitleClause.toLowerCase();
+    // Jika judul memiliki pemisah subjudul seperti ':', ' - ', atau koma pemisah klausa
+    const clauses = firstLineClean.split(/\s*[:\-–—,]|\s+-\s+/);
+    for (const clause of clauses) {
+      const cWords = clause
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, ' ')
+        .split(/\s+/)
+        .filter((w) => w.length >= 3 && !INDONESIAN_STOPWORDS.has(w));
+      if (cWords.length >= 2) {
+        titleText = clause.toLowerCase();
+        // Gunakan frasa alami dari klausa jika ringkas (2-4 kata), contoh 'sakit pinggang saat hamil'
+        const rawClauseWords = clause
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, ' ')
+          .split(/\s+/)
+          .filter(Boolean);
+        if (rawClauseWords.length >= 2 && rawClauseWords.length <= 5) {
+          titleSubstantivePhrase = rawClauseWords.join(' ');
+        } else {
+          titleSubstantivePhrase = cWords.slice(0, 4).join(' ');
+        }
+        break;
+      }
+    }
+    if (!titleText) {
+      titleText = firstLineClean.toLowerCase();
+    }
   }
 
   const bodyLines = titleText && lines.length > 1 ? lines.slice(1) : lines;
@@ -431,11 +465,13 @@ export function extractSmartKeyword(text: string): string {
   const sortedBigrams = Object.entries(bigramCounts).sort((a, b) => b[1] - a[1]);
   const sortedUnigrams = Object.entries(unigramCounts).sort((a, b) => b[1] - a[1]);
 
-  // Pilih kata kunci utama (Title-First & Prioritas Substantif - Sprint 3.5 Final)
+  // Pilih kata kunci utama (Title-First & Prioritas Substantif - Sprint 3.5 Final & Sprint 4.4 Title-Clause)
   let primary = '';
 
   // 1. Jika baris pertama valid sebagai judul, selalu prioritaskan entitas substantif dari judul
-  if (titleText) {
+  if (titleSubstantivePhrase) {
+    primary = titleSubstantivePhrase;
+  } else if (titleText) {
     const titleEntity = sortedEntities.find(([ent]) => titleText.includes(ent));
     if (titleEntity && titleEntity[1] >= 2.0) {
       primary = titleEntity[0];
@@ -470,7 +506,14 @@ export function extractSmartKeyword(text: string): string {
 
   if (!primary) return clean.slice(0, 30).trim().toLowerCase();
 
-  // 4. Rekomendasi kata kunci pelengkap (multi-keyword dengan koma untuk tag chip UI)
+  // Jika primary berasal dari judul substantif atau sudah memiliki >= 2 kata,
+  // JANGAN menambahkan kata pelengkap dari badan naskah agar terhindar dari polusi nama dokter/editor/metadata!
+  const primaryWordCount = primary.split(/\s+/).length;
+  if (titleSubstantivePhrase || primaryWordCount >= 2) {
+    return primary;
+  }
+
+  // 4. Rekomendasi kata kunci pelengkap (multi-keyword dengan koma untuk tag chip UI hanya jika primary 1 kata)
   const primaryWords = new Set(primary.split(/\s+/));
   let secondary = '';
 
@@ -510,7 +553,6 @@ export function extractSmartKeyword(text: string): string {
 
   // Gabungkan dengan koma jika panjangnya proporsional (<= 45 karakter)
   // dan jika primary belum cukup spesifik (< 3 kata)
-  const primaryWordCount = primary.split(/\s+/).length;
   if (secondary && primaryWordCount < 3 && (primary + ', ' + secondary).length <= 45) {
     return `${primary}, ${secondary}`;
   }
