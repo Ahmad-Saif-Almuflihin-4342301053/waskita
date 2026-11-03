@@ -1,6 +1,7 @@
-import React from 'react';
-import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo } from '../shared-ui';
+import React, { useState } from 'react';
+import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo, COLORS } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
+import { ConsensusInspectorModal } from '../ConsensusInspectorModal';
 
 export interface VerdictSectionProps {
   audit: AuditExecuteResponse;
@@ -8,6 +9,7 @@ export interface VerdictSectionProps {
 }
 
 export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop = false }) => {
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const isDemo = audit.verdict_status === 'Mode Demo' || audit.serp_source === 'offline_synthetic';
   const isOutOfDomain = audit.verdict_status.includes('Topik Tidak Relevan') || !!audit.metrics.is_out_of_domain;
   const isRedundantSentence = audit.verdict_status.includes('Redundansi Kalimat Tinggi');
@@ -122,31 +124,113 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             : `Naskah memperoleh skor ${cdsScore}% (di bawah batas ${thresholdCds}%). Diperlukan penguatan informasi unik dan reduksi kalimat generik sebelum diterbitkan.`}
         </p>
 
-        {/* Bar Telemetri Konsensus Pasar (Road to 100% - Sprint 4.4) */}
-        {!isDemo && audit.metrics?.consensus_target_count && audit.metrics.consensus_target_count > 0 && cdsScore < 100 && (
-          <div
-            style={{
-              marginTop: '12px',
-              padding: '8px 12px',
-              borderRadius: '10px',
-              background: 'rgba(5, 150, 105, 0.08)',
-              border: '1px solid rgba(5, 150, 105, 0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              fontSize: '12px',
-            }}
-          >
-            <span>
-              🎯 <strong>Road to 100%:</strong> Cakupan Konsensus Pasar{' '}
-              <strong>{audit.metrics.consensus_matched_count ?? 0} / {audit.metrics.consensus_target_count}</strong> entitas.
-              {(audit.metrics.consensus_matched_count ?? 0) < audit.metrics.consensus_target_count && (
-                <span style={{ color: '#065F46', marginLeft: '4px' }}>
-                  (Cukup tambahkan {audit.metrics.consensus_target_count - (audit.metrics.consensus_matched_count ?? 0)} kata kunci prioritas untuk meraih 100%)
-                </span>
-              )}
-            </span>
-          </div>
+        {/* Bar Telemetri Konsensus Pasar & Veto Plagiasi (Sprint 4.4 White-Box) */}
+        {!isDemo && (
+          <>
+            {isRedundantSentence ? (
+              <div
+                style={{
+                  marginTop: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(220, 38, 38, 0.08)',
+                  border: '1px solid rgba(220, 38, 38, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  fontSize: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '240px' }}>
+                  <IconAlertCircle size={16} color="#DC2626" />
+                  <span style={{ color: '#991B1B' }}>
+                    <strong>Veto Redundansi Aktif:</strong> Naskah memiliki kemiripan kalimat langsung yang tinggi dengan artikel kompetitor (stabilo merah). Rombak kalimat merah sebagai syarat utama sebelum mengejar diferensiasi.
+                  </span>
+                </div>
+                {(audit.consensus_entities?.length || 0) > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsInspectorOpen(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      background: COLORS.deepSlate,
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    🔍 Bedah 25 Entitas &amp; Klausul SERP
+                  </button>
+                )}
+              </div>
+            ) : (
+              (audit.metrics?.consensus_target_count || 0) > 0 && (
+                <div
+                  style={{
+                    marginTop: '12px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    background: 'rgba(5, 150, 105, 0.08)',
+                    border: '1px solid rgba(5, 150, 105, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    fontSize: '12px',
+                  }}
+                >
+                  <span style={{ flex: 1, minWidth: '240px' }}>
+                    {(audit.metrics.consensus_matched_count ?? 0) >= (audit.metrics.consensus_target_count ?? 20) ? (
+                      <span style={{ color: '#065F46' }}>
+                        ✓ <strong>Konsensus Pasar Penuh:</strong> Naskah Anda mencakup{' '}
+                        <strong>{audit.metrics.consensus_matched_count} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target 80% / {audit.metrics.consensus_target_count} entitas terpenuhi 100%).
+                      </span>
+                    ) : (
+                      <span>
+                        🎯 <strong>Road to 100% Konsensus:</strong> Mencakup{' '}
+                        <strong>{audit.metrics.consensus_matched_count ?? 0} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target saturasi: {audit.metrics.consensus_target_count} entitas).
+                        <span style={{ color: '#065F46', marginLeft: '4px' }}>
+                          (Cukup tambahkan {(audit.metrics.consensus_target_count ?? 20) - (audit.metrics.consensus_matched_count ?? 0)} kata kunci prioritas untuk meraih skor Information Gain maksimal)
+                        </span>
+                      </span>
+                    )}
+                  </span>
+                  {(audit.consensus_entities?.length || 0) > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsInspectorOpen(true)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        background: COLORS.deepSlate,
+                        color: '#FFFFFF',
+                        border: 'none',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      🔍 Bedah 25 Entitas &amp; Klausul SERP
+                    </button>
+                  )}
+                </div>
+              )
+            )}
+          </>
         )}
 
         {/* Pil Sub-Skor White-Box (Sprint 4.4) */}
@@ -260,6 +344,13 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
           />
         )}
       </div>
+      <ConsensusInspectorModal
+        isOpen={isInspectorOpen}
+        onClose={() => setIsInspectorOpen(false)}
+        consensusEntities={audit.consensus_entities || []}
+        targetQuery={audit.target_query}
+        totalCompetitors={audit.serp_competitors?.length || 10}
+      />
     </section>
   );
 };

@@ -616,6 +616,50 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertTrue(res.cleanText.includes('[gambar 1: Ilustrasi'), 'Gambar konten harus tetap diubah jadi slot gambar');
   });
 
+  // Test 29 (Sprint 4.4): Format Telemetri Konsensus Pasar Mencegah Pecahan Terbalik (Anti-25/20)
+  runCase('Format telemetri konsensus pasar mencegah pecahan janggal (Anti-25/20)', () => {
+    const formatConsensusProgress = (matched: number, target: number, total: number) => {
+      const isSaturated = matched >= target;
+      if (isSaturated) {
+        return `${matched} dari ${total} entitas (Target 80% / ${target} entitas terpenuhi 100%)`;
+      }
+      return `${matched} dari ${total} entitas (Target saturasi: ${target} entitas)`;
+    };
+
+    const textSaturated = formatConsensusProgress(25, 20, 25);
+    assertTrue(!textSaturated.includes('25 / 20'), 'Tidak boleh menghasilkan teks pecahan terbalik 25 / 20');
+    assertTrue(textSaturated.includes('25 dari 25 entitas'), 'Harus menyebutkan 25 dari total 25 entitas');
+    assertTrue(textSaturated.includes('Target 80% / 20 entitas terpenuhi'), 'Harus transparan menyatakan target 20 terpenuhi');
+
+    const textPartial = formatConsensusProgress(14, 20, 25);
+    assertTrue(textPartial.includes('14 dari 25 entitas'), 'Harus menyebutkan 14 dari 25');
+  });
+
+  // Test 30 (Sprint 4.4): Veto Redundansi Menyembunyikan Road to 100% pada Draf Jiplakan
+  runCase('Veto redundansi kalimat memprioritaskan peringatan rombak kalimat daripada Road to 100%', () => {
+    const getVerdictBarType = (isRedundantSentence: boolean, matched: number, target: number) => {
+      if (isRedundantSentence) return 'redundancy_veto_alert';
+      if (matched >= target) return 'consensus_saturated';
+      return 'road_to_100';
+    };
+
+    assertEqual(
+      getVerdictBarType(true, 25, 20),
+      'redundancy_veto_alert',
+      'Draf dengan stabilo merah tinggi harus menampilkan banner veto plagiasi, bukan Road to 100%'
+    );
+    assertEqual(
+      getVerdictBarType(false, 25, 20),
+      'consensus_saturated',
+      'Draf bersih dengan 25 entitas harus menampilkan konsensus jenuh'
+    );
+    assertEqual(
+      getVerdictBarType(false, 15, 20),
+      'road_to_100',
+      'Draf bersih dengan 15 entitas harus menampilkan Road to 100%'
+    );
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);

@@ -225,6 +225,7 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         serp_competitors=serp_items,
         serp_source=serp_source,
         serp_audit_summary=None,
+        consensus_entities=[],
     )
 
 
@@ -440,6 +441,34 @@ async def execute_audit(
         consensus_serp_stems = {st for st, _ in stem_freqs[:25]}
     if not consensus_serp_stems:
         consensus_serp_stems = serp_candidate_stems
+
+    # Ekstraksi Rincian White-Box 25 Entitas Konsensus Pasar SERP (Sprint 4.4)
+    stem_to_surface: Dict[str, str] = {}
+    for comp_ents in competitor_entities_list:
+        for s, surf, _ in comp_ents:
+            if s not in stem_to_surface:
+                stem_to_surface[s] = surf
+
+    from app.schemas.audit import ConsensusEntityItem
+    from app.services.information_gain import find_snippet_and_domain
+
+    consensus_entity_items: List[ConsensusEntityItem] = []
+    top_consensus_stems_sorted = stem_freqs[:25] if stem_freqs else [(st, 1) for st in list(consensus_serp_stems)[:25]]
+    for st, doc_freq in top_consensus_stems_sorted:
+        surf = stem_to_surface.get(st, st.title())
+        is_in_draft = (st in full_draft_stems) or any(st == ds or st in ds.split() for ds in full_draft_stems)
+        snip, dom = find_snippet_and_domain(st, surf, competitor_docs)
+        consensus_entity_items.append(
+            ConsensusEntityItem(
+                term_string=st,
+                term_surface_form=surf.title(),
+                doc_frequency=doc_freq,
+                total_competitors=len(competitor_docs),
+                is_present_in_draft=is_in_draft,
+                competitor_snippet=snip,
+                competitor_domain=dom,
+            )
+        )
 
     entity_gaps = calculate_information_gain(
         draft_entities=draft_entities,
@@ -683,4 +712,5 @@ async def execute_audit(
         serp_competitors=serp_competitor_items,
         serp_source=serp_source,
         serp_audit_summary=SerpAuditSummary(**serp_audit_summary_dict),
+        consensus_entities=consensus_entity_items,
     )

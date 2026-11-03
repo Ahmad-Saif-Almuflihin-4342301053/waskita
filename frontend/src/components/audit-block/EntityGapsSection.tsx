@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { COLORS, IconCopy, IconX } from '../shared-ui';
 import { AuditExecuteResponse, EntityGapItem } from '../../types/waskita';
+import { ConsensusInspectorModal } from '../ConsensusInspectorModal';
 
 export interface EntityGapsSectionProps {
   audit: AuditExecuteResponse;
@@ -10,6 +11,7 @@ export interface EntityGapsSectionProps {
 export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isDesktop = false }) => {
   const [selectedItem, setSelectedItem] = useState<EntityGapItem | null>(null);
   const [copiedItem, setCopiedItem] = useState<string | null>(null);
+  const [isConsensusModalOpen, setIsConsensusModalOpen] = useState(false);
 
   const handleCopyTerm = (term: string) => {
     navigator.clipboard.writeText(term);
@@ -25,16 +27,49 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
 
   return (
     <section style={{ marginBottom: '20px' }}>
-      <h3
+      <div
         style={{
-          fontSize: '15px',
-          fontWeight: 700,
-          margin: '0 0 12px 0',
-          color: COLORS.deepSlate,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '12px',
+          flexWrap: 'wrap',
+          gap: '8px',
         }}
       >
-        Matriks Celah Informasi (Information Gain)
-      </h3>
+        <h3
+          style={{
+            fontSize: '15px',
+            fontWeight: 700,
+            margin: 0,
+            color: COLORS.deepSlate,
+          }}
+        >
+          Matriks Celah Informasi (Information Gain)
+        </h3>
+        {(audit.consensus_entities?.length || 0) > 0 && (
+          <button
+            type="button"
+            onClick={() => setIsConsensusModalOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '8px',
+              background: 'rgba(30, 41, 59, 0.06)',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
+              color: COLORS.deepSlate,
+              fontSize: '11.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>🔍 Bedah 25 Entitas Konsensus SERP &amp; Klausul</span>
+          </button>
+        )}
+      </div>
 
       <div
         style={{
@@ -342,6 +377,14 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
           )}
         </div>
       </div>
+
+      <ConsensusInspectorModal
+        isOpen={isConsensusModalOpen}
+        onClose={() => setIsConsensusModalOpen(false)}
+        consensusEntities={audit.consensus_entities || []}
+        targetQuery={audit.target_query}
+        totalCompetitors={audit.serp_competitors?.length || 10}
+      />
     </section>
   );
 };

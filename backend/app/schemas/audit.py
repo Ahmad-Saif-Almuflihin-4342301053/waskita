@@ -97,6 +97,16 @@ class EntityGapItem(BaseModel):
     competitor_snippet: Optional[str] = None
 
 
+class ConsensusEntityItem(BaseModel):
+    term_string: str
+    term_surface_form: str
+    doc_frequency: int
+    total_competitors: int
+    is_present_in_draft: bool
+    competitor_snippet: Optional[str] = None
+    competitor_domain: Optional[str] = None
+
+
 class EntityGapsGroup(BaseModel):
     deficit: List[EntityGapItem] = Field(default_factory=list)
     gain: List[EntityGapItem] = Field(default_factory=list)
@@ -157,6 +167,7 @@ class AuditExecuteResponse(BaseModel):
     serp_competitors: List[SerpCompetitorItem]
     serp_source: Optional[Literal["live", "offline_curated", "offline_synthetic"]] = "live"
     serp_audit_summary: Optional[SerpAuditSummary] = None
+    consensus_entities: List[ConsensusEntityItem] = Field(default_factory=list)
 
 
 class SessionListItem(BaseModel):

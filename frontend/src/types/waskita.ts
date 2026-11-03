@@ -16,6 +16,16 @@ export interface EntityGapItem {
   competitor_snippet?: string;
 }
 
+export interface ConsensusEntityItem {
+  term_string: string;
+  term_surface_form: string;
+  doc_frequency: number;
+  total_competitors: number;
+  is_present_in_draft: boolean;
+  competitor_snippet?: string;
+  competitor_domain?: string;
+}
+
 export interface EntityGaps {
   deficit: EntityGapItem[];
   gain: EntityGapItem[];
@@ -119,6 +129,7 @@ export interface AuditExecuteResponse {
   serp_competitors?: SerpCompetitorItem[];
   serp_source?: SerpSource;
   serp_audit_summary?: SerpAuditSummary;
+  consensus_entities?: ConsensusEntityItem[];
   topic_shift_detected?: boolean;
   is_topic_shift?: boolean;
 }

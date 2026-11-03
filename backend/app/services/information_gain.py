@@ -10,6 +10,40 @@ from app.services.nlp_pipeline import (
 )
 
 
+def find_snippet_and_domain(
+    term_stem: str, term_surface: str, competitor_docs: Optional[List[Any]]
+) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Ekstrak 1 kalimat cuplikan nyata dan domain artikel kompetitor untuk White-Box Forensics (Sprint 4.4).
+    """
+    if not competitor_docs:
+        return None, None
+    stem_low = term_stem.lower().strip()
+    surface_low = term_surface.lower().strip()
+
+    for doc in competitor_docs:
+        text = ""
+        domain = ""
+        if isinstance(doc, dict):
+            text = doc.get("clean_text") or doc.get("snippet_text") or ""
+            domain = doc.get("domain_name") or ""
+        elif isinstance(doc, str):
+            text = doc
+
+        if not text:
+            continue
+
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        for s in sentences:
+            s_clean = s.strip()
+            s_low = s_clean.lower()
+            if (surface_low in s_low or stem_low in s_low) and len(s_clean.split()) >= 5:
+                if len(s_clean) > 160:
+                    s_clean = s_clean[:157] + "..."
+                return s_clean, domain or None
+    return None, None
+
+
 def _find_competitor_snippet(
     term_stem: str, term_surface: str, competitor_docs: Optional[List[Any]]
 ) -> Optional[str]:
