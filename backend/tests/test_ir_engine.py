@@ -682,6 +682,15 @@ class TestSprint41AlgorithmicOverhaul:
         assert "bangun brutalis" not in gain_stems
         assert "beton" not in gain_stems
 
+    def test_colloquial_stopwords_filtered_from_entities(self):
+        """Memastikan kata-kata gaul/percakapan (lo, gue, banget, udah, gitu) tidak bocor jadi entitas kandidat."""
+        from app.services.nlp_pipeline import extract_candidate_entities
+        text = "kalo menurut gue pribadi sih ya emang beneran sakit pinggang tuh bikin lo mager banget"
+        entities = extract_candidate_entities(text, top_n=20)
+        extracted_stems = [e[0] for e in entities]
+        for slang in ["gue", "lo", "banget", "beneran", "emang", "bikin", "gitu", "sih"]:
+            assert slang not in extracted_stems, f"Kata gaul '{slang}' tidak boleh lolos jadi entitas kandidat"
+
     def test_sliding_window_passage_cosine_similarity(self):
         """Draf pendek 50 kata yang menjiplak bagian artikel kompetitor 200 kata mendapat similarity tinggi via sliding-window."""
         from app.services.vsm_calculator import compute_vsm_similarity

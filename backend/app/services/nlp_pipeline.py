@@ -233,7 +233,26 @@ WEB_NOISE_STOPWORDS: Set[str] = {
     "kesan",
 }
 
-ALL_INDONESIAN_STOPWORDS: Set[str] = _sastrawi_stopwords.union(WEB_NOISE_STOPWORDS)
+# Stopwords ragam percakapan / bahasa gaul (lo-gue, partikel kasual, & singkatan chat)
+COLLOQUIAL_INDONESIAN_STOPWORDS: Set[str] = {
+    # Pronomina persona gaul
+    "gue", "gua", "gw", "lu", "lo", "elo", "elu", "doi",
+    # Partikel, kata tugas, & interjeksi gaul
+    "banget", "bgt", "sih", "deh", "dong", "nih", "tuh", "lah", "kan", "kok",
+    "nggak", "gak", "ga", "ngga", "kaga", "kagak", "ndak",
+    "udah", "udh", "dah",
+    "kalo", "klo", "kl",
+    "gitu", "gini", "kayak", "kyk", "kek",
+    "aja", "aj", "doang",
+    "emang", "emg", "beneran", "cuma", "cm", "cuman",
+    "padahal", "pdhl", "terus", "trs", "biar",
+    "tau", "gimana", "gmn", "kenapa", "knp",
+    "makanya", "malah", "nah", "tapi", "tp",
+    "yah", "yaudah", "ywdh", "mulu", "lagian",
+    "bikin", "bakal", "bakalan",
+}
+
+ALL_INDONESIAN_STOPWORDS: Set[str] = _sastrawi_stopwords.union(WEB_NOISE_STOPWORDS).union(COLLOQUIAL_INDONESIAN_STOPWORDS)
 
 # Peta kanonikalisasi serapan teknis & ejaan dwibahasa (Sprint 4.1 & 4.2)
 LOANWORD_CANONICAL_MAP: Dict[str, str] = {
