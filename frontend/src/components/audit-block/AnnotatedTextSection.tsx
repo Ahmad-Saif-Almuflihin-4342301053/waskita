@@ -111,12 +111,47 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
         {audit.annotated_spans && audit.annotated_spans.length > 0 ? (
           audit.annotated_spans.map((span, idx) => {
             const trimmed = span.text.trim();
-            const wordsCount = trimmed.split(/\s+/).length;
+
+            // 1. Cek Kartu Visual Media Slot [gambar N: ...] atau [gambar N] (Sprint 4.3)
+            const visualSlotMatch = trimmed.match(/^\[gambar\s+(\d+)(?::\s*([^\]]+))?\]/i);
+            if (visualSlotMatch) {
+              const imageNum = visualSlotMatch[1];
+              const imageContext = visualSlotMatch[2] ? visualSlotMatch[2].trim() : 'Ilustrasi Pendukung Konten';
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    background: 'rgba(59, 130, 246, 0.05)',
+                    border: '1px dashed rgba(59, 130, 246, 0.4)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    margin: '10px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '12px',
+                    color: '#1E40AF',
+                  }}
+                >
+                  <span style={{ fontSize: '15px' }}>🖼️</span>
+                  <span>
+                    <strong>Slot Gambar #{imageNum}:</strong> {imageContext}{' '}
+                    <span style={{ opacity: 0.75 }}>(Letakkan aset visual di sini saat rilis CMS)</span>
+                  </span>
+                </div>
+              );
+            }
+
+            // 2. Cek Sub-Judul / Heading (Markdown, Penomoran Daftar, atau Heuristik) (Sprint 4.2 & 4.3)
+            const isNumberedHeading = /^\d+[\.\)]\s+[A-Z\u00C0-\u024F]/.test(trimmed);
             const isMarkdownHeading = /^#{1,4}\s+/.test(trimmed);
             const cleanText = trimmed.replace(/^#{1,4}\s+/, '');
+            const wordsCount = cleanText.split(/\s+/).length;
             const endsWithSentencePunct = /[.!;:,]$/.test(cleanText) && !cleanText.endsWith('?');
+
             const isHeadingSpan = Boolean(
               span.is_heading ||
+              isNumberedHeading ||
               (!span.color && (
                 isMarkdownHeading ||
                 (wordsCount >= 2 && wordsCount <= 14 && (!endsWithSentencePunct || cleanText.endsWith('?')) && cleanText[0] === cleanText[0].toUpperCase())

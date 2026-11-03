@@ -15,40 +15,102 @@ export function sanitizePastedOrUploadedDraft(
   let videoCounter = 0;
 
   // Jika terdapat rawHtml (misal paste dari WordPress Gutenberg, Docs, atau Web), proses via DOMParser
-  if (rawHtml && rawHtml.trim().length > 0 && typeof DOMParser !== 'undefined') {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(rawHtml, 'text/html');
+  if (rawHtml && rawHtml.trim().length > 0) {
+    if (typeof DOMParser !== 'undefined') {
+      try {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(rawHtml, 'text/html');
 
-      // 1. Ekstrak dan ganti elemen video (<iframe ...>, <video ...>, <embed ...>, figure.wp-block-embed)
-      const videoElements = doc.querySelectorAll('iframe, video, embed, figure.wp-block-embed');
-      videoElements.forEach((el) => {
-        videoCounter++;
-        const token = doc.createTextNode(`\n[video ${videoCounter}]\n`);
-        el.parentNode?.replaceChild(token, el);
-      });
+        // Helper untuk mencari teks heading/sub-judul terdekat sebelumnya (Sprint 4.3 Contextual Media Slot)
+        const findPrecedingHeadingText = (el: Element): string | null => {
+          let curr: Element | null = el;
+          while (curr && curr !== doc.body) {
+            let sibling: Element | null = curr.previousElementSibling;
+            while (sibling) {
+              const headingTags = sibling.matches('h1, h2, h3, h4, h5, h6')
+                ? [sibling]
+                : Array.from(sibling.querySelectorAll('h1, h2, h3, h4, h5, h6'));
+              if (headingTags.length > 0) {
+                const lastH = headingTags[headingTags.length - 1];
+                const t = lastH.textContent?.trim();
+                if (t) return t.replace(/^#{1,4}\s+/, '').replace(/^\d+[\.\)]\s+/, '').trim();
+              }
+              const sText = sibling.textContent?.trim() || '';
+              if (/^\d+[\.\)]\s+[A-Z\u00C0-\u024F]/.test(sText) && sText.length <= 100) {
+                return sText.replace(/^\d+[\.\)]\s+/, '').trim();
+              }
+              sibling = sibling.previousElementSibling;
+            }
+            curr = curr.parentElement;
+          }
+          return null;
+        };
 
-      // 2. Ekstrak dan ganti elemen gambar (<img ...>, figure.wp-block-image)
-      const imageElements = doc.querySelectorAll('img, figure.wp-block-image');
-      imageElements.forEach((el) => {
-        imageCounter++;
-        const token = doc.createTextNode(`\n[gambar ${imageCounter}]\n`);
-        el.parentNode?.replaceChild(token, el);
-      });
+        // 1. Ekstrak dan ganti elemen video (<iframe ...>, <video ...>, <embed ...>, figure.wp-block-embed)
+        const videoElements = doc.querySelectorAll('iframe, video, embed, figure.wp-block-embed');
+        videoElements.forEach((el) => {
+          videoCounter++;
+          const token = doc.createTextNode(`\n[video ${videoCounter}]\n`);
+          el.parentNode?.replaceChild(token, el);
+        });
 
-      // 3. Ambil teks hasil parsing DOM
-      let extractedText = doc.body.innerText || doc.body.textContent || '';
-      extractedText = cleanUpExtractedText(extractedText);
+        // 2. Ekstrak dan ganti elemen gambar (<img ...>, figure.wp-block-image) dengan konteks subjudul/caption
+        const imageElements = doc.querySelectorAll('img, figure.wp-block-image');
+        imageElements.forEach((el) => {
+          imageCounter++;
+          const precedingH = findPrecedingHeadingText(el);
+          const altText = el.getAttribute('alt')?.trim() || el.querySelector('img')?.getAttribute('alt')?.trim();
+          const figCaption = el.querySelector('figcaption')?.textContent?.trim();
+          const contextLabel = precedingH || figCaption || (altText && altText.length > 3 ? altText : null);
+          const tokenStr = contextLabel
+            ? `\n[gambar ${imageCounter}: Ilustrasi ${contextLabel}]\n`
+            : `\n[gambar ${imageCounter}]\n`;
+          const token = doc.createTextNode(tokenStr);
+          el.parentNode?.replaceChild(token, el);
+        });
 
-      // Cek apakah masih ada sisa markdown image / data:image / embed youtube di teks
-      const textSanitized = sanitizePlainTextMedia(extractedText, imageCounter, videoCounter);
+        // 3. Ambil teks hasil parsing DOM
+        let extractedText = doc.body.innerText || doc.body.textContent || '';
+        extractedText = cleanUpExtractedText(extractedText);
+
+        // Cek apakah masih ada sisa markdown image / data:image / embed youtube di teks
+        const textSanitized = sanitizePlainTextMedia(extractedText, imageCounter, videoCounter);
+        return {
+          cleanText: textSanitized.cleanText,
+          imageCount: textSanitized.imageCount,
+          videoCount: textSanitized.videoCount,
+        };
+      } catch (e) {
+        console.warn('DOMParser failed in sanitizePastedOrUploadedDraft, falling back to regex:', e);
+      }
+    } else {
+      // Fallback parser untuk environment tanpa DOMParser (seperti CLI Node.js runner)
+      let headingContext = '';
+      const parts = rawHtml.split(/(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>|<img[^>]*>|<figure[\s\S]*?<\/figure>|<iframe[\s\S]*?<\/iframe>)/gi);
+      let simulatedHtml = '';
+      for (const part of parts) {
+        const hMatch = part.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i);
+        if (hMatch) {
+          headingContext = hMatch[1].replace(/<[^>]+>/g, '').trim();
+          simulatedHtml += part;
+        } else if (/<img/i.test(part) || /<figure/i.test(part)) {
+          imageCounter++;
+          const altMatch = part.match(/alt=["']([^"']+)["']/i);
+          const ctx = headingContext || (altMatch ? altMatch[1].trim() : '') || 'Bagian Ini';
+          simulatedHtml += `\n[gambar ${imageCounter}: Ilustrasi ${ctx}]\n`;
+        } else if (/<iframe/i.test(part)) {
+          videoCounter++;
+          simulatedHtml += `\n[video ${videoCounter}]\n`;
+        } else {
+          simulatedHtml += part;
+        }
+      }
+      const textCleaned = cleanUpExtractedText(simulatedHtml.replace(/<[^>]+>/g, ' '));
       return {
-        cleanText: textSanitized.cleanText,
-        imageCount: textSanitized.imageCount,
-        videoCount: textSanitized.videoCount,
+        cleanText: textCleaned,
+        imageCount: imageCounter,
+        videoCount: videoCounter,
       };
-    } catch (e) {
-      console.warn('DOMParser failed in sanitizePastedOrUploadedDraft, falling back to regex:', e);
     }
   }
 
@@ -141,6 +203,11 @@ function cleanUpExtractedText(text: string): string {
   return text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
+    // Bersihkan boilerplate WordPress / Blog metadata (Sprint 4.3)
+    .replace(/\bPosted on\s+[^\n]+?\s+by\s+[^\n]+/gi, '')
+    .replace(/\bDipublikasikan pada\s+[^\n]+?\s+oleh\s+[^\n]+/gi, '')
+    // Perbaiki titik menempel ke huruf kapital berikutnya (.Mengenal -> . Mengenal) (Sprint 4.3)
+    .replace(/\.([A-Z\u00C0-\u024F])/g, '. $1')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n\s+\n/g, '\n\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -148,16 +215,16 @@ function cleanUpExtractedText(text: string): string {
 }
 
 /**
- * Menghitung jumlah kata murni naskah dengan mengabaikan token [gambar N] dan [video N].
+ * Menghitung jumlah kata murni naskah dengan mengabaikan token [gambar N: ...] dan [video N: ...].
  * Token dihitung berdasarkan kata yang terpisah spasi/whitespace.
  */
 export function countPureWords(text: string): number {
   if (!text || !text.trim()) return 0;
 
-  // Hilangkan token [gambar N] dan [video N]
+  // Hilangkan token [gambar N: ...] dan [video N: ...] (Sprint 4.3)
   const stripped = text
-    .replace(/\[gambar\s*\d+\]/gi, ' ')
-    .replace(/\[video\s*\d+\]/gi, ' ')
+    .replace(/\[gambar\s*\d*(?::[^\]]*)?\]/gi, ' ')
+    .replace(/\[video\s*\d*(?::[^\]]*)?\]/gi, ' ')
     .replace(/[^\w\s\u00C0-\u024F\u1E00-\u1EFF-]/g, ' ')
     .trim();
 

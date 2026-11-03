@@ -974,3 +974,173 @@ class TestSprint42PrecisionMultiCompetitorAndLongtailGain:
         assert res["remediation_prompt_perfectionist"] is not None
         assert "micro-tuning" in res["remediation_prompt_perfectionist"].lower()
         assert "Alison Smithson" in res["remediation_prompt_perfectionist"]
+
+
+# =====================================================================
+# 12. UJI SPRINT 4.3: STABILO PRECISION, CLAUSE-BOUND GAIN & VISUAL SLOTS
+# =====================================================================
+class TestSprint43StabiloPrecisionAndVisualSlots:
+    def test_numbered_heading_detection_and_red_immunity(self):
+        """Sprint 4.3: Sub-judul bernomor (1. Unité d'Habitation, 5. Kyoto...) diakui sebagai heading dan kebal stabilo merah."""
+        from app.services.stylometrics import extract_headings_from_markdown_or_text
+        from app.services.gatekeeper import generate_annotated_spans
+        from app.schemas.audit import EntityGapsGroup
+
+        text = (
+            "1. Unité d'Habitation (Marseille, Prancis)\n"
+            "Gedung hunian masif ini dirancang oleh Le Corbusier dengan menggunakan material beton mentah.\n\n"
+            "5) Kyoto International Conference Center (Kyoto, Jepang)\n"
+            "Bangunan ini memadukan struktur beton brutalist yang tegas dengan filosofi arsitektur tradisional Jepang."
+        )
+
+        headings = extract_headings_from_markdown_or_text(text)
+        assert len(headings) >= 2
+        assert any("Unité d'Habitation" in h for h in headings)
+        assert any("Kyoto International" in h for h in headings)
+
+        # Uji kebal stabilo merah walaupun mirip kompetitor
+        comp_text = "1. Unité d'Habitation (Marseille, Prancis) dirancang oleh Le Corbusier menggunakan material beton mentah."
+        spans = generate_annotated_spans(
+            draft_content=text,
+            competitor_clean_texts=[comp_text],
+            entity_gaps=EntityGapsGroup(deficit=[], gain=[]),
+            hko_percentage=20.0,
+        )
+
+        heading_spans = [s for s in spans if s.is_heading]
+        assert len(heading_spans) >= 2
+        for hs in heading_spans:
+            assert hs.color is None  # Bebas dari stabilo merah!
+            assert hs.label == "Sub-Judul / Heading"
+
+    def test_clause_bound_gain_prevents_frankenstein_trigrams(self):
+        """Sprint 4.3: Ekstraksi gain dilarang melompati koma dan dilarang menyerap kata penghubung (karya, dan, yaitu)."""
+        from app.services.nlp_pipeline import extract_candidate_gain_entities
+
+        text = """
+        Di Austria, karya Fritz Wotruba menjadi simbol arsitektur religius yang radikal.
+        Kompleks perumahan Robin Hood Gardens di London dirancang oleh Alison Smithson dan Peter Smithson.
+        Eksplorasi di Prancis, yaitu Beton Mentah yang dipadukan dengan geometri asimetris.
+        """
+
+        candidates = extract_candidate_gain_entities(text)
+        stems = [c[0] for c in candidates]
+
+        # Frankenstein trigram yang menabrak koma atau kata hubung TIDAK boleh muncul
+        assert not any("austria karya fritz" in s.lower() for s in stems)
+        assert not any("prancis yaitu beton" in s.lower() for s in stems)
+        assert not any("smithson dan peter" in s.lower() for s in stems)
+
+        # Entitas valid yang berada dalam satu klausa HARUS muncul
+        assert any("robin hood garden" in s.lower() for s in stems)
+        assert any("fritz wotruba" in s.lower() for s in stems)
+        assert any("alison smithson" in s.lower() for s in stems)
+
+    def test_trigram_and_hyphenated_gain_triggers_green_stabilo(self):
+        """Sprint 4.3: Trigram dan surface form beraksen/hyphen menyalakan stabilo hijau."""
+        from app.services.gatekeeper import generate_annotated_spans
+        from app.schemas.audit import EntityGapsGroup, EntityGapItem
+
+        draft = (
+            "Kompleks perumahan Robin Hood Gardens memperlihatkan konsep streets in the sky yang unik di kawasan perkotaan.\n"
+            "Bangunan gereja Saint-Pierre di Firminy mengedepankan geometri kerucut beton yang sangat berani.\n"
+            "Sebagian besar gedung bergaya brutalis di Eropa mengadopsi bahan semen tanpa plesteran dekoratif."
+        )
+
+        gaps = EntityGapsGroup(
+            deficit=[],
+            gain=[
+                EntityGapItem(term_string="robin hood garden", term_surface_form="Robin Hood Gardens", tfidf_weight=0.9, competitor_consensus_count=0),
+                EntityGapItem(term_string="saint-pierre", term_surface_form="Saint-Pierre", tfidf_weight=0.85, competitor_consensus_count=0),
+            ],
+        )
+
+        spans = generate_annotated_spans(
+            draft_content=draft,
+            competitor_clean_texts=[],
+            entity_gaps=gaps,
+            hko_percentage=10.0,
+        )
+
+        green_spans = [s for s in spans if s.color == "green"]
+        assert len(green_spans) >= 2
+        assert any("Robin Hood Gardens" in s.text for s in green_spans)
+        assert any("Saint-Pierre" in s.text for s in green_spans)
+
+    def test_repetitive_content_words_trigger_blue_stabilo(self):
+        """Sprint 4.3: Pengulangan kata konten >= 3x per kalimat memicu stabilo biru (Kosakata Monoton)."""
+        from app.services.gatekeeper import generate_annotated_spans
+        from app.schemas.audit import EntityGapsGroup
+
+        # Kalimat mengulang kata konten "beton" sebanyak 3 kali
+        repetitive_sentence = (
+            "Penggunaan material beton ekspos dipadukan dengan struktur beton pracetak dan elemen beton bertulang secara masif di seluruh sudut bangunan."
+        )
+
+        spans = generate_annotated_spans(
+            draft_content=repetitive_sentence,
+            competitor_clean_texts=[],
+            entity_gaps=EntityGapsGroup(deficit=[], gain=[]),
+            hko_percentage=0.0,
+        )
+
+        assert len(spans) == 1
+        assert spans[0].color == "blue"
+        assert spans[0].label == "Kosakata Monoton"
+
+    def test_saturation_80_percent_allows_100_percent_cds(self):
+        """Sprint 4.3: Ambang jenuh cakupan 80% memungkinkan CDS mencapai 100.0%."""
+        from app.services.gatekeeper import calculate_composite_cds
+        from app.schemas.audit import ThresholdConfig
+
+        thresholds = ThresholdConfig(min_mattr=0.65, max_hko_percentage=40.0)
+
+        res = calculate_composite_cds(
+            max_cosine_sim=0.10,
+            draft_entities_count=30,
+            serp_entities_count=25,
+            shared_entities_count=20,
+            gain_count=5,
+            mattr_score=0.75,
+            hko_percentage=20.0,
+            thresholds=thresholds,
+            avg_cosine_sim=0.08,
+            red_span_ratio=0.0,
+        )
+
+        assert res["content_differentiation_score"] == 100.0
+        assert res["sub_scores"]["c_ig"] == 100.0
+        assert res["verdict_status"] == "Siap Terbit"
+
+    def test_slideshare_and_ocr_domains_filtered(self):
+        """Sprint 4.3: Domain slideshare, scribd, academia, dan researchgate diklasifikasikan sebagai pdf_doc."""
+        from app.services.serp_scraper import classify_url_skip_reason
+
+        assert classify_url_skip_reason("https://www.slideshare.net/john/arsitektur-brutalisme") == "pdf_doc"
+        assert classify_url_skip_reason("https://slideshare.net/slides/12345") == "pdf_doc"
+        assert classify_url_skip_reason("https://www.scribd.com/document/987/makalah-brutalisme") == "pdf_doc"
+        assert classify_url_skip_reason("https://www.academia.edu/4567/Brutalist_Design") == "pdf_doc"
+        assert classify_url_skip_reason("https://www.researchgate.net/publication/789") == "pdf_doc"
+        assert classify_url_skip_reason("https://www.studocu.com/id/document/arsitektur") == "pdf_doc"
+
+    def test_visual_media_slot_immunity_in_gatekeeper(self):
+        """Sprint 4.3: Token slot visual media [gambar 1: ...] diabaikan dari penalti redundansi."""
+        from app.services.gatekeeper import generate_annotated_spans
+        from app.schemas.audit import EntityGapsGroup
+
+        text = (
+            "[gambar 1: Ilustrasi Fasad Beton Menara Trellick]\n"
+            "Menara apartemen ini menjulang tinggi di London barat dengan fasad beton ekspos yang kokoh."
+        )
+
+        spans = generate_annotated_spans(
+            draft_content=text,
+            competitor_clean_texts=["Menara apartemen ini menjulang tinggi di London barat dengan fasad beton ekspos."],
+            entity_gaps=EntityGapsGroup(deficit=[], gain=[]),
+            hko_percentage=0.0,
+        )
+
+        slot_spans = [s for s in spans if "[gambar 1" in s.text]
+        assert len(slot_spans) == 1
+        assert slot_spans[0].color is None
+        assert slot_spans[0].label == "Slot Visual Media"

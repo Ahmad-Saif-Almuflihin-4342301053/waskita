@@ -69,7 +69,10 @@ def extract_headings_from_markdown_or_text(text: str) -> List[str]:
         if not (2 <= word_count <= 14 and 8 <= len(line_clean) <= 100):
             continue
 
-        if not line_clean[0].isupper():
+        # Dukungan penomoran sub-judul daftar (1. Unité d'Habitation, 5) Kyoto...) - Sprint 4.3
+        is_numbered_heading = bool(re.match(r"^\d+[\.\)]\s+[A-Z\u00C0-\u024F]", line_clean))
+
+        if not line_clean[0].isupper() and not is_numbered_heading:
             continue
 
         # Cek apakah baris berikutnya adalah kalimat paragraf (> 10 kata atau berakhiran titik/tanda baca)
@@ -84,8 +87,8 @@ def extract_headings_from_markdown_or_text(text: str) -> List[str]:
             else 0.0
         )
 
-        # Izinkan sub-judul jika berakhiran '?' atau Title Case >= 40%
-        if next_is_paragraph and (line_clean.endswith("?") or cap_ratio >= 0.40):
+        # Izinkan sub-judul jika berakhiran '?', bernomor, atau Title Case >= 40%
+        if next_is_paragraph and (line_clean.endswith("?") or is_numbered_heading or cap_ratio >= 0.40):
             headings.append(line_clean)
 
     return headings

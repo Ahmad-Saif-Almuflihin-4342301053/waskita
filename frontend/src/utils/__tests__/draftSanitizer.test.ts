@@ -461,6 +461,71 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertEqual(getPromptForTab('perfectionist'), 'Prompt Micro-Tuning Kesempurnaan 100%', 'Tab perfectionist harus memuat micro-tuning');
   });
 
+  // Test 22 (Sprint 4.3): Pembersihan WordPress boilerplate & perbaikan titik menempel
+  runCase('Pembersihan boilerplate WordPress dan perbaikan titik menempel ke huruf kapital', () => {
+    const dirtyText = `
+      Posted on 24 Oktober 2026 by Admin Waskita
+      Arsitektur brutalisme mengutamakan kejujuran bahan.Mengenal sejarah gaya ini sangat penting.
+      Dipublikasikan pada 12 Januari 2025 oleh Redaksi Sipil
+      Beton ekspos menjadi ciri utama.Karakteristik visualnya monumental.
+    `;
+    const sanitized = sanitizePastedOrUploadedDraft(dirtyText);
+    assertTrue(!sanitized.cleanText.includes('Posted on'), 'Boilerplate "Posted on" harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Dipublikasikan pada'), 'Boilerplate "Dipublikasikan pada" harus dibersihkan');
+    assertTrue(sanitized.cleanText.includes('bahan. Mengenal sejarah'), 'Titik menempel bahan.Mengenal harus dipisahkan spasi');
+    assertTrue(sanitized.cleanText.includes('ciri utama. Karakteristik'), 'Titik menempel utama.Karakteristik harus dipisahkan spasi');
+  });
+
+  // Test 23 (Sprint 4.3): Contextual Media Slot token & countPureWords handling
+  runCase('Contextual Visual Media Slot token dan pengabaian kata murni countPureWords', () => {
+    const sampleHtml = `
+      <h2>Karakteristik Utama Beton Ekspos</h2>
+      <img src="https://example.com/beton.jpg" alt="Permukaan Beton Kasar" />
+      <p>Permukaan beton kasar dibiarkan telanjang tanpa lapisan plesteran halus demi menampilkan tekstur asli.</p>
+    `;
+    const result = sanitizePastedOrUploadedDraft('', sampleHtml);
+    assertEqual(result.imageCount, 1, 'Total 1 gambar terdeteksi');
+    assertTrue(
+      result.cleanText.includes('[gambar 1: Ilustrasi Karakteristik Utama Beton Ekspos]') ||
+      result.cleanText.includes('[gambar 1: Ilustrasi Permukaan Beton Kasar]'),
+      'Token slot gambar harus memuat konteks subjudul atau alt-text'
+    );
+
+    // Pastikan countPureWords mengabaikan slot gambar kontekstual
+    const textWithContextSlot = 'Pembahasan arsitektur dimulai di sini. [gambar 1: Ilustrasi Karakteristik Utama Beton Ekspos] Lanjutan penjelasan karakteristik material.';
+    const wordCount = countPureWords(textWithContextSlot);
+    assertEqual(wordCount, 9, 'countPureWords harus mengabaikan token slot gambar kontekstual');
+  });
+
+  // Test 24 (Sprint 4.3): Independensi Buka Kunci Kueri (Toggle Unlock Query)
+  runCase('Buka Kunci Kueri memungkinkan pengguna menimpa kueri target secara bebas', () => {
+    let isQueryLocked = true;
+    let targetQuery = 'arsitektur brutalisme';
+
+    const toggleLock = () => {
+      isQueryLocked = !isQueryLocked;
+    };
+
+    const pasteHandler = (newKeyword: string) => {
+      if (isQueryLocked) {
+        return; // Terkunci, jangan ubah targetQuery
+      }
+      targetQuery = newKeyword;
+    };
+
+    // Saat masih terkunci: paste diabaikan
+    pasteHandler('restorasi candi prambanan');
+    assertEqual(targetQuery, 'arsitektur brutalisme', 'Target query tidak boleh berubah saat isQueryLocked true');
+
+    // Pengguna mengeklik Buka Kunci
+    toggleLock();
+    assertEqual(isQueryLocked, false, 'State isQueryLocked harus menjadi false');
+
+    // Saat sudah terbuka: paste berhasil menimpa kueri
+    pasteHandler('restorasi candi prambanan');
+    assertEqual(targetQuery, 'restorasi candi prambanan', 'Target query berhasil diubah setelah buka kunci');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);

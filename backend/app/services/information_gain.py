@@ -1,7 +1,11 @@
 from typing import Dict, List, Optional, Set, Tuple
 from app.schemas.audit import EntityGapItem, EntityGapsGroup
 from app.services.gatekeeper import is_commercial_or_sponsor
-from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS, NON_TOPICAL_VERBS_AND_ADJECTIVES
+from app.services.nlp_pipeline import (
+    ALL_INDONESIAN_STOPWORDS,
+    FORBIDDEN_GAIN_CONNECTOR_WORDS,
+    NON_TOPICAL_VERBS_AND_ADJECTIVES,
+)
 
 
 def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 10) -> List[EntityGapItem]:
@@ -114,6 +118,8 @@ def calculate_information_gain(
         if stem in NON_TOPICAL_VERBS_AND_ADJECTIVES or surface.lower() in NON_TOPICAL_VERBS_AND_ADJECTIVES:
             continue
         parts = stem.split()
+        if any(p in FORBIDDEN_GAIN_CONNECTOR_WORDS for p in parts):
+            continue
         if len(parts) > 1 and all(p in all_serp_full_stems for p in parts):
             continue
         weight = draft_tfidf_weights.get(stem, 0.75)
@@ -146,6 +152,8 @@ def calculate_information_gain(
             continue
         parts = stem.split()
         if any(p in NON_TOPICAL_VERBS_AND_ADJECTIVES for p in parts):
+            continue
+        if any(p in FORBIDDEN_GAIN_CONNECTOR_WORDS for p in parts):
             continue
 
         # Jika bigram yang semua kata penyusunnya sudah ada di draf, lewati agar tidak redundan

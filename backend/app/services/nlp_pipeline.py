@@ -257,13 +257,23 @@ LOANWORD_CANONICAL_MAP: Dict[str, str] = {
     "habitation": "habitation",
 }
 
-# Verba dan Adjektiva Non-Topikal yang wajib dibersihkan dari celah defisit (Sprint 4.2)
+# Verba dan Adjektiva Non-Topikal yang wajib dibersihkan dari celah defisit (Sprint 4.2 & 4.3)
 NON_TOPICAL_VERBS_AND_ADJECTIVES: Set[str] = {
     "sederhana", "muncul", "selesai", "pandangan", "garis", "berbeda",
     "dikaitkan", "namanya", "perubahan", "memiliki", "menjadi", "terdapat",
     "menggunakan", "merupakan", "dikenal", "membantu", "membuat", "terlihat",
-    "diperkuat", "indah", "elemen", "seni", "menciptakan", "inggris", "milik",
+    "diperkuat", "indah", "elemen", "seni", "menciptakan", "milik",
     "cipta", "bentuk", "kait", "satu", "dua", "tiga", "berbagai",
+    # Penambahan Sprint 4.3 (verba proses & adjektiva non-substantif)
+    "pengaruh", "dasar", "tonjol", "kembang", "tekan", "anggap",
+    "khas", "cepat", "salah", "letak", "akses", "padu", "hidup",
+    "mempengaruhi", "berdasarkan", "penonjolan", "perkembangan", "penekanan",
+    "dianggap", "khasnya", "kehidupan",
+}
+
+# Kata hubung/depan yang dilarang berada di dalam frasa Bigram/Trigram Information Gain (Sprint 4.3)
+FORBIDDEN_GAIN_CONNECTOR_WORDS: Set[str] = {
+    "di", "ke", "dari", "dan", "atau", "yaitu", "tanpa", "karya", "untuk", "dengan",
 }
 
 
@@ -448,76 +458,104 @@ def extract_candidate_gain_entities(text: str) -> List[Tuple[str, str, int]]:
 
     for line in lines:
         cleaned_line = re.sub(r"^#{1,4}\s+", "", line).strip()
-        sentences = re.split(r"(?<=[.!?])\s+", cleaned_line)
+        # Pecah baris menjadi klausa-klausa berdasarkan tanda baca (Sprint 4.3 Clause-Bound Gain)
+        # Ekstraksi n-gram dilarang melompati tanda koma, titik koma, titik dua, kurung, dan dash pemisah
+        clauses = re.split(r"[,;:()\[\]{}—–]|\s+-\s+", cleaned_line)
 
-        for sent in sentences:
-            words = [w.strip(".,;:!?\"'()[]{}") for w in sent.split() if w.strip(".,;:!?\"'()[]{}")]
-            n_words = len(words)
-            if n_words < 2:
+        for clause in clauses:
+            clause_clean = clause.strip()
+            if not clause_clean:
                 continue
+            sentences = re.split(r"(?<=[.!?])\s+", clause_clean)
 
-            # 1. Ekstraksi Bigram Title Case
-            for i in range(n_words - 1):
-                w1, w2 = words[i], words[i + 1]
-                if not (w1 and w2 and len(w1) > 2 and len(w2) > 2):
-                    continue
-                if not (w1[0].isupper() and w2[0].isupper()):
-                    continue
-
-                low1, low2 = w1.lower(), w2.lower()
-                if low1 in ALL_INDONESIAN_STOPWORDS and low1 not in ("le", "van", "de"):
-                    continue
-                if low2 in ALL_INDONESIAN_STOPWORDS:
+            for sent in sentences:
+                words = [w.strip(".,;:!?\"'()[]{}") for w in sent.split() if w.strip(".,;:!?\"'()[]{}")]
+                n_words = len(words)
+                if n_words < 2:
                     continue
 
-                st1 = stem_word(low1)
-                st2 = stem_word(low2)
-                if not st1 or not st2 or st1 == st2:
-                    continue
-
-                bigram_stem = f"{st1} {st2}"
-                bigram_surface = f"{w1} {w2}"
-
-                if bigram_stem not in candidates_map:
-                    candidates_map[bigram_stem] = (bigram_surface, 0)
-                surf, cnt = candidates_map[bigram_stem]
-                candidates_map[bigram_stem] = (surf, cnt + 1)
-
-            # 2. Ekstraksi Trigram Proper Noun (misal: Robin Hood Gardens, Unite d Habitation)
-            for i in range(n_words - 2):
-                w1, w2, w3 = words[i], words[i + 1], words[i + 2]
-                if not (w1 and w3 and len(w1) > 2 and len(w3) > 2):
-                    continue
-                if not (w1[0].isupper() and w3[0].isupper()):
-                    continue
-                low1, low2, low3 = w1.lower(), w2.lower(), w3.lower()
-                if low1 in ALL_INDONESIAN_STOPWORDS:
-                    continue
-                st1 = stem_word(low1)
-                st2 = stem_word(low2)
-                st3 = stem_word(low3)
-                if not st1 or not st3:
-                    continue
-
-                trigram_stem = f"{st1} {st2} {st3}"
-                trigram_surface = f"{w1} {w2} {w3}"
-                if trigram_stem not in candidates_map:
-                    candidates_map[trigram_stem] = (trigram_surface, 0)
-                surf, cnt = candidates_map[trigram_stem]
-                candidates_map[trigram_stem] = (surf, cnt + 1)
-
-            # 3. Unigram Proper Noun non-awal kalimat (i >= 1) yang spesifik (panjang >= 5 dan berawalan kapital)
-            for i in range(1, n_words):
-                w = words[i]
-                if len(w) >= 5 and w[0].isupper() and w[1:].islower():
-                    low_w = w.lower()
-                    if low_w in ALL_INDONESIAN_STOPWORDS or low_w in NON_TOPICAL_VERBS_AND_ADJECTIVES:
+                # 1. Ekstraksi Bigram Title Case
+                for i in range(n_words - 1):
+                    w1, w2 = words[i], words[i + 1]
+                    if not (w1 and w2 and len(w1) > 2 and len(w2) > 2):
                         continue
-                    st = stem_word(low_w)
-                    if st and len(st) >= 4 and st not in ALL_INDONESIAN_STOPWORDS and st not in NON_TOPICAL_VERBS_AND_ADJECTIVES:
-                        if st not in candidates_map:
-                            candidates_map[st] = (w, 0)
-                        surf, cnt = candidates_map[st]
-                        candidates_map[st] = (surf, cnt + 1)
+                    if not (w1[0].isupper() and w2[0].isupper()):
+                        continue
+
+                    low1, low2 = w1.lower(), w2.lower()
+                    if low1 in FORBIDDEN_GAIN_CONNECTOR_WORDS or low2 in FORBIDDEN_GAIN_CONNECTOR_WORDS:
+                        continue
+                    if low1 in ALL_INDONESIAN_STOPWORDS and low1 not in ("le", "van", "de"):
+                        continue
+                    if low2 in ALL_INDONESIAN_STOPWORDS:
+                        continue
+
+                    st1 = stem_word(low1)
+                    st2 = stem_word(low2)
+                    if not st1 or not st2 or st1 == st2:
+                        continue
+
+                    bigram_stem = f"{st1} {st2}"
+                    bigram_surface = f"{w1} {w2}"
+
+                    if bigram_stem not in candidates_map:
+                        candidates_map[bigram_stem] = (bigram_surface, 0)
+                    surf, cnt = candidates_map[bigram_stem]
+                    candidates_map[bigram_stem] = (surf, cnt + 1)
+
+                # 2. Ekstraksi Trigram Proper Noun (misal: Robin Hood Gardens, Unite d Habitation)
+                for i in range(n_words - 2):
+                    w1, w2, w3 = words[i], words[i + 1], words[i + 2]
+                    if not (w1 and w3 and len(w1) > 2 and len(w3) > 2):
+                        continue
+                    if not (w1[0].isupper() and w3[0].isupper()):
+                        continue
+                    low1, low2, low3 = w1.lower(), w2.lower(), w3.lower()
+                    if (
+                        low1 in FORBIDDEN_GAIN_CONNECTOR_WORDS
+                        or low2 in FORBIDDEN_GAIN_CONNECTOR_WORDS
+                        or low3 in FORBIDDEN_GAIN_CONNECTOR_WORDS
+                    ):
+                        continue
+                    if low1 in ALL_INDONESIAN_STOPWORDS and low1 not in ("le", "van", "de"):
+                        continue
+                    if low3 in ALL_INDONESIAN_STOPWORDS:
+                        continue
+                    st1 = stem_word(low1)
+                    st2 = stem_word(low2)
+                    st3 = stem_word(low3)
+                    if not st1 or not st3:
+                        continue
+
+                    trigram_stem = f"{st1} {st2} {st3}"
+                    trigram_surface = f"{w1} {w2} {w3}"
+                    if trigram_stem not in candidates_map:
+                        candidates_map[trigram_stem] = (trigram_surface, 0)
+                    surf, cnt = candidates_map[trigram_stem]
+                    candidates_map[trigram_stem] = (surf, cnt + 1)
+
+                # 3. Unigram Proper Noun non-awal kalimat (i >= 1) yang spesifik (panjang >= 5 dan berawalan kapital)
+                for i in range(1, n_words):
+                    w = words[i]
+                    if len(w) >= 5 and w[0].isupper() and w[1:].islower():
+                        low_w = w.lower()
+                        if (
+                            low_w in ALL_INDONESIAN_STOPWORDS
+                            or low_w in FORBIDDEN_GAIN_CONNECTOR_WORDS
+                            or low_w in NON_TOPICAL_VERBS_AND_ADJECTIVES
+                        ):
+                            continue
+                        st = stem_word(low_w)
+                        if (
+                            st
+                            and len(st) >= 4
+                            and st not in ALL_INDONESIAN_STOPWORDS
+                            and st not in FORBIDDEN_GAIN_CONNECTOR_WORDS
+                            and st not in NON_TOPICAL_VERBS_AND_ADJECTIVES
+                        ):
+                            if st not in candidates_map:
+                                candidates_map[st] = (w, 0)
+                            surf, cnt = candidates_map[st]
+                            candidates_map[st] = (surf, cnt + 1)
 
     return [(stem, surf, count) for stem, (surf, count) in candidates_map.items()]
