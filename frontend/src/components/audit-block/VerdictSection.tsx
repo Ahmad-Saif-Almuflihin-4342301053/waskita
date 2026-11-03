@@ -1,5 +1,5 @@
 import React from 'react';
-import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo, IconTarget, IconSearch, COLORS } from '../shared-ui';
+import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo, IconTarget, COLORS } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
 
 export interface VerdictSectionProps {
@@ -135,44 +135,14 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                   border: '1px solid rgba(220, 38, 38, 0.25)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
                   gap: '8px',
                   fontSize: '12px',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '240px' }}>
-                  <IconAlertCircle size={16} color="#DC2626" />
-                  <span style={{ color: '#991B1B' }}>
-                    <strong>Veto Redundansi Aktif:</strong> Naskah memiliki kemiripan kalimat langsung yang tinggi dengan artikel kompetitor (stabilo merah). Rombak kalimat merah sebagai syarat utama sebelum mengejar diferensiasi.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const el = document.getElementById('consensus-serp-section');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    background: COLORS.deepSlate,
-                    color: '#FFFFFF',
-                    border: 'none',
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <IconSearch size={12} color="#FFFFFF" />
-                  <span>Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓</span>
-                </button>
+                <IconAlertCircle size={16} color="#DC2626" style={{ flexShrink: 0 }} />
+                <span style={{ color: '#991B1B' }}>
+                  <strong>Veto Redundansi Aktif:</strong> Naskah memiliki kemiripan kalimat langsung yang tinggi dengan artikel kompetitor (stabilo merah). Rombak kalimat merah sebagai syarat utama sebelum mengejar diferensiasi.
+                </span>
               </div>
             ) : (
               (audit.metrics?.consensus_target_count || 0) > 0 && (
@@ -185,13 +155,10 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                     border: '1px solid rgba(5, 150, 105, 0.2)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: '8px',
                     fontSize: '12px',
                   }}
                 >
-                  <span style={{ flex: 1, minWidth: '240px' }}>
+                  <span style={{ flex: 1 }}>
                     {(audit.metrics.consensus_matched_count ?? 0) >= (audit.metrics.consensus_target_count ?? 20) ? (
                       <span style={{ color: '#065F46' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginRight: '5px' }}>
@@ -213,32 +180,6 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                       </span>
                     )}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const el = document.getElementById('consensus-serp-section');
-                      if (el) {
-                        el.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '5px',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      background: COLORS.deepSlate,
-                      color: '#FFFFFF',
-                      border: 'none',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <IconSearch size={12} color="#FFFFFF" />
-                    <span>Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓</span>
-                  </button>
                 </div>
               )
             )}
