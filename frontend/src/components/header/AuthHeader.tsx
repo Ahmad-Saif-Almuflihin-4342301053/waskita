@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   COLORS,
   WaskitaLogo,
+  BetaBadge,
   IconMenu,
   IconMoreVertical,
   IconSquarePen,
@@ -360,8 +361,9 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
           <IconMenu size={22} color={COLORS.deepSlate} />
         </button>
 
-        <div style={{ display: "flex", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
           <WaskitaLogo width={124} height={26} />
+          <BetaBadge />
         </div>
       </div>
 

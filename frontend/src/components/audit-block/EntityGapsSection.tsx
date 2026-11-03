@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { COLORS, IconCopy, IconX, IconCheck } from '../shared-ui';
+import { COLORS, IconCopy, IconX, IconCheck, IconTarget, IconStar, IconFileText } from '../shared-ui';
 import { AuditExecuteResponse, EntityGapItem, ConsensusEntityItem } from '../../types/waskita';
 
 export interface EntityGapsSectionProps {
@@ -149,10 +149,11 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                       marginBottom: '6px',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '4px',
+                      gap: '5px',
                     }}
                   >
-                    <span>🎯 Prioritas Utama Konsensus SERP (Paling Cepat Mendongkrak Skor ke 100%):</span>
+                    <IconTarget size={13} color="#DC2626" />
+                    <span>Prioritas Utama Konsensus SERP (Paling Cepat Mendongkrak Skor ke 100%):</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {priorityDeficits.map((item, idx) => {
@@ -175,13 +176,14 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '4px',
+                            gap: '5px',
                             transition: 'all 0.15s ease',
                             boxShadow: isSelected ? '0 0 0 2px rgba(220, 38, 38, 0.2)' : 'none',
                           }}
                           title="Klik untuk melihat cuplikan kompetitor & salin kata kunci"
                         >
-                          <span>🎯 {item.term_surface_form}</span>
+                          <IconTarget size={11} color="#DC2626" />
+                          <span>{item.term_surface_form}</span>
                           <span style={{ fontSize: '10px', opacity: 0.85 }}>({item.competitor_consensus_count} SERP)</span>
                         </button>
                       );
@@ -241,8 +243,9 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
               )}
             </div>
           ) : (
-            <span style={{ fontSize: '11.5px', color: '#059669', fontStyle: 'italic' }}>
-              ✓ Cakupan topik lengkap, tidak ditemukan celah defisit.
+            <span style={{ fontSize: '11.5px', color: '#059669', fontStyle: 'italic', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <IconCheck size={14} color="#059669" />
+              <span>Cakupan topik lengkap, tidak ditemukan celah defisit.</span>
             </span>
           )}
 
@@ -268,8 +271,13 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.deepSlate }}>
-                    {selectedItem.is_consensus_priority ? '🎯' : '📄'} Cuplikan Kompetitor:
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.deepSlate, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {selectedItem.is_consensus_priority ? (
+                      <IconTarget size={13} color="#DC2626" />
+                    ) : (
+                      <IconFileText size={13} color="var(--waskita-text-muted, #64748B)" />
+                    )}
+                    <span>Cuplikan Kompetitor:</span>
                   </span>
                   <span
                     style={{
@@ -304,11 +312,12 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                       transition: 'all 0.15s ease',
                     }}
                   >
-                    <IconCopy
-                      size={12}
-                      color={copiedTerm === selectedItem.term_surface_form ? '#FFFFFF' : COLORS.deepSlate}
-                    />
-                    <span>{copiedTerm === selectedItem.term_surface_form ? 'Tersalin ✓' : 'Salin Kata'}</span>
+                    {copiedTerm === selectedItem.term_surface_form ? (
+                      <IconCheck size={12} color="#FFFFFF" />
+                    ) : (
+                      <IconCopy size={12} color={COLORS.deepSlate} />
+                    )}
+                    <span>{copiedTerm === selectedItem.term_surface_form ? 'Tersalin' : 'Salin Kata'}</span>
                   </button>
                   <button
                     type="button"
@@ -387,9 +396,13 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                     padding: '3px 8px',
                     borderRadius: '6px',
                     fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
                   }}
                 >
-                  ★ {item.term_surface_form}
+                  <IconStar size={11} color="#059669" />
+                  <span>{item.term_surface_form}</span>
                 </span>
               ))}
             </div>
@@ -542,10 +555,14 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                 fontSize: '11px',
                 fontWeight: 600,
                 cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '4px',
                 transition: 'all 0.15s ease',
               }}
             >
-              ✓ Sudah Dicakup ({presentCount})
+              <IconCheck size={11} color="currentColor" />
+              <span>Sudah Dicakup ({presentCount})</span>
             </button>
           </div>
 
@@ -615,13 +632,23 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                           style={{
                             fontSize: '10.5px',
                             fontWeight: 700,
-                            padding: '1px 7px',
+                            padding: '2px 7px',
                             borderRadius: '5px',
                             background: isPresent ? '#D1FAE5' : '#FEE2E2',
                             color: isPresent ? '#065F46' : '#991B1B',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
                           }}
                         >
-                          {isPresent ? '✓ Ada di Naskah' : '+ Belum Dicakup'}
+                          {isPresent ? (
+                            <>
+                              <IconCheck size={11} color="#065F46" />
+                              <span>Ada di Naskah</span>
+                            </>
+                          ) : (
+                            <span>+ Belum Dicakup</span>
+                          )}
                         </span>
                       </div>
 

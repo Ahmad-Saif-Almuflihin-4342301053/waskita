@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { COLORS, WaskitaLogo, IconMenu } from "./shared-ui";
+import { COLORS, WaskitaLogo, BetaBadge, IconMenu } from "./shared-ui";
 import { FloatingComposerDock, SAMPLE_DRAFTS } from "./auth-sidebar-header";
 import { countPureWords, extractSmartKeyword, sanitizePastedOrUploadedDraft } from "../utils/draftSanitizer";
 
@@ -153,7 +153,10 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             >
               <IconMenu size={22} color={COLORS.deepSlate} />
             </button>
-            <WaskitaLogo width={120} height={26} />
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              <WaskitaLogo width={120} height={26} />
+              <BetaBadge />
+            </div>
           </div>
 
           <div>
@@ -194,8 +197,9 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
         }}
       >
         {/* Logo Resmi Waskita di Tengah Layar (Desktop & Mobile) */}
-        <div style={{ marginBottom: isDesktop ? "20px" : "16px" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginBottom: isDesktop ? "20px" : "16px" }}>
           <WaskitaLogo width={isDesktop ? 160 : 130} height={isDesktop ? 34 : 28} />
+          <BetaBadge size="md" />
         </div>
 
         {/* Judul Hero CTA */}

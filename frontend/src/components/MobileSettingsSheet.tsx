@@ -113,7 +113,11 @@ export const MobileSettingsSheet: React.FC<MobileSettingsSheetProps> = ({
           <div style={{ borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))" }}>
             <div onClick={() => setThemePickerOpen((prev) => !prev)} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 6px", cursor: "pointer" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "16px" }}>🌓</span>
+                {theme === "dark" ? (
+                  <IconMoon size={18} color={COLORS.deepSlate} />
+                ) : (
+                  <IconSun size={18} color={COLORS.deepSlate} />
+                )}
                 <span style={{ fontSize: "14px", fontWeight: 600, color: COLORS.deepSlate }}>Tema</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>

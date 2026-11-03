@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { COLORS, IconCopy } from '../shared-ui';
+import { COLORS, IconCopy, IconCheck, IconFileText, IconSquarePen, IconSparkles } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
 import { useToast } from '../../context/ToastContext';
 
@@ -39,7 +39,7 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
     setPromptCopied(true);
     showToast({
       type: 'success',
-      title: 'Prompt Tersalin ✓',
+      title: 'Prompt Tersalin',
       message: isReadyToPublish && activeTab === 'perfectionist'
         ? 'Prompt Micro-Tuning (Perfeksionis) berhasil disalin.'
         : 'Prompt remediasi berhasil disalin ke papan klip.',
@@ -89,12 +89,16 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px',
+              gap: '5px',
               transition: 'all 0.2s ease',
             }}
           >
-            <IconCopy size={13} color={promptCopied ? '#FFFFFF' : COLORS.deepSlate} />
-            <span>{promptCopied ? 'Tersalin ✓' : 'Salin Prompt'}</span>
+            {promptCopied ? (
+              <IconCheck size={13} color="#FFFFFF" />
+            ) : (
+              <IconCopy size={13} color={COLORS.deepSlate} />
+            )}
+            <span>{promptCopied ? 'Tersalin' : 'Salin Prompt'}</span>
           </button>
         )}
       </div>
@@ -133,9 +137,13 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
             cursor: 'pointer',
             boxShadow: viewMode === 'all' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             transition: 'all 0.15s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
           }}
         >
-          📑 Lengkap
+          <IconFileText size={12} color="currentColor" />
+          <span>Lengkap</span>
         </button>
         <button
           type="button"
@@ -151,9 +159,13 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
             cursor: 'pointer',
             boxShadow: viewMode === 'manual' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             transition: 'all 0.15s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
           }}
         >
-          ✍️ Panduan Kurasi Mandiri
+          <IconSquarePen size={12} color="currentColor" />
+          <span>Panduan Kurasi Mandiri</span>
         </button>
         <button
           type="button"
@@ -169,9 +181,13 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
             cursor: 'pointer',
             boxShadow: viewMode === 'ai' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
             transition: 'all 0.15s ease',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '5px',
           }}
         >
-          🤖 Prompt Generator AI
+          <IconSparkles size={12} color="currentColor" />
+          <span>Prompt Generator AI</span>
         </button>
       </div>
 
@@ -187,10 +203,11 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
                 marginBottom: '6px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
               }}
             >
-              <span>✍️ Panduan Kurasi Mandiri (White-Box):</span>
+              <IconSquarePen size={13} color="#065F46" />
+              <span>Panduan Kurasi Mandiri (White-Box):</span>
             </div>
           )}
           <ul
@@ -223,10 +240,11 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
                 marginBottom: '8px',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '5px',
               }}
             >
-              <span>🤖 Prompt Generator AI (LLM Prompt):</span>
+              <IconSparkles size={13} color="#4F46E5" />
+              <span>Prompt Generator AI (LLM Prompt):</span>
             </div>
           )}
 

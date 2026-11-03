@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { IconX } from '../components/shared-ui';
 
 export interface ToastMessage {
   id: string;
@@ -109,12 +110,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 cursor: 'pointer',
                 color: 'var(--waskita-text-muted, #64748B)',
                 padding: 4,
-                fontSize: '14px',
-                lineHeight: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               aria-label="Tutup notifikasi"
             >
-              ✕
+              <IconX size={14} color="currentColor" />
             </button>
           </div>
         ))}

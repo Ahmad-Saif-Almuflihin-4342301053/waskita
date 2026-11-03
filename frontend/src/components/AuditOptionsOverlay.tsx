@@ -7,6 +7,9 @@ import {
   IconAlertTriangle,
   IconAlertCircle,
   IconFileText,
+  IconZap,
+  IconBookOpen,
+  IconSettings,
 } from './shared-ui';
 import { QualityThresholds } from '../types/waskita';
 
@@ -41,11 +44,11 @@ export interface WordBudgetPreset {
 }
 
 export const WORD_BUDGET_PRESETS: WordBudgetPreset[] = [
-  { id: 'adaptive', label: '⚡ Adaptif SERP', desc: 'Disesuaikan dinamis dengan artikel acuan SERP' },
-  { id: 'compact', label: '📝 Ringkas (500–800)', min: 500, max: 800, desc: 'Berita ringkas, rangkuman, atau update kilat' },
-  { id: 'standard', label: '📄 Standar SEO (800–1.200)', min: 800, max: 1200, desc: 'Format ideal untuk SEO blog informatif' },
-  { id: 'pillar', label: '📚 Pillar Riset (1.200–1.800)', min: 1200, max: 1800, desc: 'Pillar post komprehensif atau riset mendalam' },
-  { id: 'custom', label: '⚙️ Kustom', desc: 'Atur batas kata minimum dan maksimum sendiri' },
+  { id: 'adaptive', label: 'Adaptif SERP', desc: 'Disesuaikan dinamis dengan artikel acuan SERP' },
+  { id: 'compact', label: 'Ringkas (500–800)', min: 500, max: 800, desc: 'Berita ringkas, rangkuman, atau update kilat' },
+  { id: 'standard', label: 'Standar SEO (800–1.200)', min: 800, max: 1200, desc: 'Format ideal untuk SEO blog informatif' },
+  { id: 'pillar', label: 'Pillar Riset (1.200–1.800)', min: 1200, max: 1800, desc: 'Pillar post komprehensif atau riset mendalam' },
+  { id: 'custom', label: 'Kustom', desc: 'Atur batas kata minimum dan maksimum sendiri' },
 ];
 
 export const PRESET_OPTIONS = [
@@ -663,7 +666,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                 }}
               >
                 {currentBudgetMode === 'adaptive'
-                  ? '⚡ Adaptif SERP'
+                  ? 'Adaptif SERP'
                   : `${thresholds.word_budget_min ?? 300}–${thresholds.word_budget_max ?? 1200} kata`}
               </span>
             </div>
@@ -678,6 +681,20 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             >
               {WORD_BUDGET_PRESETS.map((preset) => {
                 const active = currentBudgetMode === preset.id;
+                const getPresetIcon = () => {
+                  switch (preset.id) {
+                    case 'adaptive':
+                      return <IconZap size={11} color="currentColor" />;
+                    case 'compact':
+                    case 'standard':
+                      return <IconFileText size={11} color="currentColor" />;
+                    case 'pillar':
+                      return <IconBookOpen size={11} color="currentColor" />;
+                    case 'custom':
+                      return <IconSettings size={11} color="currentColor" />;
+                  }
+                };
+
                 return (
                   <button
                     key={preset.id}
@@ -696,6 +713,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                         : '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
                       color: COLORS.deepSlate,
                       cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '4px',
                       textAlign: 'center',
                       transition: 'all 0.15s ease',
                       whiteSpace: 'nowrap',
@@ -704,7 +725,8 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                     }}
                     title={preset.desc}
                   >
-                    {preset.label}
+                    {getPresetIcon()}
+                    <span>{preset.label}</span>
                   </button>
                 );
               })}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo, COLORS } from '../shared-ui';
+import { SemiCircleGauge, IconCheck, IconAlertCircle, IconInfo, IconTarget, IconSearch, COLORS } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
 
 export interface VerdictSectionProps {
@@ -170,7 +170,8 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  🔍 Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓
+                  <IconSearch size={12} color="#FFFFFF" />
+                  <span>Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓</span>
                 </button>
               </div>
             ) : (
@@ -193,12 +194,18 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                   <span style={{ flex: 1, minWidth: '240px' }}>
                     {(audit.metrics.consensus_matched_count ?? 0) >= (audit.metrics.consensus_target_count ?? 20) ? (
                       <span style={{ color: '#065F46' }}>
-                        ✓ <strong>Konsensus Pasar Penuh:</strong> Naskah Anda mencakup{' '}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginRight: '5px' }}>
+                          <IconCheck size={14} color="#065F46" />
+                        </span>
+                        <strong>Konsensus Pasar Penuh:</strong> Naskah Anda mencakup{' '}
                         <strong>{audit.metrics.consensus_matched_count} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target 80% / {audit.metrics.consensus_target_count} entitas terpenuhi 100%).
                       </span>
                     ) : (
                       <span>
-                        🎯 <strong>Road to 100% Konsensus:</strong> Mencakup{' '}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginRight: '5px' }}>
+                          <IconTarget size={14} color="#DC2626" />
+                        </span>
+                        <strong>Progres Konsensus Pasar:</strong> Mencakup{' '}
                         <strong>{audit.metrics.consensus_matched_count ?? 0} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target saturasi: {audit.metrics.consensus_target_count} entitas).
                         <span style={{ color: '#065F46', marginLeft: '4px' }}>
                           (Cukup tambahkan {(audit.metrics.consensus_target_count ?? 20) - (audit.metrics.consensus_matched_count ?? 0)} kata kunci prioritas untuk meraih skor Information Gain maksimal)
@@ -229,7 +236,8 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    🔍 Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓
+                    <IconSearch size={12} color="#FFFFFF" />
+                    <span>Lihat {audit.metrics?.consensus_total_count || audit.consensus_entities?.length || 25} Entitas &amp; Klausul SERP ↓</span>
                   </button>
                 </div>
               )

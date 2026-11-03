@@ -3,6 +3,7 @@ import { MobileSettingsSheet } from "./MobileSettingsSheet";
 import {
   COLORS,
   WaskitaLogo,
+  BetaBadge,
   IconX,
   IconSquarePen,
   IconSettings,
@@ -506,8 +507,9 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
           }}
         >
           {/* Logo Waskita (Kiri) */}
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <WaskitaLogo width={124} height={26} />
+            <BetaBadge />
           </div>
 
           {/* Tombol Search & Tutup/Collapse Sidebar (Kanan) */}

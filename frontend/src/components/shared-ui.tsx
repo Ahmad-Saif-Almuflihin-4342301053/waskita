@@ -742,6 +742,183 @@ export const IconMinimize2: React.FC<IconProps> = ({ size = 16, color = "current
   </svg>
 );
 
+export const IconLock: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
+
+export const IconUnlock: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+  </svg>
+);
+
+export const IconTarget: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <circle cx="12" cy="12" r="6" />
+    <circle cx="12" cy="12" r="2" />
+  </svg>
+);
+
+export const IconStar: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill={color}
+    stroke={color}
+    strokeWidth="1"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+);
+
+export const IconBookOpen: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+  </svg>
+);
+
+export const IconLightbulb: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <line x1="9" y1="18" x2="15" y2="18" />
+    <line x1="10" y1="22" x2="14" y2="22" />
+    <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+  </svg>
+);
+
+export const IconImage: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+    <circle cx="8.5" cy="8.5" r="1.5" />
+    <polyline points="21 15 16 10 5 21" />
+  </svg>
+);
+
+export const IconClock: React.FC<IconProps> = ({ size = 16, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+// Beta Release Badge (Staff Design System Standard)
+export const BetaBadge: React.FC<{
+  size?: 'sm' | 'md';
+  style?: React.CSSProperties;
+  className?: string;
+}> = ({ size = 'sm', style, className }) => (
+  <span
+    className={className}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: size === 'sm' ? '9px' : '10.5px',
+      fontWeight: 800,
+      letterSpacing: '0.08em',
+      textTransform: 'uppercase',
+      lineHeight: 1,
+      padding: size === 'sm' ? '2.5px 5.5px' : '3.5px 7px',
+      borderRadius: '4px',
+      background: 'rgba(16, 185, 129, 0.12)',
+      color: 'var(--waskita-logo-fill, #059669)',
+      border: '1px solid rgba(16, 185, 129, 0.28)',
+      userSelect: 'none',
+      verticalAlign: 'middle',
+      ...style,
+    }}
+  >
+    BETA
+  </span>
+);
+
 
 
 // SVG Radial Semi-Circle Gauge Component

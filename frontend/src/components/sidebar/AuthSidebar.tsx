@@ -3,6 +3,7 @@ import { MobileSettingsSheet } from "../MobileSettingsSheet";
 import {
   COLORS,
   WaskitaLogo,
+  BetaBadge,
   IconSearch,
   IconX,
   IconSquarePen,
@@ -207,8 +208,9 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
             flexShrink: 0,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <WaskitaLogo width={124} height={26} />
+            <BetaBadge />
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>

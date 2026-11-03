@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { COLORS } from './shared-ui';
+import { COLORS, IconClock, IconCheck } from './shared-ui';
 
 export interface LiveStepperProps {
   currentStep: number; // 1 to 5
@@ -127,7 +127,7 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({
                 }}
               >
                 {isDone ? (
-                  '✓'
+                  <IconCheck size={12} color="#FFFFFF" />
                 ) : isCurrent ? (
                   <svg
                     style={{ animation: 'spin 1s linear infinite', width: 14, height: 14 }}
@@ -173,9 +173,13 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({
                       fontSize: '11px',
                       color: '#059669',
                       fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
                     }}
                   >
-                    Selesai ✓
+                    <span>Selesai</span>
+                    <IconCheck size={11} color="#059669" />
                   </span>
                 )}
               </div>
@@ -197,7 +201,7 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({
             gap: '6px',
           }}
         >
-          <span>⏱️</span>
+          <IconClock size={13} color="var(--waskita-text-muted, #64748B)" />
           <span>{statusMessage}</span>
         </div>
       )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { COLORS } from '../shared-ui';
+import { COLORS, IconImage, IconLightbulb, IconX } from '../shared-ui';
 import { AuditExecuteResponse } from '../../types/waskita';
 
 export interface AnnotatedTextSectionProps {
@@ -133,7 +133,7 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
                     color: '#1E40AF',
                   }}
                 >
-                  <span style={{ fontSize: '15px' }}>🖼️</span>
+                  <IconImage size={16} color="#1E40AF" style={{ flexShrink: 0 }} />
                   <span>
                     <strong>Slot Gambar #{imageNum}:</strong> {imageContext}{' '}
                     <span style={{ opacity: 0.75 }}>(Letakkan aset visual di sini saat rilis CMS)</span>
@@ -244,13 +244,11 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
         >
           <div
             style={{
-              fontSize: '18px',
-              lineHeight: 1,
               marginTop: '1px',
               flexShrink: 0,
             }}
           >
-            💡
+            <IconLightbulb size={18} color="var(--waskita-primary, #1D4ED8)" />
           </div>
           <div style={{ flex: 1 }}>
             <div
@@ -311,16 +309,20 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
           <button
             type="button"
             onClick={() => setActiveSentenceSpan(null)}
+            aria-label="Tutup rincian diagnostik"
+            title="Tutup rincian diagnostik"
             style={{
               background: 'transparent',
               border: 'none',
-              fontWeight: 700,
               cursor: 'pointer',
-              color: COLORS.deepSlate,
+              color: 'var(--waskita-text-muted, #64748B)',
               padding: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            ✕
+            <IconX size={15} color="currentColor" />
           </button>
         </div>
       )}

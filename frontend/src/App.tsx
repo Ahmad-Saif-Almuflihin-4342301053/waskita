@@ -221,7 +221,7 @@ export const App: React.FC = () => {
       if (targetQuery) {
         showToast({
           type: 'info',
-          title: 'Kueri Terkunci 🔒',
+          title: 'Kueri Terkunci',
           message: `Kueri target dikunci pada '${targetQuery}' untuk menjaga konsistensi benchmark audit. Klik ikon gembok untuk membuka kunci.`,
         });
       }
@@ -242,7 +242,7 @@ export const App: React.FC = () => {
       const nextState = !prev;
       showToast({
         type: 'info',
-        title: nextState ? 'Kueri Terkunci 🔒' : 'Kueri Terbuka 🔓',
+        title: nextState ? 'Kueri Terkunci' : 'Kueri Terbuka',
         message: nextState
           ? `Kueri target terkunci pada '${targetQuery || 'kueri saat ini'}' untuk menjaga konsistensi audit.`
           : 'Kueri target berhasil dibuka. Anda bebas menyunting atau menimpa kueri target.',
@@ -488,7 +488,7 @@ export const App: React.FC = () => {
     navigator.clipboard.writeText(promptText);
     showToast({
       type: 'success',
-      title: 'Prompt Rekomendasi Tersalin ✓',
+      title: 'Prompt Rekomendasi Tersalin',
       message: 'Prompt remediasi perbaikan naskah disalin ke papan klip.',
     });
   };

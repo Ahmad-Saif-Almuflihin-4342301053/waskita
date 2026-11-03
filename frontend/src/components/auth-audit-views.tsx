@@ -1,5 +1,5 @@
 import React from "react";
-import { COLORS, WaskitaLogo } from "./shared-ui";
+import { COLORS, WaskitaLogo, BetaBadge } from "./shared-ui";
 
 export interface AuditStreamProps {
   isDesktop?: boolean;
@@ -31,8 +31,9 @@ export const NewAnalysisEmptyView: React.FC<AuditStreamProps> = ({
       }}
     >
       {/* Logo Resmi Waskita di Tengah Layar (Desktop & Mobile) */}
-      <div style={{ marginBottom: isDesktop ? "20px" : "16px" }}>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", marginBottom: isDesktop ? "20px" : "16px" }}>
         <WaskitaLogo width={isDesktop ? 160 : 130} height={isDesktop ? 34 : 28} />
+        <BetaBadge size="md" />
       </div>
 
       <h1

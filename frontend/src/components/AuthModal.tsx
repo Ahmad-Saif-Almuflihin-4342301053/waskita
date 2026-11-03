@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { COLORS, WaskitaLogo, IconX, IconUser, IconZap } from './shared-ui';
+import { COLORS, WaskitaLogo, BetaBadge, IconX, IconUser, IconZap } from './shared-ui';
 import { waskitaClient } from '../api/waskitaClient';
 import { useToast } from '../context/ToastContext';
 
@@ -153,8 +153,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         </button>
 
         {/* Brand & Title */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <WaskitaLogo width={140} height={30} />
+        <div style={{ textAlign: 'center', marginBottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <WaskitaLogo width={140} height={30} />
+            <BetaBadge />
+          </div>
           <h2
             style={{
               fontSize: '18px',

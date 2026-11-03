@@ -7,6 +7,10 @@ import {
   IconCoffee,
   IconMaximize2,
   IconMinimize2,
+  IconSearch,
+  IconPencil,
+  IconLock,
+  IconUnlock,
 } from "../shared-ui";
 import {
   countPureWords,
@@ -542,9 +546,10 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                         transition: "all 0.15s ease",
                       }}
                     >
-                      <span style={{ fontSize: "10px" }}>🎯 Topik:</span>
+                      <IconSearch size={11} color="#065F46" />
+                      <span style={{ fontSize: "10px", color: "var(--waskita-text-muted, #64748B)" }}>Topik:</span>
                       <span style={{ color: "#065F46" }}>"{targetQuery}"</span>
-                      <span style={{ fontSize: "10px", opacity: 0.7 }}>✏️</span>
+                      <IconPencil size={10} color="#065F46" style={{ opacity: 0.7 }} />
                     </button>
                     <button
                       type="button"
@@ -554,17 +559,21 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                         background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "transparent",
                         border: isQueryLocked ? "1px solid rgba(180, 83, 9, 0.3)" : "none",
                         borderRadius: "6px",
-                        padding: "2px 6px",
+                        padding: "3px 6px",
                         fontSize: "11px",
                         fontWeight: 600,
                         color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : "var(--waskita-text-muted, #64748B)",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
-                        gap: "2px",
+                        justifyContent: "center",
                       }}
                     >
-                      <span>{isQueryLocked ? "🔒" : "🔓"}</span>
+                      {isQueryLocked ? (
+                        <IconLock size={12} color="var(--waskita-amber-text, #B45309)" />
+                      ) : (
+                        <IconUnlock size={12} color="var(--waskita-text-muted, #64748B)" />
+                      )}
                     </button>
                   </div>
                 )}
