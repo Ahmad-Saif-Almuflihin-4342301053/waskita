@@ -338,6 +338,8 @@ export const App: React.FC = () => {
           parent_session_id: parentSession,
           use_cached_serp: true,
           thresholds,
+          word_budget_min: thresholds.word_budget_min,
+          word_budget_max: thresholds.word_budget_max,
         });
       } catch (err: any) {
         clearTimeout(stepTimer1);

@@ -526,6 +526,75 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertEqual(targetQuery, 'restorasi candi prambanan', 'Target query berhasil diubah setelah buka kunci');
   });
 
+  // Test 25 (Sprint 4.4): Dynamic Word Budget Feedback di Composer Dock
+  runCase('Logika Dynamic Word Budget Indicator (muted < 300, emerald rentang budget, amber > max)', () => {
+    const minWordCount = 300;
+    const testFeedback = (wordCount: number, budgetMin?: number, budgetMax?: number) => {
+      if (wordCount < minWordCount) {
+        return { text: `${wordCount} / ${minWordCount} kata min`, status: 'under-min' };
+      }
+      if (budgetMax && wordCount > budgetMax) {
+        return { text: `${wordCount} kata (Melebihi budget ${budgetMax}!) ⚠️`, status: 'exceeded' };
+      }
+      if (budgetMin && budgetMax) {
+        if (wordCount < budgetMin) {
+          return { text: `${wordCount} kata (Target: ${budgetMin}–${budgetMax})`, status: 'below-target' };
+        }
+        return { text: `${wordCount} kata (Target: ${budgetMin}–${budgetMax}) ✓`, status: 'on-target' };
+      }
+      return { text: `${wordCount} kata ✓`, status: 'adaptive-ready' };
+    };
+
+    // Kasus 1: Draf di bawah 300 kata
+    const r1 = testFeedback(150, 500, 800);
+    assertEqual(r1.status, 'under-min', 'Draf < 300 kata harus berstatus under-min');
+    assertEqual(r1.text, '150 / 300 kata min', 'Format teks draf < 300 kata');
+
+    // Kasus 2: Draf berada di dalam rentang budget (misal 650 kata pada budget 500-800)
+    const r2 = testFeedback(650, 500, 800);
+    assertEqual(r2.status, 'on-target', 'Draf dalam rentang budget harus on-target');
+    assertEqual(r2.text, '650 kata (Target: 500–800) ✓', 'Format teks rentang ideal');
+
+    // Kasus 3: Draf melebihi budget maksimum (misal 950 kata pada budget 500-800)
+    const r3 = testFeedback(950, 500, 800);
+    assertEqual(r3.status, 'exceeded', 'Draf > budget max harus exceeded');
+    assertEqual(r3.text, '950 kata (Melebihi budget 800!) ⚠️', 'Format teks peringatan budget melebihi');
+
+    // Kasus 4: Mode adaptif (tanpa batas budget kustom)
+    const r4 = testFeedback(450);
+    assertEqual(r4.status, 'adaptive-ready', 'Draf adaptif >= 300 kata harus adaptive-ready');
+    assertEqual(r4.text, '450 kata ✓', 'Format teks adaptif');
+  });
+
+  // Test 26 (Sprint 4.4): Telemetri Road to 100% & Prioritas Konsensus
+  runCase('Telemetri Road to 100% dan kalkulasi kekurangan kata kunci konsensus', () => {
+    const consensusTotal = 25;
+    const consensusTarget = Math.max(5, Math.floor(consensusTotal * 0.8)); // 20 entitas jenuh 80%
+    const currentMatched = 19;
+
+    const remainingTo100 = Math.max(0, consensusTarget - currentMatched);
+    assertEqual(consensusTarget, 20, 'Target konsensus jenuh 80% dari 25 adalah 20');
+    assertEqual(remainingTo100, 1, 'Kekurangan entitas menuju skor 100% harus 1');
+
+    // Simulasi penambahan 1 kata kunci konsensus prioritas
+    const newMatched = currentMatched + 1;
+    const newRemaining = Math.max(0, consensusTarget - newMatched);
+    assertEqual(newRemaining, 0, 'Setelah menambah 1 entitas konsensus, target tercapai 100%');
+  });
+
+  // Test 27 (Sprint 4.4): Smart Default Tab Remediasi
+  runCase('Smart Default Tab Remediasi (Micro-Tuning vs CMS Pack)', () => {
+    const getInitialTab = (status: string, score: number): 'cms' | 'perfectionist' => {
+      const isReady = status === 'Siap Terbit' || status === 'Layak Terbit';
+      if (isReady && score < 100) return 'perfectionist';
+      return 'cms';
+    };
+
+    assertEqual(getInitialTab('Siap Terbit', 99), 'perfectionist', 'Siap Terbit dengan skor 99% harus membuka Tab 2 (Micro-Tuning)');
+    assertEqual(getInitialTab('Siap Terbit', 100), 'cms', 'Siap Terbit dengan skor 100% harus membuka Tab 1 (CMS Pack)');
+    assertEqual(getInitialTab('Perlu Revisi', 65), 'cms', 'Perlu Revisi harus membuka Tab CMS/Remediasi default');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);

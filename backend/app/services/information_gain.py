@@ -1,19 +1,58 @@
-from typing import Dict, List, Optional, Set, Tuple
+import re
+from typing import Any, Dict, List, Optional, Set, Tuple
 from app.schemas.audit import EntityGapItem, EntityGapsGroup
 from app.services.gatekeeper import is_commercial_or_sponsor
 from app.services.nlp_pipeline import (
     ALL_INDONESIAN_STOPWORDS,
     FORBIDDEN_GAIN_CONNECTOR_WORDS,
     NON_TOPICAL_VERBS_AND_ADJECTIVES,
+    is_narrative_noise,
 )
 
 
-def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 10) -> List[EntityGapItem]:
+def _find_competitor_snippet(
+    term_stem: str, term_surface: str, competitor_docs: Optional[List[Any]]
+) -> Optional[str]:
     """
-    Bigram Subsumption Filter (Sprint 4.1):
+    Ekstrak 1 kalimat cuplikan nyata dari artikel kompetitor yang memuat kata defisit (Sprint 4.4).
+    Memberikan konteks empiris kepada penulis mandiri tanpa perlu bertanya ke AI.
+    """
+    if not competitor_docs:
+        return None
+    stem_low = term_stem.lower().strip()
+    surface_low = term_surface.lower().strip()
+
+    for doc in competitor_docs:
+        text = ""
+        domain = ""
+        if isinstance(doc, dict):
+            text = doc.get("clean_text") or doc.get("snippet_text") or ""
+            domain = doc.get("domain_name") or ""
+        elif isinstance(doc, str):
+            text = doc
+
+        if not text:
+            continue
+
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        for s in sentences:
+            s_clean = s.strip()
+            s_low = s_clean.lower()
+            if (surface_low in s_low or stem_low in s_low) and len(s_clean.split()) >= 5:
+                if len(s_clean) > 160:
+                    s_clean = s_clean[:157] + "..."
+                if domain:
+                    return f'"{s_clean}" ({domain})'
+                return f'"{s_clean}"'
+    return None
+
+
+def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 12) -> List[EntityGapItem]:
+    """
+    Bigram Subsumption Filter (Sprint 4.1 & 4.4):
     Jika suatu bigram 'A B' sudah masuk daftar teratas, hilangkan unigram 'A' atau 'B'
-    yang konsensusnya tidak lebih tinggi dari bigram tersebut agar tidak terjadi duplikasi chip
-    (misal mencegah munculnya 'Beton Ekspos' dan 'Ekspos' secara bersamaan).
+    yang konsensusnya tidak lebih tinggi dari bigram tersebut agar tidak terjadi duplikasi chip.
+    Item konsensus prioritas dipertahankan.
     """
     bigram_parts_consensus: Dict[str, int] = {}
     for it in items:
@@ -28,7 +67,7 @@ def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 10) 
     filtered: List[EntityGapItem] = []
     for it in items:
         parts = it.term_string.split()
-        if len(parts) == 1:
+        if len(parts) == 1 and not it.is_consensus_priority:
             uni = parts[0]
             if uni in bigram_parts_consensus and it.competitor_consensus_count <= bigram_parts_consensus[uni]:
                 continue
@@ -44,6 +83,8 @@ def calculate_information_gain(
     draft_tfidf_weights: Optional[Dict[str, float]] = None,
     full_draft_stems: Optional[Set[str]] = None,
     full_competitor_stems_list: Optional[List[Set[str]]] = None,
+    consensus_serp_stems: Optional[Set[str]] = None,
+    competitor_docs: Optional[List[Any]] = None,
 ) -> EntityGapsGroup:
     r"""
     Ekstraksi Information Gain & Celah Topik (Bab 2.2.3 — Persamaan 2.4 & 2.5, Sprint 4.1):
@@ -137,16 +178,44 @@ def calculate_information_gain(
     top_gain = _deduplicate_subsumed_unigrams(gain_items, limit=10)
 
     # 2. Delta Deficit: Ada di SERP (consensus >= 2), 100% ABSEN dari kosakata utuh draft
-    deficit_stems = set(serp_map.keys()) - complete_draft_stems
+    # Sprint 4.4: Sinkronisasi Top-25 Konsensus SERP (Single Source of Truth)
+    missing_consensus_stems: Set[str] = set()
+    if consensus_serp_stems:
+        clean_consensus = {
+            st for st in consensus_serp_stems
+            if st not in NON_TOPICAL_VERBS_AND_ADJECTIVES
+            and not is_narrative_noise(st)
+            and st not in ALL_INDONESIAN_STOPWORDS
+        }
+        missing_consensus_stems = clean_consensus - complete_draft_stems
+
+    deficit_stems = (set(serp_map.keys()) - complete_draft_stems) | missing_consensus_stems
     deficit_items: List[EntityGapItem] = []
     min_required_consensus = 2 if num_competitors >= 2 else 1
 
     for stem in deficit_stems:
-        surface = serp_map[stem]
+        surface = serp_map.get(stem)
+        if not surface:
+            # Cari surface form dari daftar entitas kompetitor jika tersedia
+            for comp_ents in competitor_entities_list:
+                for s, surf, _ in comp_ents:
+                    if s == stem:
+                        surface = surf
+                        break
+                if surface:
+                    break
+            if not surface:
+                surface = stem.title()
+
         if is_commercial_or_sponsor(stem) or is_commercial_or_sponsor(surface):
             continue
-        # Filter kata kerja/sifat non-topikal & kata terlalu pendek (Sprint 4.2)
-        if stem in NON_TOPICAL_VERBS_AND_ADJECTIVES or surface.lower() in NON_TOPICAL_VERBS_AND_ADJECTIVES:
+        # Filter kata kerja/sifat non-topikal & polusi klitik naratif (Sprint 4.2 & 4.4)
+        if (
+            stem in NON_TOPICAL_VERBS_AND_ADJECTIVES
+            or surface.lower() in NON_TOPICAL_VERBS_AND_ADJECTIVES
+            or is_narrative_noise(stem)
+            or is_narrative_noise(surface)
+        ):
             continue
         if len(stem) < 4 and " " not in stem:
             continue
@@ -155,26 +224,42 @@ def calculate_information_gain(
             continue
         if any(p in FORBIDDEN_GAIN_CONNECTOR_WORDS for p in parts):
             continue
+        if any(is_narrative_noise(p) for p in parts):
+            continue
 
         # Jika bigram yang semua kata penyusunnya sudah ada di draf, lewati agar tidak redundan
         if len(parts) > 1 and all(p in complete_draft_stems for p in parts):
             continue
 
         consensus = serp_consensus.get(stem, 1)
-        if consensus < min_required_consensus:
+        is_priority = stem in missing_consensus_stems
+
+        # Item konsensus prioritas wajib lolos meskipun consensus < min_required_consensus
+        if not is_priority and consensus < min_required_consensus:
             continue
 
         weight = round(0.50 + (0.15 * min(consensus, 5)), 4)
+        if is_priority:
+            weight = round(weight * 1.25, 4)
+
+        snippet = _find_competitor_snippet(stem, surface, competitor_docs)
+
         deficit_items.append(
             EntityGapItem(
                 term_string=stem,
                 term_surface_form=surface.title(),
                 tfidf_weight=weight,
                 competitor_consensus_count=consensus,
+                is_consensus_priority=is_priority,
+                competitor_snippet=snippet,
             )
         )
 
-    deficit_items.sort(key=lambda x: (x.competitor_consensus_count, x.tfidf_weight), reverse=True)
-    top_deficit = _deduplicate_subsumed_unigrams(deficit_items, limit=10)
+    # Urutkan: Konsensus prioritas (#1) paling atas, diikuti frekuensi konsensus dan bobot TF-IDF
+    deficit_items.sort(
+        key=lambda x: (1 if x.is_consensus_priority else 0, x.competitor_consensus_count, x.tfidf_weight),
+        reverse=True,
+    )
+    top_deficit = _deduplicate_subsumed_unigrams(deficit_items, limit=12)
 
     return EntityGapsGroup(deficit=top_deficit, gain=top_gain)

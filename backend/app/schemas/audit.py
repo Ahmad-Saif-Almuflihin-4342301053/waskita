@@ -37,6 +37,9 @@ class AuditExecuteRequest(BaseModel):
     parent_session_id: Optional[str] = None
     use_cached_serp: bool = True
     thresholds: Optional[ThresholdConfig] = Field(default_factory=ThresholdConfig)
+    # Dynamic Word Budget (Sprint 4.4)
+    word_budget_min: Optional[int] = Field(default=None, ge=300, le=5000)
+    word_budget_max: Optional[int] = Field(default=None, ge=400, le=6000)
 
     @field_validator("target_query", "draft_title", "draft_content", mode="before")
     @classmethod
@@ -78,6 +81,11 @@ class MetricResultSchema(BaseModel):
     is_out_of_domain: bool = False
     topic_shift_detected: bool = False
     is_topic_shift: bool = False
+    # Sub-skor White-Box & Telemetri Konsensus (Sprint 4.4)
+    sub_scores: Dict[str, float] = Field(default_factory=dict)
+    consensus_matched_count: int = 0
+    consensus_target_count: int = 0
+    consensus_total_count: int = 0
 
 
 class EntityGapItem(BaseModel):
@@ -85,6 +93,8 @@ class EntityGapItem(BaseModel):
     term_surface_form: str
     tfidf_weight: float
     competitor_consensus_count: int
+    is_consensus_priority: bool = False
+    competitor_snippet: Optional[str] = None
 
 
 class EntityGapsGroup(BaseModel):

@@ -13,6 +13,7 @@ import {
   extractSmartKeyword,
   sanitizePastedOrUploadedDraft,
 } from "../../utils/draftSanitizer";
+import { QualityThresholds } from "../../types/waskita";
 
 export interface FloatingComposerDockProps {
   isDesktop?: boolean;
@@ -35,7 +36,7 @@ export interface FloatingComposerDockProps {
   onTargetQueryChange?: (query: string) => void;
   isQueryLocked?: boolean;
   onToggleQueryLock?: () => void;
-  thresholds?: { min_cds_score?: number };
+  thresholds?: QualityThresholds;
   showDisclaimer?: boolean;
 }
 
@@ -57,6 +58,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   targetQuery = "",
   isQueryLocked = false,
   onToggleQueryLock,
+  thresholds,
   showDisclaimer = false,
 }) => {
   const isCentered = layoutMode === "centered";
@@ -100,6 +102,50 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
     typeof propWordCount === "number" ? propWordCount : countPureWords(draftText);
   const isEligibleToSubmit = currentWordCount >= minWordCount;
   const hasContent = draftText.trim().length > 0;
+
+  const getWordCountFeedback = () => {
+    const budgetMin = thresholds?.word_budget_min;
+    const budgetMax = thresholds?.word_budget_max;
+
+    if (currentWordCount < minWordCount) {
+      return {
+        text: `${currentWordCount} / ${minWordCount} kata min`,
+        color: "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
+        title: `Minimal ${minWordCount} kata untuk memulai audit`,
+      };
+    }
+
+    if (budgetMax && currentWordCount > budgetMax) {
+      return {
+        text: `${currentWordCount} kata (Melebihi budget ${budgetMax}!) ⚠️`,
+        color: "#B45309",
+        title: `Naskah melebihi batas target maksimum (${budgetMax} kata)`,
+      };
+    }
+
+    if (budgetMin && budgetMax) {
+      if (currentWordCount < budgetMin) {
+        return {
+          text: `${currentWordCount} kata (Target: ${budgetMin}–${budgetMax})`,
+          color: "var(--waskita-text-muted, #64748B)",
+          title: `Panjang naskah di bawah target (${budgetMin}–${budgetMax} kata)`,
+        };
+      }
+      return {
+        text: `${currentWordCount} kata (Target: ${budgetMin}–${budgetMax}) ✓`,
+        color: "var(--waskita-emerald-accent, #059669)",
+        title: `Panjang naskah ideal sesuai budget target (${budgetMin}–${budgetMax} kata)`,
+      };
+    }
+
+    return {
+      text: `${currentWordCount} kata ✓`,
+      color: "var(--waskita-emerald-accent, #059669)",
+      title: "Panjang naskah memenuhi syarat audit",
+    };
+  };
+
+  const wordFeedback = getWordCountFeedback();
 
   // Auto-resize textarea when minimized with content
   useEffect(() => {
@@ -392,16 +438,15 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 style={{
                   fontSize: "12px",
                   fontWeight: 600,
-                  color: isEligibleToSubmit
-                    ? "var(--waskita-emerald-accent, #059669)"
-                    : "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
+                  color: wordFeedback.color,
                   whiteSpace: "nowrap",
                   padding: "0 6px",
                   userSelect: "none",
                   transition: "color 0.2s ease",
                 }}
+                title={wordFeedback.title}
               >
-                {currentWordCount} / {minWordCount} kata
+                {wordFeedback.text}
               </span>
             )}
 
@@ -620,16 +665,15 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                     style={{
                       fontSize: "12px",
                       fontWeight: 600,
-                      color: isEligibleToSubmit
-                        ? "var(--waskita-emerald-accent, #059669)"
-                        : "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
+                      color: wordFeedback.color,
                       whiteSpace: "nowrap",
                       padding: "0 4px",
                       userSelect: "none",
                       transition: "color 0.2s ease",
                     }}
+                    title={wordFeedback.title}
                   >
-                    {currentWordCount} / {minWordCount} kata
+                    {wordFeedback.text}
                   </span>
                 )}
 

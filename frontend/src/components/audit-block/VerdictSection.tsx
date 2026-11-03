@@ -105,6 +105,113 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             ? `Selamat! Skor diferensiasi ${cdsScore}% melampaui ambang batas ${thresholdCds}%. Draf telah memiliki entitas baru bernilai tambah dan aman dari risiko kanibalisasi konten.`
             : `Naskah memperoleh skor ${cdsScore}% (di bawah batas ${thresholdCds}%). Diperlukan penguatan informasi unik dan reduksi kalimat generik sebelum diterbitkan.`}
         </p>
+
+        {/* Bar Telemetri Konsensus Pasar (Road to 100% - Sprint 4.4) */}
+        {!isDemo && audit.metrics?.consensus_target_count && audit.metrics.consensus_target_count > 0 && cdsScore < 100 && (
+          <div
+            style={{
+              marginTop: '12px',
+              padding: '8px 12px',
+              borderRadius: '10px',
+              background: 'rgba(5, 150, 105, 0.08)',
+              border: '1px solid rgba(5, 150, 105, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              fontSize: '12px',
+            }}
+          >
+            <span>
+              🎯 <strong>Road to 100%:</strong> Cakupan Konsensus Pasar{' '}
+              <strong>{audit.metrics.consensus_matched_count ?? 0} / {audit.metrics.consensus_target_count}</strong> entitas.
+              {(audit.metrics.consensus_matched_count ?? 0) < audit.metrics.consensus_target_count && (
+                <span style={{ color: '#065F46', marginLeft: '4px' }}>
+                  (Cukup tambahkan {audit.metrics.consensus_target_count - (audit.metrics.consensus_matched_count ?? 0)} kata kunci prioritas untuk meraih 100%)
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Pil Sub-Skor White-Box (Sprint 4.4) */}
+        {!isDemo && audit.metrics?.sub_scores && Object.keys(audit.metrics.sub_scores).length > 0 && (
+          <div
+            style={{
+              marginTop: '10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                color: 'var(--waskita-text-muted, #64748B)',
+                marginRight: '2px',
+              }}
+            >
+              Komponen Skor:
+            </div>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(30, 41, 59, 0.06)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+                color: 'var(--waskita-text-body, #334155)',
+              }}
+              title="Komponen VSM Anti-Jiplak terhadap kemiripan kosinus kompetitor (Maks 35)"
+            >
+              VSM (Anti-Jiplak): <strong>{audit.metrics.sub_scores.vsm ?? 35}</strong>/35
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(5, 150, 105, 0.08)',
+                border: '1px solid rgba(5, 150, 105, 0.2)',
+                color: 'var(--waskita-emerald-text, #065F46)',
+              }}
+              title="Komponen Information Gain atas cakupan konsensus topik SERP (Maks 30)"
+            >
+              IG (Topik SERP): <strong>{audit.metrics.sub_scores.ig ?? 30}</strong>/30
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(30, 41, 59, 0.06)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+                color: 'var(--waskita-text-body, #334155)',
+              }}
+              title="Moving-Average Type-Token Ratio / Variasi kosakata unik (Maks 20)"
+            >
+              MATTR (Kekayaan Diksi): <strong>{audit.metrics.sub_scores.mattr ?? 20}</strong>/20
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: '6px',
+                background: 'rgba(30, 41, 59, 0.06)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+                color: 'var(--waskita-text-body, #334155)',
+              }}
+              title="Heading Keyword Overlap / Bebas spam kata kunci pada judul/heading (Maks 15)"
+            >
+              HKO (Anti-Spam Judul): <strong>{audit.metrics.sub_scores.hko ?? 15}</strong>/15
+            </span>
+          </div>
+        )}
       </div>
 
       <div style={{ flexShrink: 0, display: 'flex', justifyContent: 'center' }}>

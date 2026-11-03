@@ -37,9 +37,12 @@ from app.services.gatekeeper import (
 )
 from app.services.information_gain import calculate_information_gain
 from app.services.nlp_pipeline import (
+    ALL_INDONESIAN_STOPWORDS,
+    NON_TOPICAL_VERBS_AND_ADJECTIVES,
     extract_candidate_entities,
     extract_candidate_gain_entities,
     extract_full_stem_set,
+    is_narrative_noise,
     preprocess_text_async,
     strip_media_placeholders,
 )
@@ -192,9 +195,9 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         entity_gaps=EntityGapsGroup(deficit=deficit_items, gain=gain_items),
         annotated_spans=annotated_spans,
         overview_bullets=overview_bullets,
-        remediation_prompt=session.remediation_prompt or "",
-        remediation_prompt_cms=session.remediation_prompt or "",
-        remediation_prompt_perfectionist=None,
+        remediation_prompt=ov_rem.get("remediation_prompt") or session.remediation_prompt or "",
+        remediation_prompt_cms=ov_rem.get("remediation_prompt_cms") or session.remediation_prompt or "",
+        remediation_prompt_perfectionist=ov_rem.get("remediation_prompt_perfectionist"),
         serp_competitors=serp_items,
         serp_source=serp_source,
         serp_audit_summary=None,
@@ -376,7 +379,7 @@ async def execute_audit(
             "Korpus acuan sesi lama tidak relevan dengan draf revisi ini."
         )
 
-    # 5. Ekstraksi Entitas & Information Gain (Persamaan 2.4 - 2.5, Sprint 4.1 & Sprint 4.2 Long-Tail Gain)
+    # 5. Ekstraksi Entitas & Konsensus SERP (Sprint 4.4 Single Source of Truth)
     draft_entities = extract_candidate_entities(draft_content, top_n=40)
     longtail_gain_entities = extract_candidate_gain_entities(draft_content)
     existing_draft_stems = {e[0] for e in draft_entities}
@@ -395,12 +398,33 @@ async def execute_audit(
         for c in competitor_docs
     ]
 
+    # Bangun Top-25 Konsensus SERP murni topikal (Sprint 4.4 Single Source of Truth)
+    serp_candidate_stems = {
+        e[0] for ce in competitor_entities_list for e in ce
+        if e[0] not in NON_TOPICAL_VERBS_AND_ADJECTIVES
+        and not is_narrative_noise(e[0])
+        and e[0] not in ALL_INDONESIAN_STOPWORDS
+    }
+    consensus_serp_stems = set()
+    if len(full_comp_stems_list) >= 2:
+        stem_freqs = []
+        for st in serp_candidate_stems:
+            doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
+            if doc_freq >= 2:
+                stem_freqs.append((st, doc_freq))
+        stem_freqs.sort(key=lambda x: x[1], reverse=True)
+        consensus_serp_stems = {st for st, _ in stem_freqs[:25]}
+    if not consensus_serp_stems:
+        consensus_serp_stems = serp_candidate_stems
+
     entity_gaps = calculate_information_gain(
-        draft_entities,
-        competitor_entities_list,
+        draft_entities=draft_entities,
+        competitor_entities_list=competitor_entities_list,
         draft_tfidf_weights=vsm_results["draft_tfidf_weights"],
         full_draft_stems=full_draft_stems,
         full_competitor_stems_list=full_comp_stems_list,
+        consensus_serp_stems=consensus_serp_stems,
+        competitor_docs=competitor_docs,
     )
 
     # 6. Analisis Stilometri (TTR, MATTR, HKO)
@@ -419,27 +443,17 @@ async def execute_audit(
     red_spans = [span for span in annotated_spans if span.color == "red"]
     red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
 
-    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.1 Top-25 Consensus Set)
-    serp_candidate_stems = {e[0] for ce in competitor_entities_list for e in ce}
-    consensus_serp_stems = set()
-    if len(full_comp_stems_list) >= 2:
-        stem_freqs = []
-        for st in serp_candidate_stems:
-            doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
-            if doc_freq >= 2:
-                stem_freqs.append((st, doc_freq))
-        stem_freqs.sort(key=lambda x: x[1], reverse=True)
-        consensus_serp_stems = {st for st, _ in stem_freqs[:25]}
-    if not consensus_serp_stems:
-        consensus_serp_stems = serp_candidate_stems
-
+    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.3 80% Saturation)
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
+    consensus_matched_count = len(shared_consensus)
+    consensus_total_count = len(consensus_serp_stems)
+    saturated_target = max(1, int(consensus_total_count * 0.80))
 
     cds_decision = calculate_composite_cds(
         max_cosine_sim=vsm_results["max_cosine_similarity"],
         draft_entities_count=len(full_draft_stems),
-        serp_entities_count=len(consensus_serp_stems),
-        shared_entities_count=len(shared_consensus),
+        serp_entities_count=consensus_total_count,
+        shared_entities_count=consensus_matched_count,
         gain_count=len(entity_gaps.gain),
         mattr_score=stylometrics["mattr_score"],
         hko_percentage=stylometrics["hko_percentage"],
@@ -464,7 +478,7 @@ async def execute_audit(
         highest_comp = max(competitor_docs, key=lambda d: d.get("cosine_similarity", 0.0))
     red_snippets = [span.text for span in red_spans]
 
-    # 9. Poin Editorial & Remediasi Kurasi (Sprint 4.1: competitor_count dinamis & Sprint 4.2: Word Budget & Multi-Competitor)
+    # 9. Poin Editorial & Remediasi Kurasi (Sprint 4.1: competitor_count dinamis & Sprint 4.4: Dynamic Word Budget)
     overview_remediation = generate_overview_and_remediation(
         verdict_status=final_verdict_status,
         cds_score=cds_decision["content_differentiation_score"],
@@ -481,6 +495,8 @@ async def execute_audit(
         competitor_count=len(competitor_docs),
         serp_competitors=competitor_docs,
         draft_word_count=draft_word_count,
+        word_budget_min=req.word_budget_min,
+        word_budget_max=req.word_budget_max,
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)
@@ -616,6 +632,10 @@ async def execute_audit(
             is_out_of_domain=cds_decision.get("is_out_of_domain", False),
             topic_shift_detected=topic_shift_detected,
             is_topic_shift=topic_shift_detected,
+            sub_scores=cds_decision.get("sub_scores", {}),
+            consensus_matched_count=consensus_matched_count,
+            consensus_target_count=saturated_target,
+            consensus_total_count=consensus_total_count,
         ),
         entity_gaps=entity_gaps,
         annotated_spans=annotated_spans,
