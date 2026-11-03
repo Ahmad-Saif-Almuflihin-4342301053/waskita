@@ -54,9 +54,76 @@ export function sanitizePastedOrUploadedDraft(
           el.parentNode?.replaceChild(token, el);
         });
 
+        // Helper untuk mengecek apakah elemen gambar adalah ikon sosial media / tombol share / UI icon (Sprint 4.4)
+        const isSocialOrUiIcon = (el: Element): boolean => {
+          const img = el.tagName.toLowerCase() === 'img' ? el : el.querySelector('img');
+          const src = (img?.getAttribute('src') || '').toLowerCase();
+          const alt = (img?.getAttribute('alt') || '').toLowerCase();
+          const className = ((el.getAttribute('class') || '') + ' ' + (img?.getAttribute('class') || '')).toLowerCase();
+
+          // 1. Cek parent link atau container (<a href="...facebook.com/sharer...", <div class="share-box">)
+          let parent = el.parentElement;
+          while (parent && parent !== doc.body) {
+            const parentTag = parent.tagName.toLowerCase();
+            const parentHref = (parent.getAttribute('href') || '').toLowerCase();
+            const parentClass = (parent.getAttribute('class') || '').toLowerCase();
+            const parentId = (parent.getAttribute('id') || '').toLowerCase();
+
+            if (
+              /facebook|twitter|whatsapp|telegram|linkedin|pinterest|share|sosial|medsos|social/i.test(parentHref) ||
+              /share|social|medsos|icon|button|btn|avatar|author|profile|logo/i.test(parentClass) ||
+              /share|social|medsos|icon|avatar/i.test(parentId)
+            ) {
+              return true;
+            }
+            if (parentTag === 'header' || parentTag === 'footer' || parentTag === 'nav') {
+              return true;
+            }
+            parent = parent.parentElement;
+          }
+
+          // 2. Cek atribut src gambar
+          const iconPatterns = [
+            'facebook', 'twitter', 'whatsapp', 'telegram', 'linkedin', 'instagram', 'pinterest',
+            'share', 'sosial', 'medsos', 'icon', 'logo', 'avatar', 'user', 'profile', 'badge',
+            'button', 'btn', 'pixel', 'tracker', 'data:image/svg+xml'
+          ];
+          if (iconPatterns.some((pattern) => src.includes(pattern))) {
+            return true;
+          }
+
+          // 3. Cek alt text
+          if (/bagikan|share|facebook|twitter|whatsapp|email|medsos|sosial|logo|avatar|icon/i.test(alt)) {
+            return true;
+          }
+
+          // 4. Cek kelas CSS
+          if (/share|social|icon|avatar|logo|btn/i.test(className)) {
+            return true;
+          }
+
+          // 5. Cek atribut width dan height (jika dimensi <= 48px)
+          const widthAttr = img?.getAttribute('width');
+          const heightAttr = img?.getAttribute('height');
+          if (widthAttr && parseInt(widthAttr, 10) <= 48 && parseInt(widthAttr, 10) > 0) {
+            return true;
+          }
+          if (heightAttr && parseInt(heightAttr, 10) <= 48 && parseInt(heightAttr, 10) > 0) {
+            return true;
+          }
+
+          return false;
+        };
+
         // 2. Ekstrak dan ganti elemen gambar (<img ...>, figure.wp-block-image) dengan konteks subjudul/caption
         const imageElements = doc.querySelectorAll('img, figure.wp-block-image');
         imageElements.forEach((el) => {
+          // Abaikan ikon sosmed, tombol bagikan, dan UI icon kecil
+          if (isSocialOrUiIcon(el)) {
+            el.parentNode?.removeChild(el);
+            return;
+          }
+
           imageCounter++;
           const precedingH = findPrecedingHeadingText(el);
           const altText = el.getAttribute('alt')?.trim() || el.querySelector('img')?.getAttribute('alt')?.trim();
@@ -94,6 +161,9 @@ export function sanitizePastedOrUploadedDraft(
           headingContext = hMatch[1].replace(/<[^>]+>/g, '').trim();
           simulatedHtml += part;
         } else if (/<img/i.test(part) || /<figure/i.test(part)) {
+          if (/facebook|twitter|whatsapp|telegram|linkedin|share|sosial|medsos|icon|avatar|logo|btn/i.test(part)) {
+            continue;
+          }
           imageCounter++;
           const altMatch = part.match(/alt=["']([^"']+)["']/i);
           const ctx = headingContext || (altMatch ? altMatch[1].trim() : '') || 'Bagian Ini';

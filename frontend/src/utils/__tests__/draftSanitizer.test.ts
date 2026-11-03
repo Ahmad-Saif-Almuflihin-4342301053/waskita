@@ -595,6 +595,27 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertEqual(getInitialTab('Perlu Revisi', 65), 'cms', 'Perlu Revisi harus membuka Tab CMS/Remediasi default');
   });
 
+  // Test 28 (Sprint 4.4): Filter Ikon Media Sosial dan Tombol Bagikan dari Slot Gambar
+  runCase('Filter ikon media sosial dan tombol bagikan tidak diubah menjadi slot gambar', () => {
+    const rawHtmlWithSocial = `
+      <h1>Sakit Pinggang Saat Hamil, Inilah Penyebab dan Cara Mengatasinya</h1>
+      <div class="share-buttons">
+        <a href="https://facebook.com/sharer"><img src="/icons/facebook.svg" alt="Bagikan ke Facebook" /></a>
+        <a href="https://twitter.com/share"><img src="/icons/twitter.png" alt="Twitter" /></a>
+        <a href="mailto:?subject=artikel"><img src="/icons/email-icon.svg" alt="Email" /></a>
+      </div>
+      <p>Sakit pinggang saat hamil adalah kondisi yang umum terjadi pada wanita.</p>
+      <figure class="wp-block-image">
+        <img src="https://alodokter.com/images/senam-hamil.jpg" alt="Panduan Gerakan Senam Hamil" />
+        <figcaption>Ilustrasi Senam Hamil</figcaption>
+      </figure>
+    `;
+    const res = sanitizePastedOrUploadedDraft('', rawHtmlWithSocial);
+    assertEqual(res.imageCount, 1, 'Hanya gambar konten yang dihitung (ikon sosmed wajib diabaikan)');
+    assertTrue(!res.cleanText.includes('Bagikan ke Facebook'), 'Teks tombol sosmed tidak boleh jadi slot gambar');
+    assertTrue(res.cleanText.includes('[gambar 1: Ilustrasi'), 'Gambar konten harus tetap diubah jadi slot gambar');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);

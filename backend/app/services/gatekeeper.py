@@ -302,6 +302,7 @@ def calculate_composite_cds(
     thresholds: ThresholdConfig,
     avg_cosine_sim: Optional[float] = None,
     red_span_ratio: float = 0.0,
+    max_consecutive_red: int = 0,
 ) -> Dict[str, any]:
     """
     Rumus Komposit Content Differentiation Score (CDS 0-100%) & Keputusan Gatekeeper (Bab 2.4 & FR-10):
@@ -360,8 +361,8 @@ def calculate_composite_cds(
     # Topic Relevance Gate (Sprint 3.1 & 3.4)
     is_out_of_domain = (avg_cosine_sim is not None) and (avg_cosine_sim < 0.05)
 
-    # Sprint 4.0: Red-Span Density Veto Gate (ambang batas >= 20% kalimat redundan)
-    is_sentence_redundant = red_span_ratio >= 0.20
+    # Sprint 4.0 & 4.4: Red-Span Density Veto Gate (ambang batas >= 20% kalimat redundan atau >= 3 kalimat merah beruntun)
+    is_sentence_redundant = (red_span_ratio >= 0.20) or (max_consecutive_red >= 3)
 
     # Non-Compensatory Pillar Floor (Sprint 4.1): C_IG wajib >= 45.0% untuk lolos Siap Terbit jika ada >= 3 entitas SERP
     is_superficial_content = (serp_entities_count >= 3) and (c_ig < 45.0)
@@ -372,8 +373,9 @@ def calculate_composite_cds(
         cds = min(cds, 20.0)
     elif is_sentence_redundant:
         verdict_status = "Perlu Revisi - Redundansi Kalimat Tinggi"
-        # Skor CDS tidak boleh melebihi 58.0% jika lebih dari seperlima draf menjiplak kompetitor
-        cds = min(cds, round(58.0 * (1.0 - (red_span_ratio - 0.20)), 1))
+        # Skor CDS tidak boleh melebihi 58.0% jika ada redundansi kalimat signifikan / jiplakan beruntun
+        effective_penalty_ratio = max(red_span_ratio, 0.20 if max_consecutive_red >= 3 else 0.0)
+        cds = min(cds, round(58.0 * (1.0 - (effective_penalty_ratio - 0.20)), 1))
     elif (
         (cds >= thresholds.min_cds_score)
         and (not is_redundant)
@@ -395,6 +397,10 @@ def calculate_composite_cds(
         "is_out_of_domain": is_out_of_domain,
         "verdict_status": verdict_status,
         "sub_scores": {
+            "vsm": round(0.35 * c_vsm, 1),
+            "ig": round(0.30 * c_ig, 1),
+            "mattr": round(0.20 * c_mattr, 1),
+            "hko": round(0.15 * c_hko, 1),
             "c_vsm": round(c_vsm, 1),
             "c_ig": round(c_ig, 1),
             "c_mattr": round(c_mattr, 1),

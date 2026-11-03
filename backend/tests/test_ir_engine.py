@@ -1144,3 +1144,26 @@ class TestSprint43StabiloPrecisionAndVisualSlots:
         assert len(slot_spans) == 1
         assert slot_spans[0].color is None
         assert slot_spans[0].label == "Slot Visual Media"
+
+    def test_consecutive_red_spans_triggers_veto_gate(self):
+        """Sprint 4.4: 3 kalimat merah beruntun memicu Red-Span Veto Gate meski rasio total < 20%."""
+        from app.services.gatekeeper import calculate_composite_cds
+        thresholds = ThresholdConfig(min_cds_score=75.0)
+
+        # Rasio merah hanya 12.6% (13/103), tapi ada 3 kalimat merah berturut-turut (jiplak 1 paragraf)
+        decision = calculate_composite_cds(
+            max_cosine_sim=0.17,
+            draft_entities_count=100,
+            serp_entities_count=25,
+            shared_entities_count=22,
+            gain_count=5,
+            mattr_score=0.78,
+            hko_percentage=25.0,
+            thresholds=thresholds,
+            red_span_ratio=0.126,
+            max_consecutive_red=3,
+        )
+
+        assert decision["is_sentence_redundant"] is True
+        assert decision["verdict_status"] == "Perlu Revisi - Redundansi Kalimat Tinggi"
+        assert decision["content_differentiation_score"] <= 58.0

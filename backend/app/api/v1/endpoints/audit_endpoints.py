@@ -127,6 +127,26 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
     serp_source = determine_serp_source(raw_docs_for_source)
 
     m = session.metrics
+    sub_scores = {}
+    if m:
+        c_vsm = max(0.0, min(35.0, (1.0 - (m.max_cosine_similarity or 0.0)) * 35.0))
+        c_mattr = min(20.0, ((m.mattr_score or 0.0) / 0.55) * 20.0)
+        c_hko = max(0.0, (1.0 - ((m.hko_percentage or 0.0) / 40.0)) * 15.0)
+        c_ig = max(0.0, (m.content_differentiation_score or 0.0) - c_vsm - c_mattr - c_hko)
+        sub_scores = {
+            "vsm": round(c_vsm, 1),
+            "ig": round(c_ig, 1),
+            "mattr": round(c_mattr, 1),
+            "hko": round(c_hko, 1),
+            "c_vsm": round(c_vsm, 1),
+            "c_ig": round(c_ig, 1),
+            "c_mattr": round(c_mattr, 1),
+            "c_hko": round(c_hko, 1),
+        }
+
+    priority_deficits_count = sum(1 for d in deficit_items if d.is_consensus_priority)
+    consensus_matched = max(0, 20 - priority_deficits_count) if priority_deficits_count > 0 else 20
+
     metrics_schema = MetricResultSchema(
         content_differentiation_score=m.content_differentiation_score if m else 0.0,
         avg_cosine_similarity=m.avg_cosine_similarity if m else 0.0,
@@ -137,6 +157,10 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         hko_percentage=m.hko_percentage if m else 0.0,
         is_redundant=m.is_redundant if m else False,
         is_keyword_stuffed=m.is_keyword_stuffed if m else False,
+        sub_scores=sub_scores,
+        consensus_matched_count=consensus_matched,
+        consensus_target_count=20,
+        consensus_total_count=25,
     )
 
     # Rekonstruksi overview_bullets & remediation_prompt asli saat memuat riwayat (Sprint 4.1)
@@ -439,9 +463,21 @@ async def execute_audit(
         threshold_hko=thresholds.max_hko_percentage,
     )
 
-    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate
+    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate & Consecutive Red Guard (Sprint 4.4)
     red_spans = [span for span in annotated_spans if span.color == "red"]
     red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+
+    max_consecutive_red = 0
+    curr_consecutive_red = 0
+    for span in annotated_spans:
+        if span.is_heading or not span.text.strip():
+            continue
+        if span.color == "red":
+            curr_consecutive_red += 1
+            if curr_consecutive_red > max_consecutive_red:
+                max_consecutive_red = curr_consecutive_red
+        else:
+            curr_consecutive_red = 0
 
     # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.3 80% Saturation)
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
@@ -460,6 +496,7 @@ async def execute_audit(
         thresholds=thresholds,
         avg_cosine_sim=vsm_results["avg_cosine_similarity"],
         red_span_ratio=red_span_ratio,
+        max_consecutive_red=max_consecutive_red,
     )
 
     serp_source = determine_serp_source(competitor_docs)

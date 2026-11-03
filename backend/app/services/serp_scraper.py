@@ -393,10 +393,11 @@ async def search_and_scrape_competitors(
         if k not in summary:
             summary[k] = 0
 
-    # Sprint 3.9: Bersihkan kueri dari koma dan ambil frase utama agar Google tidak membatasi hasil secara ekstrem
-    clean_query = target_query.split(",")[0].strip() if target_query else ""
-    if not clean_query:
-        clean_query = target_query.strip() if target_query else ""
+    # Sprint 4.4: Ubah koma menjadi spasi agar seluruh kata kunci/tag target tetap dicari di Google tanpa kehilangan intent
+    if target_query:
+        clean_query = re.sub(r"\s+", " ", target_query.replace(",", " ")).strip()
+    else:
+        clean_query = ""
 
     # 0. Cache-Aside Check (Fase 1 Production Roadmap - Redis / Multi-Tier)
     cached_serp = await get_serp_cache(clean_query)

@@ -23,6 +23,22 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
   const cdsScore = Math.round(audit.metrics.content_differentiation_score);
   const thresholdCds = Math.round(audit.thresholds?.min_cds_score ?? 75);
 
+  const getSubScore = (raw: number | undefined, maxVal: number): number => {
+    if (raw === undefined || isNaN(raw)) return maxVal;
+    if (raw > maxVal) {
+      if (maxVal === 35) return Math.round(raw * 0.35 * 10) / 10;
+      if (maxVal === 30) return Math.round(raw * 0.30 * 10) / 10;
+      if (maxVal === 20) return Math.round(raw * 0.20 * 10) / 10;
+      if (maxVal === 15) return Math.round(raw * 0.15 * 10) / 10;
+    }
+    return Math.min(maxVal, Math.round(raw * 10) / 10);
+  };
+
+  const vsmSubScore = getSubScore(audit.metrics.sub_scores?.vsm ?? audit.metrics.sub_scores?.c_vsm, 35);
+  const igSubScore = getSubScore(audit.metrics.sub_scores?.ig ?? audit.metrics.sub_scores?.c_ig, 30);
+  const mattrSubScore = getSubScore(audit.metrics.sub_scores?.mattr ?? audit.metrics.sub_scores?.c_mattr, 20);
+  const hkoSubScore = getSubScore(audit.metrics.sub_scores?.hko ?? audit.metrics.sub_scores?.c_hko, 15);
+
   return (
     <section
       style={{
@@ -166,7 +182,7 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
               }}
               title="Komponen VSM Anti-Jiplak terhadap kemiripan kosinus kompetitor (Maks 35)"
             >
-              VSM (Anti-Jiplak): <strong>{audit.metrics.sub_scores.vsm ?? 35}</strong>/35
+              VSM (Anti-Jiplak): <strong>{vsmSubScore}</strong>/35
             </span>
             <span
               style={{
@@ -180,7 +196,7 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
               }}
               title="Komponen Information Gain atas cakupan konsensus topik SERP (Maks 30)"
             >
-              IG (Topik SERP): <strong>{audit.metrics.sub_scores.ig ?? 30}</strong>/30
+              IG (Topik SERP): <strong>{igSubScore}</strong>/30
             </span>
             <span
               style={{
@@ -194,7 +210,7 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
               }}
               title="Moving-Average Type-Token Ratio / Variasi kosakata unik (Maks 20)"
             >
-              MATTR (Kekayaan Diksi): <strong>{audit.metrics.sub_scores.mattr ?? 20}</strong>/20
+              MATTR (Kekayaan Diksi): <strong>{mattrSubScore}</strong>/20
             </span>
             <span
               style={{
@@ -208,7 +224,7 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
               }}
               title="Heading Keyword Overlap / Bebas spam kata kunci pada judul/heading (Maks 15)"
             >
-              HKO (Anti-Spam Judul): <strong>{audit.metrics.sub_scores.hko ?? 15}</strong>/15
+              HKO (Anti-Spam Judul): <strong>{hkoSubScore}</strong>/15
             </span>
           </div>
         )}
