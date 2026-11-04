@@ -360,23 +360,40 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-            {sortedSessions.map((s) => (
-              <SidebarSessionItem
-                key={s.session_id}
-                sessionId={s.session_id}
-                draftTitle={s.draft_title}
-                isPinned={s.is_pinned}
-                isActive={activeSessionId === s.session_id}
-                isMenuOpen={activeMenuId === s.session_id}
-                onSelect={handleRowClick}
-                onToggleMenu={(id) => setActiveMenuId(activeMenuId === id ? null : id)}
-                onCloseMenu={() => setActiveMenuId(null)}
-                onPin={onPinSession}
-                onRename={onRenameSession}
-                onExport={onExportSession}
-                onDelete={onDeleteSession}
-              />
-            ))}
+            {sortedSessions.length === 0 ? (
+              <div
+                style={{
+                  fontSize: "12px",
+                  color: "var(--waskita-text-muted, #64748B)",
+                  fontStyle: "italic",
+                  padding: "16px 8px",
+                  textAlign: "center",
+                  lineHeight: 1.5,
+                }}
+              >
+                Belum ada riwayat sesi.
+                <br />
+                Mulai analisis pertama Anda.
+              </div>
+            ) : (
+              sortedSessions.map((s) => (
+                <SidebarSessionItem
+                  key={s.session_id}
+                  sessionId={s.session_id}
+                  draftTitle={s.draft_title}
+                  isPinned={s.is_pinned}
+                  isActive={activeSessionId === s.session_id}
+                  isMenuOpen={activeMenuId === s.session_id}
+                  onSelect={handleRowClick}
+                  onToggleMenu={(id) => setActiveMenuId(activeMenuId === id ? null : id)}
+                  onCloseMenu={() => setActiveMenuId(null)}
+                  onPin={onPinSession}
+                  onRename={onRenameSession}
+                  onExport={onExportSession}
+                  onDelete={onDeleteSession}
+                />
+              ))
+            )}
           </div>
         </div>
 

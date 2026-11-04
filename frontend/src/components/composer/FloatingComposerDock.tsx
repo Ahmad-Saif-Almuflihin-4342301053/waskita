@@ -807,7 +807,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                       marginTop: "1px",
                     }}
                   >
-                    Contoh artikel umum dengan defisit takaran suhu seduh dan rasio air
+                    Contoh artikel umum dengan defisit takaran suhu seduh dan rasio air (~700 kata)
                   </div>
                 )}
               </div>
@@ -863,7 +863,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                       marginTop: "1px",
                     }}
                   >
-                    Contoh artikel dengan entitas unik lokal (CDS 85% Siap Terbit)
+                    Contoh artikel dengan entitas unik lokal (CDS 85% Siap Terbit, ~700 kata)
                   </div>
                 )}
               </div>

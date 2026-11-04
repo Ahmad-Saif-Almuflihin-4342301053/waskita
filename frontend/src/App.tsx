@@ -18,10 +18,6 @@ import { useToast } from './context/ToastContext';
 import { useTheme } from './context/ThemeContext';
 import { waskitaClient } from './api/waskitaClient';
 import {
-  INITIAL_AUDIT_TURN_1,
-  INITIAL_AUDIT_TURN_2,
-} from './api/mockData';
-import {
   AuditExecuteResponse,
   QualityThresholds,
   AuditSessionSummary,
@@ -48,33 +44,9 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Sessions state
-  const [sessions, setSessions] = useState<AuditSessionSummary[]>([
-    {
-      session_id: 'session-1',
-      parent_session_id: null,
-      turn_number: 2,
-      target_query: 'resep kopi tubruk tradisional',
-      draft_title: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
-      audit_timestamp: '2026-10-22T10:15:00+07:00',
-      verdict_status: 'Layak Terbit',
-      score_cds: 85,
-      is_pinned: false,
-    },
-    {
-      session_id: 'session-2',
-      parent_session_id: null,
-      turn_number: 1,
-      target_query: 'restorasi vespa klasik px150',
-      draft_title: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
-      audit_timestamp: '2026-10-21T16:40:00+07:00',
-      verdict_status: 'Layak Terbit',
-      score_cds: 82,
-      is_pinned: false,
-    },
-  ]);
-
-  const [activeSessionId, setActiveSessionId] = useState<string | null>('session-1');
+  // Sessions state (Dimulai bersih: hanya menyimpan hasil analisis nyata pengguna)
+  const [sessions, setSessions] = useState<AuditSessionSummary[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Multi-turn stream for current active session
   const [currentTurns, setCurrentTurns] = useState<
@@ -83,20 +55,7 @@ export const App: React.FC = () => {
       draftContent?: string;
       auditResult: AuditExecuteResponse;
     }>
-  >([
-    {
-      draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
-      draftContent:
-        'Kopi tubruk adalah minuman khas Indonesia yang dibuat dengan cara menyeduh bubuk kopi secara langsung tanpa disaring sama sekali...',
-      auditResult: INITIAL_AUDIT_TURN_1,
-    },
-    {
-      draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas (Revisi #2)',
-      draftContent:
-        'Menikmati seduhan kopi tubruk sejatinya merayakan kesederhanaan rasa yang jujur tanpa intervensi saringan mekanis...',
-      auditResult: INITIAL_AUDIT_TURN_2,
-    },
-  ]);
+  >([]);
 
   // Input composer draft state
   const [draftInput, setDraftInput] = useState<string>('');
@@ -202,9 +161,15 @@ export const App: React.FC = () => {
           } catch (threadErr) {
             console.warn('Gagal memuat thread sesi pertama:', threadErr);
           }
+        } else {
+          setSessions([]);
+          setActiveSessionId(null);
+          setCurrentTurns([]);
         }
       } catch (e) {
-        // Keep initial sessions state
+        setSessions([]);
+        setActiveSessionId(null);
+        setCurrentTurns([]);
       }
     };
 
@@ -709,46 +674,9 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
         if (thread[0]?.target_query) {
           setTargetQuery(thread[0].target_query);
         }
-        return;
       }
     } catch (e) {
-      // Fallback local mock sessions
-    }
-
-    if (sessionId === 'session-1') {
-      setIsQueryLocked(true);
-      setTargetQuery('resep kopi tubruk tradisional');
-      setCurrentTurns([
-        {
-          draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas',
-          draftContent: SAMPLE_DRAFTS.revisionNeeded.text,
-          auditResult: INITIAL_AUDIT_TURN_1,
-        },
-        {
-          draftTitle: 'Resep Kopi Tubruk Tradisional & Takaran Pas (Revisi #2)',
-          draftContent: SAMPLE_DRAFTS.approvedReady.text,
-          auditResult: INITIAL_AUDIT_TURN_2,
-        },
-      ]);
-    } else if (sessionId === 'session-2') {
-      setIsQueryLocked(true);
-      setTargetQuery('restorasi vespa klasik px150');
-      setCurrentTurns([
-        {
-          draftTitle: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
-          draftContent: 'Restorasi skuter klasik memerlukan ketelitian...',
-          auditResult: {
-            ...INITIAL_AUDIT_TURN_2,
-            session_id: 'session-2',
-            target_query: 'restorasi vespa klasik px150',
-            draft_title: 'Restorasi Vespa Klasik PX 150 & Panduan Suku Cadang',
-            metrics: {
-              ...INITIAL_AUDIT_TURN_2.metrics,
-              content_differentiation_score: 82.0,
-            },
-          },
-        },
-      ]);
+      console.warn(`Gagal memuat sesi ${sessionId}:`, e);
     }
   };
 
