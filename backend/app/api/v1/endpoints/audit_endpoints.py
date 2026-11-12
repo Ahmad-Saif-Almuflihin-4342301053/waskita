@@ -133,19 +133,51 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
     m = session.metrics
     sub_scores = {}
     if m:
-        c_vsm = max(0.0, min(35.0, (1.0 - (m.max_cosine_similarity or 0.0)) * 35.0))
-        c_mattr = min(20.0, ((m.mattr_score or 0.0) / 0.55) * 20.0)
-        c_hko = max(0.0, (1.0 - ((m.hko_percentage or 0.0) / 40.0)) * 15.0)
-        c_ig = max(0.0, (m.content_differentiation_score or 0.0) - c_vsm - c_mattr - c_hko)
+        # DOM-04: Rekonstruksi sub_scores menggunakan rumus resmi dari gatekeeper.py
+        max_cos = m.max_cosine_similarity or 0.0
+        c_vsm_doc = 100.0 * (1.0 - max(0.0, (max_cos - 0.25) / 0.75))
+        # Hitung red_span_ratio dari annotated_spans_json jika ada
+        red_ratio = 0.0
+        if annotated_spans:
+            red_cnt = sum(1 for sp in annotated_spans if sp.color == "red")
+            red_ratio = red_cnt / max(1, len(annotated_spans))
+        c_vsm_sent = 100.0 * (1.0 - min(1.0, red_ratio * 1.5))
+        if red_ratio >= 0.20:
+            c_vsm_100 = min(c_vsm_doc, 0.45 * c_vsm_doc + 0.55 * c_vsm_sent)
+        else:
+            c_vsm_100 = c_vsm_doc
+        c_vsm_100 = max(0.0, min(100.0, c_vsm_100))
+
+        # C_MATTR piecewise
+        mattr_val = m.mattr_score or 0.0
+        if mattr_val <= 0.40:
+            c_mattr_100 = 0.0
+        else:
+            c_mattr_100 = 100.0 * min(1.0, (mattr_val - 0.40) / 0.32)
+        c_mattr_100 = max(0.0, min(100.0, c_mattr_100))
+
+        # C_HKO
+        hko_val = m.hko_percentage or 0.0
+        if hko_val <= 40.0:
+            c_hko_100 = 100.0
+        else:
+            c_hko_100 = max(0.0, min(100.0, 100.0 * (1.0 - (hko_val - 40.0) / 60.0)))
+
+        # Sub-scores berbobot (proporsi CDS)
+        vsm_pts = round(0.35 * c_vsm_100, 1)
+        mattr_pts = round(0.20 * c_mattr_100, 1)
+        hko_pts = round(0.15 * c_hko_100, 1)
+        ig_pts = max(0.0, round((m.content_differentiation_score or 0.0) - vsm_pts - mattr_pts - hko_pts, 1))
+
         sub_scores = {
-            "vsm": round(c_vsm, 1),
-            "ig": round(c_ig, 1),
-            "mattr": round(c_mattr, 1),
-            "hko": round(c_hko, 1),
-            "c_vsm": round(c_vsm, 1),
-            "c_ig": round(c_ig, 1),
-            "c_mattr": round(c_mattr, 1),
-            "c_hko": round(c_hko, 1),
+            "vsm": vsm_pts,
+            "ig": ig_pts,
+            "mattr": mattr_pts,
+            "hko": hko_pts,
+            "c_vsm": vsm_pts,
+            "c_ig": ig_pts,
+            "c_mattr": mattr_pts,
+            "c_hko": hko_pts,
         }
 
     priority_deficits_count = sum(1 for d in deficit_items if d.is_consensus_priority)

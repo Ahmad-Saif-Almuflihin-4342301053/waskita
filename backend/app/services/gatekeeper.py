@@ -175,13 +175,19 @@ def generate_annotated_spans(
             spans.append(AnnotatedSpan(text=sentence, color=None, label="Slot Visual Media", is_heading=False))
             continue
 
-        # Cek apakah segmen merupakan sub-judul / heading (Sprint 4.2 & 4.3)
+        # Cek apakah segmen merupakan sub-judul / heading (Sprint 4.2 & 4.3; DOM-03 heading substring fix)
         is_numbered_heading = bool(re.match(r"^\d+[\.\)]\s+[A-Z\u00C0-\u024F]", sentence))
+        clean_heading_cand = sentence.lstrip("#").strip()
         is_heading = (
             sentence in detected_headings
+            or clean_heading_cand in detected_headings
             or is_numbered_heading
             or bool(re.match(r"^#{1,4}\s+", sentence))
-            or any(h in sentence for h in detected_headings)
+            or any(
+                len(h.split()) >= 3 and h in sentence
+                for h in detected_headings
+                if len(h.strip()) >= 10
+            )
         )
         if is_heading:
             spans.append(AnnotatedSpan(text=sentence, color=None, label="Sub-Judul / Heading", is_heading=True))
@@ -337,9 +343,13 @@ def calculate_composite_cds(
     c_ig_raw = 100.0 * (0.6 * coverage_ratio + 0.4 * gain_ratio)
     c_ig = max(0.0, min(100.0, c_ig_raw))
 
-    # 3. Skor Kekayaan Leksikal MATTR C_MATTR (20%)
+    # 3. Skor Kekayaan Leksikal MATTR C_MATTR (20% - DOM-04 Piecewise Scaling)
     tau_mattr = max(0.1, thresholds.min_mattr)
-    c_mattr_raw = 100.0 * min(1.0, mattr_score / tau_mattr)
+    # Titik jenuh ideal tercapai pada ambang target min_mattr
+    if mattr_score <= 0.40:
+        c_mattr_raw = 0.0
+    else:
+        c_mattr_raw = 100.0 * min(1.0, (mattr_score - 0.40) / max(0.01, tau_mattr - 0.40))
     c_mattr = max(0.0, min(100.0, c_mattr_raw))
 
     # 4. Skor Kendali Anti-Spam Heading HKO C_HKO (15%)

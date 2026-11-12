@@ -1,17 +1,22 @@
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import csr_matrix
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
-from typing import Dict, List, Tuple
+from sklearn.preprocessing import normalize
+from typing import Any, Dict, List, Tuple
 
 
 def compute_vsm_similarity(
     preprocessed_draft: str,
     preprocessed_competitors: List[str],
-) -> Dict[str, any]:
+    k1: float = 1.5,
+    b: float = 0.75,
+) -> Dict[str, Any]:
     """
     Operasi CPU berat #3:
-    Pembentukan matriks TfidfVectorizer(sublinear_tf=True, ngram_range=(1, 2))
-    dan kalkulasi cosine_similarity & euclidean_distances.
+    Pembentukan matriks BM25-Saturated L2-Normalized Vector Space Model (Robertson & Zaragoza, 2009; DOM-02).
+    Menerapkan saturasi frekuensi istilah k1 dan normalisasi panjang dokumen b ke dalam ruang vektor Euclidean L2,
+    mempertahankan batas domain kedekatan sudut [0.0, 1.0] dan jarak Euclidean [0.0, sqrt(2)].
     Wajib dieksekusi via run_in_threadpool / asyncio.to_thread!
     """
     if not preprocessed_competitors:
@@ -24,23 +29,40 @@ def compute_vsm_similarity(
         }
 
     corpus = [preprocessed_draft] + preprocessed_competitors
-    
-    # Sublinear TF-IDF Weighting (Persamaan 2.1)
-    vectorizer = TfidfVectorizer(
-        sublinear_tf=True,
-        ngram_range=(1, 2),
-        min_df=1,
-        norm="l2",
-    )
-    tfidf_matrix = vectorizer.fit_transform(corpus)
-    
-    draft_vec = tfidf_matrix[0:1]
-    competitor_vecs = tfidf_matrix[1:]
-    
-    # Cosine Similarity Global (Persamaan 2.2)
+    vectorizer = CountVectorizer(ngram_range=(1, 2), min_df=1)
+    tf_matrix = vectorizer.fit_transform(corpus)
+    n_docs, n_vocab = tf_matrix.shape
+
+    doc_lens = np.array(tf_matrix.sum(axis=1)).flatten()
+    avgdl = float(np.mean(doc_lens)) if n_docs > 0 else 1.0
+    if avgdl <= 0:
+        avgdl = 1.0
+
+    # Smoothed IDF untuk mikro-korpus web (Manning et al., 2008 & Robertson, 2009)
+    # Mencegah bobot 0 atau negatif pada istilah yang muncul di beberapa dokumen korpus kecil (N=4)
+    df = np.bincount(tf_matrix.indices, minlength=n_vocab)
+    idf = np.log((1.0 + n_docs) / (1.0 + df)) + 1.0
+
+    def _apply_bm25_l2(matrix: csr_matrix, lengths: np.ndarray) -> csr_matrix:
+        coo = matrix.tocoo()
+        if coo.nnz == 0:
+            return matrix.astype(np.float64)
+        row, col, data = coo.row, coo.col, coo.data
+        len_norm = 1.0 - b + b * (lengths[row] / avgdl)
+        denom = data + k1 * len_norm
+        bm25_tf = (data * (k1 + 1.0)) / denom
+        bm25_weights = bm25_tf * idf[col]
+        sparse_mat = csr_matrix((bm25_weights, (row, col)), shape=matrix.shape, dtype=np.float64)
+        return normalize(sparse_mat, norm="l2", axis=1)
+
+    l2_corpus_matrix = _apply_bm25_l2(tf_matrix, doc_lens)
+    draft_vec = l2_corpus_matrix[0:1]
+    competitor_vecs = l2_corpus_matrix[1:]
+
+    # Cosine Similarity Global pada ruang BM25-VSM L2
     global_cosine_sims = cosine_similarity(draft_vec, competitor_vecs)[0]
 
-    # Sprint 4.1: Sliding-Window Passage Cosine Similarity untuk mencegah delusi panjang dokumen
+    # Sliding-Window Passage Cosine Similarity untuk mencegah delusi panjang dokumen (Sprint 4.1)
     draft_words = preprocessed_draft.split()
     draft_len = len(draft_words)
     effective_cosine_sims = []
@@ -57,15 +79,15 @@ def compute_vsm_similarity(
             windows = []
             for start in range(0, comp_len - window_size + 1, stride):
                 windows.append(" ".join(comp_words[start : start + window_size]))
-            # Pastikan bagian ujung akhir dokumen juga terambil
             if comp_len > window_size:
                 windows.append(" ".join(comp_words[-window_size:]))
 
             if windows:
-                window_vecs = vectorizer.transform(windows)
-                win_sims = cosine_similarity(draft_vec, window_vecs)[0]
+                win_tf = vectorizer.transform(windows)
+                win_lens = np.array(win_tf.sum(axis=1)).flatten()
+                win_l2 = _apply_bm25_l2(win_tf, win_lens)
+                win_sims = cosine_similarity(draft_vec, win_l2)[0]
                 max_win_sim = float(np.max(win_sims))
-                # Kombinasi berbobot jika potongan jendela memiliki kemiripan jauh lebih tinggi
                 blended_sim = 0.35 * g_sim + 0.65 * max_win_sim
                 effective_cosine_sims.append(max(g_sim, blended_sim))
             else:
@@ -74,15 +96,15 @@ def compute_vsm_similarity(
             effective_cosine_sims.append(g_sim)
 
     cosine_sims = np.array(effective_cosine_sims)
-    
-    # Euclidean Distance pada vektor ternormalisasi L2 (Persamaan 2.3)
+
+    # Euclidean Distance pada vektor ternormalisasi L2
     euclidean_dists = euclidean_distances(draft_vec, competitor_vecs)[0]
-    
+
     avg_cosine = float(np.mean(cosine_sims)) if len(cosine_sims) > 0 else 0.0
     max_cosine = float(np.max(cosine_sims)) if len(cosine_sims) > 0 else 0.0
     avg_euclidean = float(np.mean(euclidean_dists)) if len(euclidean_dists) > 0 else 0.0
-    
-    # Mengambil bobot TF-IDF kata pada draft untuk kalkulasi Information Gain
+
+    # Mengambil bobot fitur pada draft untuk kalkulasi Information Gain
     feature_names = vectorizer.get_feature_names_out()
     draft_tfidf_weights = {}
     draft_nonzeros = draft_vec.tocoo()

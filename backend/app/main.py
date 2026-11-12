@@ -10,8 +10,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.routers import api_router
 from app.core.config import settings
+from app.core.logging_config import setup_app_logging
 from app.core.seeder import seed_initial_demo_data
 
+setup_app_logging()
 logger = logging.getLogger(__name__)
 
 

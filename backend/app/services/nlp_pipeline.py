@@ -61,8 +61,9 @@ WEB_NOISE_STOPWORDS: Set[str] = {
     "editor",
     "penulis",
     "tribun",
-    "kompas",
-    "detik",
+    # Catatan Revisi Sempro: Kata 'kompas', 'detik', 'tempo', 'antara' dihapus dari stopword
+    # leksikal untuk mencegah ambiguitas polisemi (alat navigasi kompas / satuan detik / preposisi antara).
+    # Penyaringan derau publisher diserahkan pada DOM cleaner HTML dan pembobotan IDF.
     # Protokol web, ekstensi berkas, & atribut teknis
     "www",
     "http",
@@ -123,9 +124,8 @@ WEB_NOISE_STOPWORDS: Set[str] = {
     "kompasiana",
     "idntimes",
     "liputan6",
-    "tempo",
+    "kompasiana",
     "tirto",
-    "antara",
     "reuters",
     "getty",
     "shutterstock",
@@ -330,10 +330,25 @@ def is_narrative_noise(word: str) -> bool:
     return False
 
 
+# Homograf rawan over-stemming dengan aturan preservasi lema dasar (Sprint 4.5 / DOM-01)
+HOMOGRAPH_PROTECTED_LEMMAS: Dict[str, str] = {
+    "berlayar": "berlayar",  # Mencegah reduksi ke 'layar' (display/monitor)
+    "pelajar": "pelajar",    # Mencegah reduksi ke 'ajar'
+    "pejabat": "pejabat",    # Mencegah reduksi ke 'jabat'
+    "perawat": "perawat",    # Mencegah reduksi ke 'awat'
+}
+
+# Konteks monitor/display yang jika muncul di dekat 'berlayar', kata tersebut memang merujuk pada layar display
+DISPLAY_CONTEXT_KEYWORDS: Set[str] = {
+    "oled", "amoled", "ips", "lcd", "monitor", "resolusi", "hz", "inci", "display", "refresh", "piksel"
+}
+
+
 @functools.lru_cache(maxsize=100_000)
 def stem_word(word: str) -> str:
     """
-    Stemming kata tunggal Bahasa Indonesia dengan LRU Cache + normalisasi serapan teknis (Sprint 4.1).
+    Stemming kata tunggal Bahasa Indonesia dengan LRU Cache + normalisasi serapan teknis (Sprint 4.1)
+    serta perlindungan homograf (DOM-01 Hybrid Disambiguation).
     Menyatukan variasi sufiks '-isme' / '-ist' / '-is' dan padanan istilah serapan.
     """
     if not word or len(word) <= 2:
@@ -341,6 +356,10 @@ def stem_word(word: str) -> str:
     w_low = word.lower().strip()
     if w_low in LOANWORD_CANONICAL_MAP:
         return LOANWORD_CANONICAL_MAP[w_low]
+
+    # Perlindungan homograf independen (DOM-01)
+    if w_low in HOMOGRAPH_PROTECTED_LEMMAS:
+        return HOMOGRAPH_PROTECTED_LEMMAS[w_low]
 
     stemmed = _sastrawi_stemmer.stem(w_low)
     if stemmed in LOANWORD_CANONICAL_MAP:

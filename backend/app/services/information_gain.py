@@ -37,7 +37,15 @@ def find_snippet_and_domain(
         for s in sentences:
             s_clean = s.strip()
             s_low = s_clean.lower()
-            if (surface_low in s_low or stem_low in s_low) and len(s_clean.split()) >= 5:
+            # DOM-03: Word-boundary matching agar tidak mencocokkan substring acak di dalam kata lain
+            matched = False
+            for cand in (surface_low, stem_low):
+                if not cand:
+                    continue
+                if re.search(rf"\b{re.escape(cand)}\b", s_low):
+                    matched = True
+                    break
+            if matched and len(s_clean.split()) >= 5:
                 if len(s_clean) > 160:
                     s_clean = s_clean[:157] + "..."
                 return s_clean, domain or None
@@ -72,7 +80,15 @@ def _find_competitor_snippet(
         for s in sentences:
             s_clean = s.strip()
             s_low = s_clean.lower()
-            if (surface_low in s_low or stem_low in s_low) and len(s_clean.split()) >= 5:
+            # DOM-03: Word-boundary matching agar cuplikan kompetitor presisi
+            matched = False
+            for cand in (surface_low, stem_low):
+                if not cand:
+                    continue
+                if re.search(rf"\b{re.escape(cand)}\b", s_low):
+                    matched = True
+                    break
+            if matched and len(s_clean.split()) >= 5:
                 if len(s_clean) > 160:
                     s_clean = s_clean[:157] + "..."
                 if domain:

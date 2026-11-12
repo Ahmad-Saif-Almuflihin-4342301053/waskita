@@ -125,7 +125,7 @@ async def set_serp_cache(target_query: str, docs: List[Dict[str, Any]], ttl_seco
 async def get_nlp_preproc_cache(text: str) -> Optional[str]:
     if not text:
         return None
-    key = _hash_key("nlp:preproc:v1", text)
+    key = _hash_key("nlp:preproc:v2", text)
     cached = await cache.get(key)
     if cached and isinstance(cached, str):
         return cached
@@ -136,5 +136,5 @@ async def set_nlp_preproc_cache(text: str, preprocessed_text: str, ttl_seconds: 
     if not text or not preprocessed_text:
         return
     ttl = ttl_seconds or settings.CACHE_TTL_NLP_SECONDS
-    key = _hash_key("nlp:preproc:v1", text)
+    key = _hash_key("nlp:preproc:v2", text)
     await cache.set(key, preprocessed_text, ttl_seconds=ttl)
