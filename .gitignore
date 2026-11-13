@@ -72,5 +72,11 @@ frontend/build/
 .coverage
 htmlcov/
 
+# Playwright Test Artifacts
+test-results/
+playwright-report/
+frontend/test-results/
+frontend/playwright-report/
+
 # Log runtime start.sh
 .run-logs/
