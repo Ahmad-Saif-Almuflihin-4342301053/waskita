@@ -516,10 +516,16 @@ def generate_overview_and_remediation(
         if entity_gaps.gain:
             bullets.append(f"Draf berhasil menyajikan nilai tambah informasi orisinal: {gain_terms}.")
 
-        # Tab 1: Paket Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6 & 4.1 & 4.2)
+        # Tab 1: Paket Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6 & 4.1 & 4.2 & Anti-Slop)
         cms_pack_prompt = (
+            f"Anda adalah Editor Distribusi & Metadata Digital Berstandar Jurnalistik Tinggi.\n"
             f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n"
             f"Berdasarkan analisis perbandingan terhadap {competitor_count} artikel kompetitor teratas di Google SERP, draf ini memiliki diferensiasi dan nilai kebaruan materi yang kuat ({gain_terms}).\n\n"
+            f"<larangan_keras_anti_slop>\n"
+            f"- Hindari judul dan deskripsi 'clickbait' murahan atau jargon klise AI ('Mengejutkan!', 'Solusi Inovatif', 'Wajib Tahu!').\n"
+            f"- Gunakan diksi tajam, faktual, dan menggugah rasa ingin tahu profesional pembaca.\n"
+            f"- DILARANG menambahkan basa-basi prolog/epilog AI.\n"
+            f"</larangan_keras_anti_slop>\n\n"
             "Tolong siapkan paket materi pra-publikasi CMS & SEO untuk artikel ini tanpa mengubah isi naskah pokoknya:\n"
             f"1. Meta Title SEO: Buatkan judul menarik maksimal 60 karakter yang memuat kata kunci '{target_query}'.\n"
             "2. Meta Description: Buatkan deskripsi 140–155 karakter yang persuasif dan memicu CTR tinggi di Google.\n"
@@ -529,10 +535,16 @@ def generate_overview_and_remediation(
             f"{PROMPT_DRAFT_DELIMITER}"
         )
 
-        # Tab 2: Micro-Tuning Menuju 100% (Perfeksionis - Sprint 4.2)
+        # Tab 2: Micro-Tuning Menuju 100% (Perfeksionis - Sprint 4.2 & Anti-Slop)
         perfectionist_prompt = (
+            f"Anda adalah Redaktur Senior Khusus Micro-Tuning dan Polishing Editorial.\n"
             f"Draf artikel ini telah mencapai skor {cds_score}% untuk topik '{target_query}'.\n"
             "Jika Anda ingin melakukan penyempurnaan mikro (micro-tuning) menuju kesempurnaan 100%, terapkan instruksi berikut:\n\n"
+            f"<prinsip_editorial_anti_slop>\n"
+            f"- ATURAN BEDAH PRESISI (SURGICAL EDITING): Draf ini sudah memiliki kualitas tinggi. DILARANG menulis ulang seluruh naskah. Pertahankan minimal 90% struktur dan kalimat yang sudah sangat baik ini kata demi kata.\n"
+            f"- HINDARI KLISE AI: Jangan memasukkan kata penghubung klise ('tentunya', 'tidak dapat dipungkiri', 'hadir sebagai solusi').\n"
+            f"- KELUARAN MURNI: Keluarkan naskah akhir secara utuh tanpa prolog atau epilog basa-basi AI.\n"
+            f"</prinsip_editorial_anti_slop>\n\n"
             "1. Perkaya Kosakata & Variasi Leksikal (MATTR):\n"
             "   - Variasikan kosakata pada kalimat yang monoton untuk meningkatkan kekayaan diksi artikel.\n"
             "2. Lengkapi Celah Topik Minor:\n"
@@ -583,19 +595,29 @@ def generate_overview_and_remediation(
             if unique_snippets:
                 snippets_block = "\n   - Cuplikan kalimat naskah yang terindikasi parafrase/jiplak langsung:\n" + "\n".join([f'     > "{s}"' for s in unique_snippets])
 
-        # Prompt Terstruktur 4-Pilar Multi-Kompetitor Presisi & Word Budget (Sprint 4.2)
+        # Prompt Terstruktur 4-Pilar Anti-Slop & Bedah Presisi (Sprint 4.2 & Fabric Anti-Slop)
         remediation_prompt = (
+            f"Anda adalah Redaktur Senior dan Kurator Editorial Berbasis Fakta (gaya jurnalistik investigatif tempo/kompas/tirto).\n"
             f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan {competitor_count} artikel kompetitor acuan Google SERP berikut:\n\n"
+            f"<prinsip_editorial_anti_slop>\n"
+            f"- ATURAN BEDAH PRESISI (SURGICAL EDITING): Draf ini adalah naskah asli manusia. DILARANG merombak total dari nol. Pertahankan minimal 80% kalimat asli yang tidak bermasalah kata demi kata (verbatim) demi menjaga otentisitas suara penulis.\n"
+            f"- LARANGAN KERAS FRASA KLISE AI (ANTI-SLOP):\n"
+            f"  Dilarang menggunakan frasa pembuka/penghubung klise AI seperti: 'Di era digital saat ini', 'Di era modern yang serba cepat ini', 'Tidak dapat dipungkiri bahwa', 'Hadir sebagai solusi inovatif', 'Mari kita simak', 'Seperti yang kita ketahui bersama', 'Bukan rahasia lagi', 'Dalam kesimpulannya', atau 'Semoga artikel ini bermanfaat'.\n"
+            f"- NADA BAHASA: Lugas, objektif, padat informasi, tanpa basa-basi marketing, dan langsung menuju inti bahasan (straight lead).\n"
+            f"- FORMAT KELUARAN MURNI: Keluarkan HANYA naskah artikel hasil kurasi akhir. DILARANG menyertakan salam pembuka, prolog ('Berikut revisi artikel...'), atau epilog penjelasan dari AI.\n"
+            f"</prinsip_editorial_anti_slop>\n\n"
+            f"<instruksi_kurasi_4_pilar>\n"
             f"1. ELIMINASI JIPLAKAN DARI SUMBER UTAMA:\n"
-            f"   - Draf memiliki kemiripan struktur tinggi dengan {comp_citation or 'artikel kompetitor utama'}. Rombak total struktur kalimat dan susunan paragrafnya agar terbebas dari penalti plagiasi semantik.{snippets_block}\n\n"
+            f"   - Draf memiliki kemiripan struktur tinggi dengan {comp_citation or 'artikel kompetitor utama'}. Parafrase secara bedah presisi hanya pada kalimat-kalimat yang terindikasi plagiasi berikut tanpa mengubah data faktualnya:{snippets_block or ' Parafrase kalimat yang terlalu mirip acuan.'}\n\n"
             f"2. LENGKAPI CELAH KONSENSUS DARI KOMPETITOR LAIN:\n"
-            f"   - Sebagaimana dibahas oleh kompetitor SERP lainnya ({other_domains_str}), sertakan pembahasan aspek penting yang masih absen di naskah Anda: {valid_deficits_str}.\n\n"
+            f"   - Sebagaimana dibahas oleh kompetitor SERP lainnya ({other_domains_str}), sertakan pembahasan aspek penting yang masih absen di naskah Anda: {valid_deficits_str}. Sisipkan aspek ini secara organik ke dalam 1–2 paragraf terkait tanpa memanjangkan artikel secara berlebihan.\n\n"
             f"3. CIPTAKAN NILAI TAMBAH BARU (KALAHKAN {competitor_count} KOMPETITOR SERP):\n"
             f"   - Ke-{competitor_count} kompetitor acuan belum mengulas sudut pandang spesifik ini secara mendalam. Sertakan minimal 2 pembahasan baru atau studi kasus kontekstual yang bernilai tinggi bagi pembaca.\n"
             f"   - PENTING: Jangan hanya menaruh istilah nilai tambah baru ini sebagai judul atau sub-judul. Uraikan dan sebutkan istilah pembeda tersebut di dalam 2–3 kalimat penjelasan naratif pada badan paragraf agar terbaca jelas oleh pembaca dan algoritma mesin pencari.\n\n"
             f"4. BATASAN PANJANG KATA KETAT (SERP WORD BUDGET):\n"
             f"   - Target panjang artikel: {min_target_words} – {max_target_words} kata (DILARANG melebihi {max_target_words} kata).\n"
-            f"   - Hapus basa-basi pembuka dan pengantar klise. Langsung bahas substansi pokok secara padat dan lugas."
+            f"   - Hapus basa-basi pembuka dan pengantar klise. Langsung bahas substansi pokok secara padat dan lugas.\n"
+            f"</instruksi_kurasi_4_pilar>"
             f"{PROMPT_DRAFT_DELIMITER}"
         )
 
