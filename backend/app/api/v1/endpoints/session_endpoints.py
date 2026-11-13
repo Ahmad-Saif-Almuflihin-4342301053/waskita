@@ -199,6 +199,21 @@ def update_session(
     }
 
 
+@router.delete("/sessions")
+def delete_all_sessions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    sessions = db.query(AuditSession).filter(
+        AuditSession.user_id == current_user.user_id
+    ).all()
+    count = len(sessions)
+    for s in sessions:
+        db.delete(s)
+    db.commit()
+    return {"status": "success", "message": f"Seluruh ({count}) sesi riwayat berhasil dihapus.", "deleted_count": count}
+
+
 @router.delete("/sessions/{session_id}")
 def delete_session(
     session_id: str,

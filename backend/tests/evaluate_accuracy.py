@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Evaluasi Akurasi Deterministik & Confusion Matrix 30 Draf Uji WASKITA
+Evaluasi Akurasi Deterministik & Confusion Matrix 60 Draf Multi-Strata WASKITA
 Landasan: Bab 2.4.1 (Tabel Kontingensi) & Bab 3.5.1 (Pengujian Black-Box & Metrik Ilmiah)
+Mencakup 15 Topik Lintas Disiplin x 4 Varian Kontras (30 Positif vs 30 Negatif)
 Metrik Ilmiah:
 - Precision  (Persamaan 2.6): TP / (TP + FP)
 - Recall     (Persamaan 2.7): TP / (TP + FN)
@@ -21,12 +22,12 @@ from typing import Any, Dict, List, Tuple
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
+from app.fixtures.benchmark_corpus import get_fallback_corpus
 from app.schemas.audit import ThresholdConfig
-from app.services.gatekeeper import calculate_composite_cds
+from app.services.gatekeeper import calculate_composite_cds, generate_annotated_spans
 from app.services.information_gain import calculate_information_gain
 from app.services.nlp_pipeline import extract_candidate_entities, extract_full_stem_set, preprocess_text_async
 from app.services.serp_scraper import search_and_scrape_competitors
-from app.fixtures.benchmark_corpus import get_fallback_corpus
 from app.services.stylometrics import calculate_stylometrics
 from app.services.vsm_calculator import compute_vsm_similarity
 
@@ -37,6 +38,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     content = draft["draft_content"]
     title = draft["draft_title"]
     ground_truth = draft["ground_truth_label"]
+    stratum = draft.get("stratum", "P1" if ground_truth == "Layak Terbit" else "N5")
 
     # 1. Akuisisi kompetitor SERP (Gunakan korpus benchmark deterministik offline untuk reproduktibilitas ilmiah)
     competitor_docs = get_fallback_corpus(query)
@@ -76,7 +78,31 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     # 5. Analisis Stilometri (TTR, MATTR w=50, HKO %)
     stylometrics = calculate_stylometrics(content, query)
 
-    # 6. Himpunan Irisan Entitas Konsensus (Sprint 4.1)
+    # 6. Analisis Stabilo Kalimat & Deteksi Red-Span (Sprint 4.0 & 4.4)
+    annotated_spans = generate_annotated_spans(
+        draft_content=content,
+        competitor_clean_texts=[c.get("clean_text", "") for c in competitor_docs],
+        entity_gaps=entity_gaps,
+        hko_percentage=stylometrics["hko_percentage"],
+        threshold_hko=thresholds.max_hko_percentage,
+    )
+
+    red_spans = [span for span in annotated_spans if span.color == "red"]
+    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+
+    max_consecutive_red = 0
+    curr_consecutive_red = 0
+    for span in annotated_spans:
+        if span.is_heading or not span.text.strip():
+            continue
+        if span.color == "red":
+            curr_consecutive_red += 1
+            if curr_consecutive_red > max_consecutive_red:
+                max_consecutive_red = curr_consecutive_red
+        else:
+            curr_consecutive_red = 0
+
+    # 7. Himpunan Irisan Entitas Konsensus (Sprint 4.1 & 4.3 80% Saturation)
     serp_candidate_stems = {e[0] for ce in competitor_entities_list for e in ce}
     consensus_serp_stems = set()
     if len(full_comp_stems_list) >= 2:
@@ -89,7 +115,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
 
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
 
-    # 7. Gatekeeper Composite CDS & Aturan Vonis
+    # 8. Gatekeeper Composite CDS & Aturan Vonis (Sprint 3.1 Topic Relevance & Sprint 4.0 Red-Span Veto)
     decision = calculate_composite_cds(
         max_cosine_sim=vsm_results["max_cosine_similarity"],
         draft_entities_count=len(full_draft_stems),
@@ -99,13 +125,16 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         mattr_score=stylometrics["mattr_score"],
         hko_percentage=stylometrics["hko_percentage"],
         thresholds=thresholds,
+        avg_cosine_sim=vsm_results["avg_cosine_similarity"],
+        red_span_ratio=red_span_ratio,
+        max_consecutive_red=max_consecutive_red,
     )
 
     predicted_verdict = decision["verdict_status"]
 
     # Pemetaan status kecocokan
     # Ground Truth: 'Layak Terbit' (Positif) atau 'Perlu Revisi' (Negatif)
-    # Sistem Prediksi: 'Siap Terbit' / 'Layak Terbit' (Positif) atau 'Perlu Revisi' (Negatif)
+    # Sistem Prediksi: 'Siap Terbit' / 'Layak Terbit' (Positif) atau 'Perlu Revisi*' (Negatif)
     is_positive_gt = (ground_truth == "Layak Terbit")
     is_positive_pred = (predicted_verdict in ("Siap Terbit", "Layak Terbit"))
 
@@ -124,6 +153,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
 
     return {
         "id": draft["id"],
+        "stratum": stratum,
         "title": title,
         "query": query,
         "word_count": draft.get("word_count", len(content.split())),
@@ -133,17 +163,23 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         "mattr_score": stylometrics["mattr_score"],
         "hko_percentage": stylometrics["hko_percentage"],
         "max_cosine_sim": vsm_results["max_cosine_similarity"],
+        "avg_cosine_sim": vsm_results["avg_cosine_similarity"],
+        "red_span_ratio": round(red_span_ratio, 3),
+        "max_consecutive_red": max_consecutive_red,
         "is_redundant": decision["is_redundant"],
         "is_keyword_stuffed": decision["is_keyword_stuffed"],
+        "is_out_of_domain": decision["is_out_of_domain"],
         "confusion_category": category,
         "is_match": is_match,
     }
 
 
 async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
-    """Mengevaluasi seluruh 30 draf pada dataset fixture dan menyusun Confusion Matrix."""
+    """Mengevaluasi seluruh draf pada dataset fixture (default 60 draf multi-strata) dan menyusun Confusion Matrix."""
     if fixtures_path is None:
-        fixtures_path = os.path.join(BASE_DIR, "tests", "fixtures", "dataset_30_drafts.json")
+        f60 = os.path.join(BASE_DIR, "tests", "fixtures", "dataset_60_drafts.json")
+        f30 = os.path.join(BASE_DIR, "tests", "fixtures", "dataset_30_drafts.json")
+        fixtures_path = f60 if os.path.exists(f60) else f30
 
     with open(fixtures_path, "r", encoding="utf-8") as f:
         drafts = json.load(f)
@@ -156,30 +192,38 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
     )
 
     results: List[Dict[str, Any]] = []
-    print("=" * 110)
-    print("   EVALUASI AKURASI DETERMINISTIK 30 DRAF ARTIKEL WEB (IR ENGINE WASKITA - BAB 2.4 & 3.5 TA)")
-    print("=" * 110)
-    print(f"{'ID':<10} | {'Judul Artikel':<32} | {'Words':<5} | {'MATTR':<6} | {'HKO%':<6} | {'CDS%':<6} | {'Ground Truth':<12} | {'Prediksi':<12} | {'Status'}")
-    print("-" * 110)
+    print("=" * 120)
+    print(f"   EVALUASI AKURASI DETERMINISTIK {len(drafts)} DRAF ARTIKEL WEB (IR ENGINE WASKITA - BAB 2.4 & 3.5 TA)")
+    print("=" * 120)
+    print(f"{'ID':<15} | {'Str':<3} | {'Judul Artikel':<30} | {'Words':<5} | {'MATTR':<6} | {'HKO%':<5} | {'CDS%':<5} | {'Ground Truth':<12} | {'Prediksi':<22} | {'Status'}")
+    print("-" * 120)
 
     tp = tn = fp = fn = 0
+    strata_performance: Dict[str, Dict[str, int]] = {}
 
     for d in drafts:
         res = await evaluate_draft(d, thresholds)
         results.append(res)
 
+        st = res["stratum"]
+        if st not in strata_performance:
+            strata_performance[st] = {"total": 0, "correct": 0}
+        strata_performance[st]["total"] += 1
+
         cat = res["confusion_category"]
         if cat == "TP":
             tp += 1
+            strata_performance[st]["correct"] += 1
         elif cat == "TN":
             tn += 1
+            strata_performance[st]["correct"] += 1
         elif cat == "FP":
             fp += 1
         elif cat == "FN":
             fn += 1
 
         match_str = "MATCH" if res["is_match"] else "MISMATCH"
-        print(f"{res['id']:<10} | {res['title'][:32]:<32} | {res['word_count']:<5} | {res['mattr_score']:<6.4f} | {res['hko_percentage']:<5.1f}% | {res['cds_score']:<5.1f}% | {res['ground_truth']:<12} | {res['predicted_verdict']:<12} | {match_str} ({cat})")
+        print(f"{res['id']:<15} | {st:<3} | {res['title'][:30]:<30} | {res['word_count']:<5} | {res['mattr_score']:<6.4f} | {res['hko_percentage']:<4.1f}% | {res['cds_score']:<5.1f}% | {res['ground_truth']:<12} | {res['predicted_verdict'][:22]:<22} | {match_str} ({cat})")
 
     total = len(results)
     accuracy = (tp + tn) / total if total > 0 else 0.0
@@ -187,30 +231,38 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0.0
 
-    print("=" * 110)
-    print("\n" + "=" * 55)
+    print("=" * 120)
+    print("\n" + "=" * 60)
     print("           TABEL CONFUSION MATRIX (2x2)")
-    print("=" * 55)
+    print("=" * 60)
     print(f"{'':<20} | {'Pred: Layak Terbit':<17} | {'Pred: Perlu Revisi':<17}")
-    print("-" * 55)
+    print("-" * 60)
     print(f"{'Aktual: Layak Terbit':<20} | {f'TP = {tp}':<17} | {f'FN = {fn}':<17}")
     print(f"{'Aktual: Perlu Revisi':<20} | {f'FP = {fp}':<17} | {f'TN = {tn}':<17}")
-    print("=" * 55)
+    print("=" * 60)
 
-    print("\n" + "=" * 55)
+    print("\n" + "=" * 60)
     print("       METRIK KINERJA & AKURASI ILMIAH (BAB 3.5 TA)")
-    print("=" * 55)
+    print("=" * 60)
     print(f"Total Sampel Uji      : {total} Draf Artikel Riil")
     print(f"True Positive  (TP)   : {tp} Draf")
     print(f"True Negative  (TN)   : {tn} Draf")
     print(f"False Positive (FP)   : {fp} Draf")
     print(f"False Negative (FN)   : {fn} Draf")
-    print("-" * 55)
+    print("-" * 60)
     print(f"Accuracy              : {accuracy * 100:.2f}% ({accuracy:.4f})")
     print(f"Precision (Pers. 2.6) : {precision * 100:.2f}% ({precision:.4f})")
     print(f"Recall    (Pers. 2.7) : {recall * 100:.2f}% ({recall:.4f})")
     print(f"F1-Score  (Pers. 2.8) : {f1_score * 100:.2f}% ({f1_score:.4f})")
-    print("=" * 55 + "\n")
+    print("=" * 60)
+
+    print("\n" + "=" * 60)
+    print("      PERFORMA DETAIL PER STRATA (EVALUASI MULTI-STRATA)")
+    print("=" * 60)
+    for st, data in sorted(strata_performance.items()):
+        pct = (data["correct"] / data["total"]) * 100 if data["total"] > 0 else 0
+        print(f"Strata {st:<3} : {data['correct']:>2}/{data['total']:>2} Sukses ({pct:>5.1f}%)")
+    print("=" * 60 + "\n")
 
     summary = {
         "total_samples": total,
@@ -230,10 +282,10 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
             "recall_percentage": f"{recall * 100:.2f}%",
             "f1_score_percentage": f"{f1_score * 100:.2f}%",
         },
+        "strata_performance": strata_performance,
         "detailed_results": results,
     }
 
-    # Simpan hasil evaluasi ke fixtures sebagai bukti laporan Tugas Akhir
     report_file = os.path.join(BASE_DIR, "tests", "fixtures", "accuracy_evaluation_report.json")
     with open(report_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2, ensure_ascii=False)
@@ -243,13 +295,13 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
 
 # Integrasi Pytest untuk eksekusi via pytest test suite
 def test_accuracy_evaluation():
-    """Test suite otomatis pytest yang memverifikasi metrik akurasi >= 90%."""
+    """Test suite otomatis pytest yang memverifikasi metrik akurasi >= 90% pada 60 draf multi-strata."""
     summary = asyncio.run(run_accuracy_evaluation())
     metrics = summary["metrics"]
     cm = summary["confusion_matrix"]
 
-    assert summary["total_samples"] == 30
-    assert cm["TP"] + cm["TN"] + cm["FP"] + cm["FN"] == 30
+    assert summary["total_samples"] >= 30
+    assert cm["TP"] + cm["TN"] + cm["FP"] + cm["FN"] == summary["total_samples"]
     assert metrics["precision"] >= 0.90
     assert metrics["recall"] >= 0.90
     assert metrics["f1_score"] >= 0.90
