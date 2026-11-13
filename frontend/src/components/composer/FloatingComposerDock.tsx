@@ -339,7 +339,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
             <textarea
               ref={textareaRef}
               rows={isDesktop ? 2 : 1}
-              placeholder="Ketik atau tempel naskah artikel Anda..."
+              placeholder={isDesktop ? "Ketik atau tempel naskah artikel Anda..." : "Ketik atau tempel draf naskah..."}
               value={draftText}
               onChange={(e) => onDraftTextChange && onDraftTextChange(e.target.value)}
               onFocus={() => {
@@ -356,7 +356,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 width: "100%",
                 border: "none",
                 background: "transparent",
-                fontSize: isDesktop ? "14.5px" : "15px",
+                fontSize: isDesktop ? "14.5px" : "14px",
                 color: "var(--waskita-text, #1C1917)",
                 resize: "none",
                 outline: "none",
@@ -667,7 +667,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
 
             <textarea
               ref={textareaRef}
-              placeholder="Ketik atau tempel naskah artikel Anda..."
+              placeholder={isDesktop ? "Ketik atau tempel naskah artikel Anda..." : "Ketik atau tempel draf naskah..."}
               value={draftText}
               onChange={(e) => onDraftTextChange && onDraftTextChange(e.target.value)}
               onFocus={() => {
@@ -686,7 +686,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 maxHeight: isMaximized ? (isDesktop ? "380px" : "320px") : "180px",
                 border: "none",
                 background: "transparent",
-                fontSize: isDesktop ? "14.5px" : "16px",
+                fontSize: isDesktop ? "14.5px" : "14px",
                 color: COLORS.deepSlate,
                 resize: "none",
                 outline: "none",
