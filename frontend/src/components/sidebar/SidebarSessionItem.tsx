@@ -37,6 +37,19 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
   onExport,
   onDelete,
 }) => {
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [openUpward, setOpenUpward] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (isMenuOpen && menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      // Jika ruang di bawah kurang dari 190px (tinggi popover menu), posisikan membuka ke atas
+      setOpenUpward(spaceBelow < 190);
+    }
+  }, [isMenuOpen]);
+
   return (
     <div
       style={{
@@ -79,6 +92,7 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
       </button>
 
       <button
+        ref={menuButtonRef}
         type="button"
         onClick={(e) => {
           e.stopPropagation();
@@ -122,7 +136,7 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
         <div
           style={{
             position: "absolute",
-            top: "100%",
+            ...(openUpward ? { bottom: "100%", marginBottom: "4px" } : { top: "100%", marginTop: "4px" }),
             right: "4px",
             width: "180px",
             background: "var(--waskita-surface-white, #FFFFFF)",
