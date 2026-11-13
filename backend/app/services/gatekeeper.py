@@ -518,12 +518,12 @@ def generate_overview_and_remediation(
 
         # Tab 1: Paket Pra-Publikasi CMS & SEO Actionable (Sprint 3.5 & 3.6 & 4.1 & 4.2 & Anti-Slop)
         cms_pack_prompt = (
-            f"Anda adalah Editor Distribusi & Metadata Digital Berstandar Jurnalistik Tinggi.\n"
+            f"Anda adalah Editor Distribusi & Metadata Digital.\n"
             f"Draf artikel ini telah lolos audit orisinalitas WASKITA dengan skor tinggi ({cds_score}%) untuk topik '{target_query}'.\n"
             f"Berdasarkan analisis perbandingan terhadap {competitor_count} artikel kompetitor teratas di Google SERP, draf ini memiliki diferensiasi dan nilai kebaruan materi yang kuat ({gain_terms}).\n\n"
             f"<larangan_keras_anti_slop>\n"
             f"- Hindari judul dan deskripsi 'clickbait' murahan atau jargon klise AI ('Mengejutkan!', 'Solusi Inovatif', 'Wajib Tahu!').\n"
-            f"- Gunakan diksi tajam, faktual, dan menggugah rasa ingin tahu profesional pembaca.\n"
+            f"- Sesuaikan nada bahasa metadata dengan persona naskah asli agar selaras saat dibaca audiens target.\n"
             f"- DILARANG menambahkan basa-basi prolog/epilog AI.\n"
             f"</larangan_keras_anti_slop>\n\n"
             "Tolong siapkan paket materi pra-publikasi CMS & SEO untuk artikel ini tanpa mengubah isi naskah pokoknya:\n"
@@ -537,11 +537,12 @@ def generate_overview_and_remediation(
 
         # Tab 2: Micro-Tuning Menuju 100% (Perfeksionis - Sprint 4.2 & Anti-Slop)
         perfectionist_prompt = (
-            f"Anda adalah Redaktur Senior Khusus Micro-Tuning dan Polishing Editorial.\n"
+            f"Anda adalah Redaktur Khusus Micro-Tuning dan Polishing Editorial.\n"
             f"Draf artikel ini telah mencapai skor {cds_score}% untuk topik '{target_query}'.\n"
             "Jika Anda ingin melakukan penyempurnaan mikro (micro-tuning) menuju kesempurnaan 100%, terapkan instruksi berikut:\n\n"
             f"<prinsip_editorial_anti_slop>\n"
             f"- ATURAN BEDAH PRESISI (SURGICAL EDITING): Draf ini sudah memiliki kualitas tinggi. DILARANG menulis ulang seluruh naskah. Pertahankan minimal 90% struktur dan kalimat yang sudah sangat baik ini kata demi kata.\n"
+            f"- PRINSIP TONE MIRRORING: Jaga otentisitas suara dan register bahasa khas naskah asli (formal, kasual, santai, atau naratif) tanpa memaksakan kekakuan bahasa korporat.\n"
             f"- HINDARI KLISE AI: Jangan memasukkan kata penghubung klise ('tentunya', 'tidak dapat dipungkiri', 'hadir sebagai solusi').\n"
             f"- KELUARAN MURNI: Keluarkan naskah akhir secara utuh tanpa prolog atau epilog basa-basi AI.\n"
             f"</prinsip_editorial_anti_slop>\n\n"
@@ -597,10 +598,11 @@ def generate_overview_and_remediation(
 
         # Prompt Terstruktur 4-Pilar Anti-Slop & Bedah Presisi (Sprint 4.2 & Fabric Anti-Slop)
         remediation_prompt = (
-            f"Anda adalah Redaktur Senior dan Kurator Editorial Berbasis Fakta (gaya jurnalistik investigatif tempo/kompas/tirto).\n"
+            f"Anda adalah Kurator dan Redaktur Editorial Ahli.\n"
             f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan {competitor_count} artikel kompetitor acuan Google SERP berikut:\n\n"
             f"<prinsip_editorial_anti_slop>\n"
             f"- ATURAN BEDAH PRESISI (SURGICAL EDITING): Draf ini adalah naskah asli manusia. DILARANG merombak total dari nol. Pertahankan minimal 80% kalimat asli yang tidak bermasalah kata demi kata (verbatim) demi menjaga otentisitas suara penulis.\n"
+            f"- PRINSIP TONE & PERSONA MIRRORING: Hormati dan tiru gaya tutur khas naskah asli penulis (baik bergaya jurnalistik, kasual/santai, naratif-bercerita, teknis, maupun esoteris/khas). Jangan mengubah kepribadian tulisan menjadi bahasa korporat yang kaku.\n"
             f"- LARANGAN KERAS FRASA KLISE AI (ANTI-SLOP):\n"
             f"  Dilarang menggunakan frasa pembuka/penghubung klise AI seperti: 'Di era digital saat ini', 'Di era modern yang serba cepat ini', 'Tidak dapat dipungkiri bahwa', 'Hadir sebagai solusi inovatif', 'Mari kita simak', 'Seperti yang kita ketahui bersama', 'Bukan rahasia lagi', 'Dalam kesimpulannya', atau 'Semoga artikel ini bermanfaat'.\n"
             f"- NADA BAHASA: Lugas, objektif, padat informasi, tanpa basa-basi marketing, dan langsung menuju inti bahasan (straight lead).\n"
