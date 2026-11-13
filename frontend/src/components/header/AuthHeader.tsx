@@ -12,7 +12,6 @@ import {
   IconTrash2,
   IconSparkles,
   IconFileText,
-  IconPrinter,
   IconDownload,
 } from "../shared-ui";
 
@@ -26,8 +25,6 @@ export interface AuthHeaderProps {
   onCopyRemediationPrompt?: () => void;
   onCopySummary?: () => void;
   onDownloadReport?: () => void;
-  onPrintPdf?: () => void;
-  onExportCsv?: () => void;
   onCopyDraft?: () => void;
   onShare?: () => void;
   onPin?: () => void;
@@ -44,8 +41,6 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
   onCopyRemediationPrompt,
   onCopySummary,
   onDownloadReport,
-  onPrintPdf,
-  onExportCsv,
   onShare,
   onPin,
   isPinned = false,
@@ -174,36 +169,6 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
             <IconFileText size={15} color="var(--waskita-text-muted, #64748B)" /> Salin Ringkasan Evaluasi
           </button>
 
-          {/* 2a. Cetak Laporan Eksekutif PDF */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsMenuOpen(false);
-              if (onPrintPdf) onPrintPdf();
-            }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "9px 14px",
-              background: "none",
-              border: "none",
-              fontSize: "13px",
-              color: "inherit",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
-          >
-            <IconPrinter size={15} color="var(--waskita-text-muted, #64748B)" /> Cetak Laporan (PDF)
-          </button>
-
           {/* 2b. Ekspor Laporan Markdown (.MD) */}
           <button
             type="button"
@@ -232,36 +197,6 @@ export const AuthHeader: React.FC<AuthHeaderProps> = ({
             }}
           >
             <IconDownload size={15} color="var(--waskita-text-muted, #64748B)" /> Ekspor Laporan (.MD)
-          </button>
-
-          {/* 2c. Ekspor Data CSV (Excel) */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsMenuOpen(false);
-              if (onExportCsv) onExportCsv();
-            }}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "9px 14px",
-              background: "none",
-              border: "none",
-              fontSize: "13px",
-              color: "inherit",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "var(--waskita-card, rgba(30, 41, 59, 0.06))";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "none";
-            }}
-          >
-            <IconDownload size={15} color="var(--waskita-text-muted, #64748B)" /> Ekspor Data CSV (Excel)
           </button>
 
           {/* 3. Bagikan Analisis */}

@@ -38,7 +38,6 @@ export interface AuthSidebarProps {
   onPinSession?: (id: string) => void;
   onDeleteSession?: (id: string) => void;
   onExportSession?: (id: string) => void;
-  onPrintSession?: (id: string) => void;
   userProfile?: {
     name?: string;
     email?: string;
@@ -62,7 +61,6 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   onPinSession,
   onDeleteSession,
   onExportSession,
-  onPrintSession,
   userProfile = {
     name: "author_demo",
     email: "author@waskita.id",
@@ -404,7 +402,6 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                   onPin={onPinSession}
                   onRename={onRenameSession}
                   onExport={onExportSession}
-                  onPrint={onPrintSession}
                   onDelete={onDeleteSession}
                 />
               ))

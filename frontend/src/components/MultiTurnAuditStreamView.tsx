@@ -15,7 +15,6 @@ export interface MultiTurnAuditStreamViewProps {
   currentStep?: number;
   statusMessage?: string;
   isStepperFadingOut?: boolean;
-  onSelectForPrint?: (audit: AuditExecuteResponse) => void;
   onStartNewSessionWithDraft?: (draft: string) => void;
 }
 
@@ -26,7 +25,6 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
   currentStep = 1,
   statusMessage,
   isStepperFadingOut = false,
-  onSelectForPrint,
   onStartNewSessionWithDraft,
 }) => {
   const [expandedDrafts, setExpandedDrafts] = useState<Record<number, boolean>>({});
@@ -218,7 +216,6 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
               isDesktop={isDesktop}
               draftContent={turn.draftContent}
               isNewArrival={isLatest}
-              onSelectForPrint={onSelectForPrint}
               onStartNewSessionWithDraft={onStartNewSessionWithDraft}
             />
           </React.Fragment>

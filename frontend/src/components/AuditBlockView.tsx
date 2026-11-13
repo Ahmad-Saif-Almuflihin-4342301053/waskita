@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   COLORS,
   IconAlertCircle,
-  IconPrinter,
   IconDownload,
 } from './shared-ui';
 import { AuditExecuteResponse } from '../types/waskita';
@@ -20,7 +19,6 @@ export interface AuditBlockViewProps {
   isDesktop?: boolean;
   draftContent?: string;
   isNewArrival?: boolean;
-  onSelectForPrint?: (audit: AuditExecuteResponse) => void;
   onStartNewSessionWithDraft?: (draft: string) => void;
 }
 
@@ -30,7 +28,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   isDesktop = false,
   draftContent,
   isNewArrival = false,
-  onSelectForPrint,
   onStartNewSessionWithDraft,
 }) => {
   const [revealStage, setRevealStage] = useState<number>(isNewArrival ? 1 : 4);
@@ -275,28 +272,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
 
         {/* Quick Export Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <button
-            type="button"
-            onClick={() => onSelectForPrint?.(audit)}
-            title="Cetak Laporan Eksekutif PDF"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '4px 8px',
-              fontSize: '11px',
-              fontWeight: 600,
-              borderRadius: '6px',
-              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
-              background: 'var(--waskita-surface-white, #FFFFFF)',
-              color: 'var(--waskita-text-body, #334155)',
-              cursor: 'pointer',
-              transition: 'background 0.15s ease',
-            }}
-          >
-            <IconPrinter size={12} color="currentColor" />
-            <span>PDF</span>
-          </button>
           <button
             type="button"
             onClick={() => exportAuditToMarkdown(audit, draftContent)}
