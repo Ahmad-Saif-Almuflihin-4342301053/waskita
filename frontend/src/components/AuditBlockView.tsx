@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   COLORS,
   IconAlertCircle,
+  IconPrinter,
+  IconDownload,
 } from './shared-ui';
 import { AuditExecuteResponse } from '../types/waskita';
+import { exportAuditToMarkdown } from '../utils/clientExporter';
 import { VerdictSection } from './audit-block/VerdictSection';
 import { AuditMetricsGrid } from './audit-block/AuditMetricsGrid';
 import { EntityGapsSection } from './audit-block/EntityGapsSection';
@@ -27,6 +30,7 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   isDesktop = false,
   draftContent,
   isNewArrival = false,
+  onSelectForPrint,
   onStartNewSessionWithDraft,
 }) => {
   const [revealStage, setRevealStage] = useState<number>(isNewArrival ? 1 : 4);
@@ -59,14 +63,12 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
   // Sprint 3.5 & 3.6: Short-circuit render saat terdeteksi Out-of-Domain / Pergantian Topik
   if (isTopicShift) {
     return (
-      <div
+      <article
         style={{
-          background: 'var(--waskita-card, #E9DFCA)',
-          borderRadius: '20px',
-          padding: isDesktop ? '24px' : '16px',
-          marginBottom: '24px',
-          border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-          boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+          width: '100%',
+          marginBottom: '32px',
+          paddingBottom: '24px',
+          borderBottom: '1px solid var(--waskita-border, rgba(0, 0, 0, 0.06))',
         }}
       >
         {/* Header Turn */}
@@ -75,28 +77,21 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '16px',
-            paddingBottom: '12px',
-            borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+            marginBottom: '14px',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span
               style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                background: COLORS.mutedSkyBlue,
-                color: COLORS.deepSlate,
+                fontSize: '13px',
+                fontWeight: 600,
+                color: 'var(--waskita-text-muted, #78716C)',
               }}
             >
-              {turnLabel || `Turn #${audit.turn_number || 1}`}
+              {turnLabel || `Hasil Analisis`}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--waskita-text-muted, #64748B)' }}>
-              {new Date(audit.audit_timestamp).toLocaleTimeString('id-ID', {
+            <span style={{ fontSize: '12px', color: 'var(--waskita-text-subtle, #A8A29E)' }}>
+              • {new Date(audit.audit_timestamp).toLocaleTimeString('id-ID', {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
@@ -236,53 +231,94 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
             </div>
           </div>
         </div>
-      </div>
+      </article>
     );
   }
 
   return (
-    <div
+    <article
       style={{
-        background: 'var(--waskita-card, #E9DFCA)',
-        borderRadius: '20px',
-        padding: isDesktop ? '24px' : '16px',
-        marginBottom: '24px',
-        border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
+        width: '100%',
+        marginBottom: '36px',
+        paddingBottom: '28px',
+        borderBottom: '1px solid var(--waskita-border, rgba(0, 0, 0, 0.06))',
       }}
     >
-      {/* Header Turn */}
+      {/* Header Turn (Clean Minimalist Editorial) */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '16px',
-          paddingBottom: '12px',
-          borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+          marginBottom: '14px',
+          gap: '8px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <span
             style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              padding: '3px 8px',
-              borderRadius: '6px',
-              background: COLORS.mutedSkyBlue,
-              color: COLORS.deepSlate,
+              fontSize: '13px',
+              fontWeight: 600,
+              color: 'var(--waskita-text-muted, #78716C)',
+              letterSpacing: '-0.01em',
             }}
           >
-            {turnLabel || `Turn #${audit.turn_number || 1}`}
+            {turnLabel || `Hasil Analisis`}
           </span>
-          <span style={{ fontSize: '12px', color: 'var(--waskita-text-muted, #64748B)' }}>
-            {new Date(audit.audit_timestamp).toLocaleTimeString('id-ID', {
+          <span style={{ fontSize: '12px', color: 'var(--waskita-text-subtle, #A8A29E)' }}>
+            • {new Date(audit.audit_timestamp).toLocaleTimeString('id-ID', {
               hour: '2-digit',
               minute: '2-digit',
             })}
           </span>
+        </div>
+
+        {/* Quick Export Actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <button
+            type="button"
+            onClick={() => onSelectForPrint?.(audit)}
+            title="Cetak Laporan Eksekutif PDF"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              fontWeight: 600,
+              borderRadius: '6px',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+              background: 'var(--waskita-surface-white, #FFFFFF)',
+              color: 'var(--waskita-text-body, #334155)',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease',
+            }}
+          >
+            <IconPrinter size={12} color="currentColor" />
+            <span>PDF</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => exportAuditToMarkdown(audit, draftContent)}
+            title="Ekspor Laporan Markdown (.MD)"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '4px 8px',
+              fontSize: '11px',
+              fontWeight: 600,
+              borderRadius: '6px',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+              background: 'var(--waskita-surface-white, #FFFFFF)',
+              color: 'var(--waskita-text-body, #334155)',
+              cursor: 'pointer',
+              transition: 'background 0.15s ease',
+            }}
+          >
+            <IconDownload size={12} color="currentColor" />
+            <span>MD</span>
+          </button>
         </div>
       </div>
 
@@ -290,8 +326,9 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
       {audit.degradation_warning && (
         <div
           style={{
-            background: 'var(--waskita-rose-bg, #FEE2E2)',
-            border: '1px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.3))',
+            background: 'var(--waskita-surface-white, #FFFFFF)',
+            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+            borderLeft: '3px solid #DC2626',
             borderRadius: '12px',
             padding: '10px 14px',
             marginBottom: '16px',
@@ -299,11 +336,11 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
             alignItems: 'center',
             gap: '10px',
             fontSize: '12px',
-            color: 'var(--waskita-rose-text, #991B1B)',
+            color: '#991B1B',
             fontWeight: 600,
           }}
         >
-          <IconAlertCircle size={18} color="var(--waskita-rose-text, #991B1B)" />
+          <IconAlertCircle size={18} color="#DC2626" />
           <span>{audit.degradation_warning}</span>
         </div>
       )}
@@ -395,6 +432,6 @@ export const AuditBlockView: React.FC<AuditBlockViewProps> = ({
           <SerpCompetitorsSection audit={audit} isDesktop={isDesktop} />
         </div>
       )}
-    </div>
+    </article>
   );
 };

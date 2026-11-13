@@ -76,7 +76,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
         display: "flex",
         flexDirection: "column",
         position: "relative",
-        background: "var(--waskita-bg, #F7F4EB)",
+        background: "var(--waskita-bg, #FAFAF9)",
         color: COLORS.deepSlate,
         overflow: "hidden",
         boxSizing: "border-box",
@@ -97,7 +97,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             padding: "0 28px 0 20px",
             zIndex: 35,
             pointerEvents: "none",
-            background: "var(--waskita-bg, #F7F4EB)",
+            background: "var(--waskita-bg, #FAFAF9)",
           }}
         >
           <div style={{ pointerEvents: "auto" }}>
@@ -105,15 +105,16 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
               type="button"
               onClick={onSignIn}
               style={{
-                background: COLORS.softPeriwinkle,
-                border: "none",
+                background: "#1C1917",
+                border: "1px solid #1C1917",
                 borderRadius: "9999px",
                 padding: "8px 20px",
                 fontSize: "13px",
                 fontWeight: 600,
-                color: COLORS.deepSlate,
+                color: "#FFFFFF",
                 cursor: "pointer",
-                boxShadow: "0 1px 3px rgba(30, 41, 59, 0.06)",
+                boxShadow: "0 1px 3px rgba(30, 41, 59, 0.12)",
+                transition: "opacity 0.15s ease",
               }}
             >
               Sign in
@@ -130,7 +131,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             padding: "0 16px",
             borderBottom: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.06))",
             flexShrink: 0,
-            background: "var(--waskita-bg, #F7F4EB)",
+            background: "var(--waskita-bg, #FAFAF9)",
             zIndex: 10,
           }}
         >
@@ -164,14 +165,15 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
               type="button"
               onClick={onSignIn}
               style={{
-                background: COLORS.softPeriwinkle,
-                border: "none",
+                background: "#1C1917",
+                border: "1px solid #1C1917",
                 borderRadius: "9999px",
                 padding: "8px 20px",
                 fontSize: "13px",
                 fontWeight: 600,
-                color: COLORS.deepSlate,
+                color: "#FFFFFF",
                 cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(30, 41, 59, 0.12)",
               }}
             >
               Sign in
@@ -205,7 +207,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
         {/* Judul Hero CTA */}
         <h1
           style={{
-            fontSize: isDesktop ? "36px" : "26px",
+            fontSize: isDesktop ? "34px" : "24px",
             fontWeight: 800,
             letterSpacing: "-0.025em",
             color: COLORS.deepSlate,
@@ -213,7 +215,7 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             lineHeight: 1.25,
           }}
         >
-          Segera Periksa, ARTIKELMU!
+          Periksa Kualitas &amp; Orisinalitas Artikel
         </h1>
 
         {/* Kapsul Komposer Terpadu Tunggal Mode Centered */}

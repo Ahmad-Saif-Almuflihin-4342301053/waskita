@@ -3,7 +3,7 @@ from scipy.sparse import csr_matrix
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity, euclidean_distances
 from sklearn.preprocessing import normalize
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 
 
 def compute_vsm_similarity(

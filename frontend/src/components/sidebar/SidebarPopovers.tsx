@@ -65,7 +65,8 @@ export const SidebarProfilePopover: React.FC<SidebarProfilePopoverProps> = ({
       <div
         style={{
           padding: "10px 12px",
-          background: "var(--waskita-card, #E9DFCA)",
+          background: "var(--waskita-surface-subtle, #F8FAFC)",
+          border: "1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))",
           borderRadius: "10px",
           display: "flex",
           alignItems: "center",
@@ -77,8 +78,9 @@ export const SidebarProfilePopover: React.FC<SidebarProfilePopoverProps> = ({
             width: "34px",
             height: "34px",
             borderRadius: "50%",
-            background: COLORS.deepSlate,
-            color: "#FFFFFF",
+            background: "var(--waskita-avatar-bg, #1C1917)",
+            color: "var(--waskita-avatar-text, #FFFFFF)",
+            border: "1px solid var(--waskita-avatar-border, transparent)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -105,18 +107,14 @@ export const SidebarProfilePopover: React.FC<SidebarProfilePopoverProps> = ({
           <div style={{ marginTop: "3px" }}>
             <span
               style={{
-                fontSize: "10px",
-                fontWeight: 700,
-                textTransform: "uppercase",
-                background: "rgba(217, 119, 6, 0.15)",
-                color: "#D97706",
-                padding: "2px 7px",
-                borderRadius: "10px",
-                letterSpacing: "0.04em",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: "#B45309",
+                letterSpacing: "0.02em",
                 display: "inline-block",
               }}
             >
-              {userPlan}
+              Plan: {userPlan}
             </span>
           </div>
         </div>
@@ -158,7 +156,7 @@ export const SidebarProfilePopover: React.FC<SidebarProfilePopoverProps> = ({
           transition: "background 0.15s ease",
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+          (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -302,14 +300,14 @@ export const SidebarSettingsPopover: React.FC<SidebarSettingsPopoverProps> = ({
             borderRadius: "8px",
             border: "none",
             cursor: "pointer",
-            background: themeFlyoutOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+            background: themeFlyoutOpen ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
             color: COLORS.deepSlate,
             fontSize: "12.5px",
             fontWeight: 500,
             transition: "background 0.15s ease",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+            (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
           }}
           onMouseLeave={(e) => {
             if (!themeFlyoutOpen) {
@@ -364,7 +362,7 @@ export const SidebarSettingsPopover: React.FC<SidebarSettingsPopoverProps> = ({
                       borderRadius: "8px",
                       border: "none",
                       cursor: "pointer",
-                      background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                      background: isActive ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
                       color: COLORS.deepSlate,
                       fontSize: "12.5px",
                       fontWeight: isActive ? 700 : 500,
@@ -372,7 +370,7 @@ export const SidebarSettingsPopover: React.FC<SidebarSettingsPopoverProps> = ({
                     }}
                     onMouseEnter={(e) => {
                       if (!isActive) {
-                        (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                        (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
                       }
                     }}
                     onMouseLeave={(e) => {
@@ -420,7 +418,7 @@ export const SidebarSettingsPopover: React.FC<SidebarSettingsPopoverProps> = ({
           transition: "background 0.15s ease",
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+          (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
         }}
         onMouseLeave={(e) => {
           (e.currentTarget as HTMLElement).style.background = "transparent";

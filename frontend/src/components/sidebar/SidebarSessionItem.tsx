@@ -5,6 +5,7 @@ import {
   IconPencil,
   IconTrash2,
   IconDownload,
+  IconPrinter,
   IconMoreVertical,
 } from "../shared-ui";
 
@@ -20,6 +21,7 @@ export interface SidebarSessionItemProps {
   onPin?: (id: string) => void;
   onRename?: (id: string, currentTitle: string) => void;
   onExport?: (id: string) => void;
+  onPrint?: (id: string) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -35,6 +37,7 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
   onPin,
   onRename,
   onExport,
+  onPrint,
   onDelete,
 }) => {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -210,6 +213,31 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
           >
             <IconPencil size={14} color={COLORS.deepSlate} />
             <span>Ganti Nama (Rename)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              onCloseMenu();
+              if (onPrint) onPrint(sessionId);
+            }}
+            style={{
+              background: "transparent",
+              border: "none",
+              borderRadius: "6px",
+              padding: "7px 10px",
+              fontSize: "12px",
+              fontWeight: 500,
+              textAlign: "left",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: COLORS.deepSlate,
+            }}
+          >
+            <IconPrinter size={14} color={COLORS.deepSlate} />
+            <span>Cetak Laporan (PDF)</span>
           </button>
 
           <button

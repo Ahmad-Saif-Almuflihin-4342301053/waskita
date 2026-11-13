@@ -23,7 +23,12 @@ import {
   AuditSessionSummary,
 } from './types/waskita';
 import { countPureWords, extractSmartKeyword } from './utils/draftSanitizer';
-import { parseUploadedFileClientSide, exportAuditToMarkdown } from './utils/clientExporter';
+import {
+  parseUploadedFileClientSide,
+  exportAuditToMarkdown,
+  exportAuditToCsv,
+  triggerExecutivePdfPrint,
+} from './utils/clientExporter';
 
 export const App: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
@@ -489,6 +494,37 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     });
   };
 
+  const handlePrintPdf = (turnData?: AuditExecuteResponse, draftText?: string) => {
+    if (currentTurns.length === 0 && !turnData) {
+      showToast({
+        type: 'warning',
+        title: 'Tidak Ada Data',
+        message: 'Belum ada hasil analisis yang dapat dicetak.',
+      });
+      return;
+    }
+    const latest = currentTurns.length > 0 ? currentTurns[currentTurns.length - 1] : null;
+    const dataToPrint = turnData || latest?.auditResult;
+    if (!dataToPrint) return;
+    setPrintAuditData(dataToPrint);
+    setTimeout(() => {
+      triggerExecutivePdfPrint();
+    }, 70);
+  };
+
+  const handleExportCsv = (turnData?: AuditExecuteResponse) => {
+    if (currentTurns.length === 0 && !turnData) return;
+    const latest = currentTurns.length > 0 ? currentTurns[currentTurns.length - 1] : null;
+    const dataToExport = turnData || latest?.auditResult;
+    if (!dataToExport) return;
+    exportAuditToCsv(dataToExport);
+    showToast({
+      type: 'success',
+      title: 'CSV Berhasil Diunduh',
+      message: 'Data metrik & celah entitas diekspor ke format CSV Excel (UTF-8 BOM).',
+    });
+  };
+
   const handleCopyDraft = () => {
     if (currentTurns.length === 0) return;
     const latest = currentTurns[currentTurns.length - 1];
@@ -613,6 +649,44 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
     } else {
       // Mock / fallback export
       exportAuditToMarkdown({
+        session_id: sessionId,
+        parent_session_id: null,
+        turn_number: 1,
+        target_query: sessionObj?.target_query || 'audit',
+        draft_title: sessionObj?.draft_title || 'Naskah Artikel',
+        draft_word_count: 350,
+        audit_timestamp: sessionObj?.audit_timestamp || new Date().toISOString(),
+        verdict_status: sessionObj?.verdict_status || 'Layak Terbit',
+        degradation_warning: null,
+        thresholds,
+        metrics: {
+          content_differentiation_score: sessionObj?.score_cds || 80,
+          avg_cosine_similarity: 0.45,
+          max_cosine_similarity: 0.52,
+          euclidean_distance: 1.1,
+          ttr_score: 0.6,
+          mattr_score: 0.58,
+          hko_percentage: 25,
+          is_redundant: false,
+          is_keyword_stuffed: false,
+        },
+        entity_gaps: { deficit: [], gain: [] },
+        annotated_spans: [],
+        overview_bullets: ['Audit tersimpan dari riwayat database.'],
+        remediation_prompt: 'Naskah memenuhi standar.',
+      });
+    }
+  };
+
+  const handlePrintSessionById = (sessionId: string) => {
+    const sessionObj = sessions.find((s) => s.session_id === sessionId);
+    if (currentTurns.length > 0 && activeSessionId === sessionId) {
+      handlePrintPdf(
+        currentTurns[currentTurns.length - 1].auditResult,
+        currentTurns[currentTurns.length - 1].draftContent
+      );
+    } else {
+      handlePrintPdf({
         session_id: sessionId,
         parent_session_id: null,
         turn_number: 1,
@@ -818,6 +892,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
             onPinSession={handlePin}
             onDeleteSession={handleDeleteClick}
             onExportSession={handleExportSessionById}
+            onPrintSession={handlePrintSessionById}
           />
 
           {/* Right Column (Header + Stream + Composer) */}
@@ -844,6 +919,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
               onCopyRemediationPrompt={handleCopyRemediationPrompt}
               onCopySummary={handleCopySummary}
               onDownloadReport={handleDownloadReport}
+              onPrintPdf={handlePrintPdf}
+              onExportCsv={handleExportCsv}
               onCopyDraft={handleCopyDraft}
               onShare={handleShare}
               onPin={() => handlePin()}
@@ -914,7 +991,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                   currentStep={stepperStep}
                   statusMessage={stepperMessage}
                   isStepperFadingOut={isStepperFadingOut}
-                  onSelectForPrint={(aud) => setPrintAuditData(aud)}
+                  onSelectForPrint={(aud) => handlePrintPdf(aud)}
                   onStartNewSessionWithDraft={handleStartNewSessionWithDraft}
                 />
               )}
@@ -976,8 +1053,8 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
           onChange={(e) => setRenameValue(e.target.value)}
           style={{
             width: '100%',
-            background: 'var(--waskita-card, #E9DFCA)',
-            border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+            background: 'var(--waskita-surface-white, #FFFFFF)',
+            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
             borderRadius: '10px',
             padding: '8px 12px',
             fontSize: '13px',

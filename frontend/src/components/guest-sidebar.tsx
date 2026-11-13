@@ -76,14 +76,25 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
         setThemeFlyoutOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSettingsPopoverOpen(false);
+        setThemeFlyoutOpen(false);
+        if (!isDesktop && isOpen && onClose) {
+          onClose();
+        }
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
       if (themeFlyoutTimerRef.current) {
         clearTimeout(themeFlyoutTimerRef.current);
       }
     };
-  }, []);
+  }, [isDesktop, isOpen, onClose]);
 
   const themeOptions: Array<{ id: "system" | "light" | "dark"; label: string; icon: React.ReactNode }> = [
     { id: "system", label: "System", icon: <IconLaptop size={15} color={COLORS.deepSlate} /> },
@@ -172,14 +183,14 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
               borderRadius: "8px",
               border: "none",
               cursor: "pointer",
-              background: themeFlyoutOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+              background: themeFlyoutOpen ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
               color: COLORS.deepSlate,
               fontSize: "12.5px",
               fontWeight: 500,
               transition: "background 0.15s ease",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
             }}
             onMouseLeave={(e) => {
               if (!themeFlyoutOpen) {
@@ -234,7 +245,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                         borderRadius: "8px",
                         border: "none",
                         cursor: "pointer",
-                        background: isActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                        background: isActive ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
                         color: COLORS.deepSlate,
                         fontSize: "12.5px",
                         fontWeight: isActive ? 700 : 500,
@@ -242,7 +253,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                       }}
                       onMouseEnter={(e) => {
                         if (!isActive) {
-                          (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                          (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -291,7 +302,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
             transition: "background 0.15s ease",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+            (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -339,7 +350,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
             style={{
               width: "40px",
               height: "40px",
-              background: isWLogoHovered ? "var(--waskita-card, #E9DFCA)" : "transparent",
+              background: isWLogoHovered ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
               border: "none",
               cursor: "pointer",
               borderRadius: "10px",
@@ -378,7 +389,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
               width: "40px",
               height: "40px",
               borderRadius: "12px",
-              background: "var(--waskita-card, #E9DFCA)",
+              background: "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))",
               border: "none",
               display: "flex",
               alignItems: "center",
@@ -405,7 +416,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                 width: "38px",
                 height: "38px",
                 borderRadius: "50%",
-                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+                background: settingsPopoverOpen ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",
@@ -430,7 +441,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: COLORS.softPeriwinkle,
+              background: "rgba(30, 41, 59, 0.08)",
               color: COLORS.deepSlate,
               border: "none",
               cursor: "pointer",
@@ -531,7 +542,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                 transition: "background 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -560,7 +571,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                     transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                    (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -587,7 +598,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                   transition: "background 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -629,7 +640,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
               color: COLORS.deepSlate,
               cursor: "pointer",
               border: "none",
-              background: "var(--waskita-card, #E9DFCA)",
+              background: "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))",
               transition: "background 0.15s ease, opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
           >
@@ -693,15 +704,15 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
               if (!isDesktop && onClose) onClose();
             }}
             style={{
-              background: COLORS.softPeriwinkle,
-              border: "none",
+              background: "#1C1917",
+              border: "1px solid #1C1917",
               borderRadius: "9999px",
               padding: "9px 22px",
               fontSize: "13px",
-              fontWeight: 700,
-              color: COLORS.deepSlate,
+              fontWeight: 600,
+              color: "#FFFFFF",
               cursor: "pointer",
-              boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)",
+              boxShadow: "0 1px 3px rgba(30, 41, 59, 0.12)",
             }}
           >
             Sign In
@@ -724,7 +735,7 @@ export const GuestSidebar: React.FC<GuestSidebarProps> = ({
                 width: "36px",
                 height: "36px",
                 borderRadius: "50%",
-                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "rgba(30, 41, 59, 0.06)",
+                background: settingsPopoverOpen ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "rgba(30, 41, 59, 0.06)",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",

@@ -24,6 +24,18 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel,
   children,
 }) => {
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onCancel();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onCancel]);
+
   if (!isOpen) return null;
 
   return (
@@ -48,8 +60,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         style={{
           width: '100%',
           maxWidth: '420px',
-          background: 'var(--waskita-bg, #F7F4EB)',
-          border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+          background: 'var(--waskita-surface-white, #FFFFFF)',
+          border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
           borderRadius: '20px',
           padding: '24px',
           boxShadow: '0 16px 36px rgba(0, 0, 0, 0.2)',
@@ -95,8 +107,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={onCancel}
             style={{
-              background: 'var(--waskita-card, #E9DFCA)',
-              border: 'none',
+              background: 'var(--waskita-surface-subtle, #F1F5F9)',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
               borderRadius: '10px',
               padding: '8px 16px',
               fontSize: '13px',
@@ -111,13 +123,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             type="button"
             onClick={onConfirm}
             style={{
-              background: isDanger ? '#EF4444' : COLORS.softPeriwinkle,
-              border: 'none',
+              background: isDanger ? '#EF4444' : '#1C1917',
+              border: isDanger ? '1px solid #DC2626' : '1px solid #1C1917',
               borderRadius: '10px',
               padding: '8px 18px',
               fontSize: '13px',
               fontWeight: 600,
-              color: isDanger ? '#FFFFFF' : COLORS.deepSlate,
+              color: '#FFFFFF',
               cursor: 'pointer',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             }}

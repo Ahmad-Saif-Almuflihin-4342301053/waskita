@@ -48,57 +48,50 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
         justifyContent: 'space-between',
         gap: '20px',
         background: 'var(--waskita-surface-white, #FFFFFF)',
-        borderRadius: '18px',
+        borderRadius: '16px',
         padding: '20px',
         marginBottom: '20px',
-        border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+        border: '1px solid var(--waskita-border, rgba(28, 25, 23, 0.08))',
+        boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
       }}
     >
       <div style={{ textAlign: isDesktop ? 'left' : 'center', flex: 1 }}>
         <div
           style={{
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: 600,
-            color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.6))',
+            color: 'var(--waskita-text-muted, #78716C)',
             textTransform: 'uppercase',
-            letterSpacing: '0.4px',
+            letterSpacing: '0.04em',
             marginBottom: '4px',
           }}
         >
-          Vonis Kelayakan Pra-Publikasi
+          Vonis Kelayakan
         </div>
         <div
           style={{
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
+            justifyContent: isDesktop ? 'flex-start' : 'center',
             gap: '8px',
-            padding: '6px 16px',
-            borderRadius: '9999px',
-            background: isDemo
-              ? 'var(--waskita-card, #E9DFCA)'
-              : isReady
-              ? 'var(--waskita-emerald-bg, #D1FAE5)'
-              : isOutOfDomain || isRedundantSentence
-              ? 'var(--waskita-rose-bg, #FEE2E2)'
-              : 'var(--waskita-amber-bg, #FEF3C7)',
             color: isDemo
-              ? 'var(--waskita-text, #1E293B)'
+              ? 'var(--waskita-text, #1C1917)'
               : isReady
-              ? 'var(--waskita-emerald-text, #065F46)'
+              ? '#047857'
               : isOutOfDomain || isRedundantSentence
-              ? 'var(--waskita-rose-accent, #DC2626)'
-              : 'var(--waskita-amber-text, #B45309)',
-            fontWeight: 800,
-            fontSize: '16px',
-            marginBottom: '10px',
+              ? '#DC2626'
+              : '#B45309',
+            fontWeight: 700,
+            fontSize: '18px',
+            marginBottom: '8px',
           }}
         >
           {isDemo ? (
-            <IconInfo size={18} />
+            <IconInfo size={20} />
           ) : isReady ? (
-            <IconCheck size={18} />
+            <IconCheck size={20} color="#047857" />
           ) : (
-            <IconAlertCircle size={18} />
+            <IconAlertCircle size={20} />
           )}
           <span>{isDemo ? 'Mode Demo' : audit.verdict_status}</span>
         </div>
@@ -128,54 +121,53 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             {isRedundantSentence ? (
               <div
                 style={{
-                  marginTop: '12px',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  background: 'rgba(220, 38, 38, 0.08)',
-                  border: '1px solid rgba(220, 38, 38, 0.25)',
+                  marginTop: '10px',
+                  padding: '6px 0 6px 12px',
+                  borderLeft: '3px solid #DC2626',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
                   fontSize: '12px',
+                  color: 'var(--waskita-rose-text, #DC2626)',
                 }}
               >
-                <IconAlertCircle size={16} color="#DC2626" style={{ flexShrink: 0 }} />
-                <span style={{ color: '#991B1B' }}>
-                  <strong>Veto Redundansi Aktif:</strong> Naskah memiliki kemiripan kalimat langsung yang tinggi dengan artikel kompetitor (stabilo merah). Rombak kalimat merah sebagai syarat utama sebelum mengejar diferensiasi.
+                <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginRight: '6px' }}>
+                  <IconAlertCircle size={14} color="#DC2626" />
+                </span>
+                <span>
+                  <strong>Veto Redundansi Aktif:</strong> Rombak kalimat berstabilo merah sebagai syarat mutlak sebelum mengejar diferensiasi.
                 </span>
               </div>
             ) : (
               (audit.metrics?.consensus_target_count || 0) > 0 && (
                 <div
                   style={{
-                    marginTop: '12px',
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    background: 'rgba(5, 150, 105, 0.08)',
-                    border: '1px solid rgba(5, 150, 105, 0.2)',
+                    marginTop: '10px',
+                    padding: '6px 0 6px 12px',
+                    borderLeft: '3px solid #0D9488',
                     display: 'flex',
                     alignItems: 'center',
                     fontSize: '12px',
+                    color: 'var(--waskita-text-body, #44403C)',
                   }}
                 >
                   <span style={{ flex: 1 }}>
                     {(audit.metrics.consensus_matched_count ?? 0) >= (audit.metrics.consensus_target_count ?? 20) ? (
-                      <span style={{ color: '#065F46' }}>
+                      <span style={{ color: '#047857' }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginRight: '5px' }}>
-                          <IconCheck size={14} color="#065F46" />
+                          <IconCheck size={14} color="#047857" />
                         </span>
                         <strong>Konsensus Pasar Penuh:</strong> Naskah Anda mencakup{' '}
-                        <strong>{audit.metrics.consensus_matched_count} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target 80% / {audit.metrics.consensus_target_count} entitas terpenuhi 100%).
+                        <strong>{audit.metrics.consensus_matched_count} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target 80% terpenuhi).
                       </span>
                     ) : (
                       <span>
                         <span style={{ display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle', marginRight: '5px' }}>
-                          <IconTarget size={14} color="#DC2626" />
+                          <IconTarget size={14} color="#B45309" />
                         </span>
                         <strong>Progres Konsensus Pasar:</strong> Mencakup{' '}
-                        <strong>{audit.metrics.consensus_matched_count ?? 0} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target saturasi: {audit.metrics.consensus_target_count} entitas).
-                        <span style={{ color: '#065F46', marginLeft: '4px' }}>
-                          (Cukup tambahkan {(audit.metrics.consensus_target_count ?? 20) - (audit.metrics.consensus_matched_count ?? 0)} kata kunci prioritas untuk meraih skor Information Gain maksimal)
+                        <strong>{audit.metrics.consensus_matched_count ?? 0} dari {audit.metrics.consensus_total_count || audit.consensus_entities?.length || 25} entitas</strong> (Target: {audit.metrics.consensus_target_count} entitas).
+                        <span style={{ color: '#047857', marginLeft: '4px' }}>
+                          (Tambahkan {(audit.metrics.consensus_target_count ?? 20) - (audit.metrics.consensus_matched_count ?? 0)} entitas prioritas untuk skor IG maksimal)
                         </span>
                       </span>
                     )}
@@ -186,83 +178,27 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
           </>
         )}
 
-        {/* Pil Sub-Skor White-Box (Sprint 4.4) */}
+        {/* Sub-Skor White-Box (Clean Editorial Metadata - No Pill Slop) */}
         {!isDemo && audit.metrics?.sub_scores && Object.keys(audit.metrics.sub_scores).length > 0 && (
           <div
             style={{
-              marginTop: '10px',
+              marginTop: '12px',
               display: 'flex',
               alignItems: 'center',
-              gap: '6px',
+              gap: '10px',
               flexWrap: 'wrap',
+              fontSize: '11.5px',
+              color: 'var(--waskita-text-muted, #78716C)',
             }}
           >
-            <div
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--waskita-text-muted, #64748B)',
-                marginRight: '2px',
-              }}
-            >
-              Komponen Skor:
-            </div>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: '6px',
-                background: 'rgba(30, 41, 59, 0.06)',
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
-                color: 'var(--waskita-text-body, #334155)',
-              }}
-              title="Komponen VSM Anti-Jiplak terhadap kemiripan kosinus kompetitor (Maks 35)"
-            >
-              VSM (Anti-Jiplak): <strong>{vsmSubScore}</strong>/35
-            </span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: '6px',
-                background: 'rgba(5, 150, 105, 0.08)',
-                border: '1px solid rgba(5, 150, 105, 0.2)',
-                color: 'var(--waskita-emerald-text, #065F46)',
-              }}
-              title="Komponen Information Gain atas cakupan konsensus topik SERP (Maks 30)"
-            >
-              IG (Topik SERP): <strong>{igSubScore}</strong>/30
-            </span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: '6px',
-                background: 'rgba(30, 41, 59, 0.06)',
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
-                color: 'var(--waskita-text-body, #334155)',
-              }}
-              title="Moving-Average Type-Token Ratio / Variasi kosakata unik (Maks 20)"
-            >
-              MATTR (Kekayaan Diksi): <strong>{mattrSubScore}</strong>/20
-            </span>
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 600,
-                padding: '2px 8px',
-                borderRadius: '6px',
-                background: 'rgba(30, 41, 59, 0.06)',
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
-                color: 'var(--waskita-text-body, #334155)',
-              }}
-              title="Heading Keyword Overlap / Bebas spam kata kunci pada judul/heading (Maks 15)"
-            >
-              HKO (Anti-Spam Judul): <strong>{hkoSubScore}</strong>/15
-            </span>
+            <span style={{ fontWeight: 600, color: 'var(--waskita-text, #1C1917)' }}>Komponen:</span>
+            <span>VSM <strong style={{ color: 'var(--waskita-text, #1C1917)' }}>{vsmSubScore}</strong>/35</span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span>IG <strong style={{ color: 'var(--waskita-text, #1C1917)' }}>{igSubScore}</strong>/30</span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span>MATTR <strong style={{ color: 'var(--waskita-text, #1C1917)' }}>{mattrSubScore}</strong>/20</span>
+            <span style={{ opacity: 0.4 }}>•</span>
+            <span>HKO <strong style={{ color: 'var(--waskita-text, #1C1917)' }}>{hkoSubScore}</strong>/15</span>
           </div>
         )}
       </div>
@@ -273,7 +209,7 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             style={{
               padding: '16px 20px',
               borderRadius: '12px',
-              background: 'var(--waskita-bg, #F7F4EB)',
+              background: 'var(--waskita-surface-subtle, #F5F5F4)',
               border: '1px dashed var(--waskita-border-strong, rgba(30, 41, 59, 0.2))',
               textAlign: 'center',
               maxWidth: '180px',
@@ -294,6 +230,7 @@ export const VerdictSection: React.FC<VerdictSectionProps> = ({ audit, isDesktop
             score={cdsScore}
             threshold={thresholdCds}
             isOutOfDomain={isOutOfDomain}
+            color={isRedundantSentence ? '#DC2626' : undefined}
           />
         )}
       </div>

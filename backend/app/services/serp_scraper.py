@@ -1,6 +1,5 @@
 import asyncio
 import hashlib
-import json
 import logging
 import re
 from typing import Any, Dict, List, Optional, Set
@@ -78,9 +77,6 @@ SEARCH_ENGINE_PROXY_DOMAINS = {
     "yahoo.com",
     "www.yahoo.com",
 }
-
-BLOCKED_DOMAINS = VIDEO_SOCIAL_DOMAINS | DOC_DOMAINS
-BLOCKED_EXTENSIONS = DOC_EXTENSIONS
 
 
 def classify_url_skip_reason(url: str) -> Optional[str]:

@@ -13,6 +13,17 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
     color: string | null;
   } | null>(null);
 
+  React.useEffect(() => {
+    if (!activeSentenceSpan) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveSentenceSpan(null);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [activeSentenceSpan]);
+
   return (
     <section style={{ marginBottom: '20px', position: 'relative' }}>
       <div
@@ -100,7 +111,7 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
         style={{
           fontSize: '13px',
           lineHeight: 1.6,
-          color: 'var(--waskita-text-body, #334155)',
+          color: 'var(--waskita-text-body, var(--waskita-text, #334155))',
           marginBottom: '12px',
           background: 'var(--waskita-surface-white, #FFFFFF)',
           padding: '14px',
@@ -164,7 +175,7 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
                   key={idx}
                   style={{
                     fontWeight: 700,
-                    color: 'var(--waskita-text-heading, #0F172A)',
+                    color: 'var(--waskita-text-heading, var(--waskita-text, #0F172A))',
                     marginTop: idx === 0 ? '0px' : '14px',
                     marginBottom: '4px',
                     fontSize: '13.5px',
@@ -263,9 +274,9 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
             >
               Saran Celah Topik (SERP)
             </div>
-            <div style={{ color: 'var(--waskita-text-body, #334155)' }}>
+            <div style={{ color: 'var(--waskita-text-body, var(--waskita-text, #334155))' }}>
               Naskah Anda belum mengulas aspek penting yang banyak dibahas kompetitor:{' '}
-              <strong style={{ fontWeight: 600, color: 'var(--waskita-text-heading, #0F172A)' }}>
+              <strong style={{ fontWeight: 600, color: 'var(--waskita-text-heading, var(--waskita-text, #0F172A))' }}>
                 {audit.entity_gaps.deficit
                   .slice(0, 5)
                   .map((item) => item.term_surface_form || item.term_string)
@@ -284,8 +295,8 @@ export const AnnotatedTextSection: React.FC<AnnotatedTextSectionProps> = ({ audi
             marginTop: '8px',
             padding: '10px 14px',
             borderRadius: '10px',
-            background: 'var(--waskita-card, #E9DFCA)',
-            border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+            background: 'var(--waskita-surface-white, #FFFFFF)',
+            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',

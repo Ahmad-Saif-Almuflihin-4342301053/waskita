@@ -164,27 +164,27 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                           type="button"
                           onClick={() => setSelectedItem(isSelected ? null : item)}
                           style={{
-                            background: isSelected ? '#FEE2E2' : '#FFF1F2',
-                            color: 'var(--waskita-rose-text, #991B1B)',
+                            background: isSelected ? 'var(--waskita-surface-subtle, rgba(5, 150, 105, 0.08))' : 'transparent',
+                            color: 'var(--waskita-text)',
                             border: isSelected
-                              ? '2px solid #DC2626'
-                              : '1.5px solid rgba(220, 38, 38, 0.45)',
+                              ? '1.5px solid var(--waskita-emerald-accent, #059669)'
+                              : '1px solid var(--waskita-border, rgba(125, 125, 125, 0.18))',
                             fontSize: '11.5px',
                             padding: '3px 8px',
                             borderRadius: '6px',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '5px',
+                            whiteSpace: 'nowrap',
                             transition: 'all 0.15s ease',
-                            boxShadow: isSelected ? '0 0 0 2px rgba(220, 38, 38, 0.2)' : 'none',
                           }}
                           title="Klik untuk melihat cuplikan kompetitor & salin kata kunci"
                         >
-                          <IconTarget size={11} color="#DC2626" />
+                          <span style={{ color: '#DC2626', fontSize: '10px' }}>●</span>
                           <span>{item.term_surface_form}</span>
-                          <span style={{ fontSize: '10px', opacity: 0.85 }}>({item.competitor_consensus_count} SERP)</span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--waskita-text-muted, #78716C)' }}>({item.competitor_consensus_count} SERP)</span>
                         </button>
                       );
                     })}
@@ -216,25 +216,26 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                           type="button"
                           onClick={() => setSelectedItem(isSelected ? null : item)}
                           style={{
-                            background: isSelected ? '#FEE2E2' : 'var(--waskita-rose-bg, #FEE2E2)',
-                            color: 'var(--waskita-rose-text, #991B1B)',
+                            background: isSelected ? 'var(--waskita-surface-subtle, rgba(5, 150, 105, 0.08))' : 'transparent',
+                            color: 'var(--waskita-text)',
                             border: isSelected
-                              ? '2px solid #DC2626'
-                              : '1px solid var(--waskita-rose-border, rgba(220, 38, 38, 0.2))',
+                              ? '1.5px solid var(--waskita-emerald-accent, #059669)'
+                              : '1px solid var(--waskita-border, rgba(125, 125, 125, 0.18))',
                             fontSize: '11.5px',
                             padding: '3px 8px',
                             borderRadius: '6px',
-                            fontWeight: 600,
+                            fontWeight: 500,
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
+                            whiteSpace: 'nowrap',
                             transition: 'all 0.15s ease',
                           }}
                           title="Klik untuk melihat cuplikan kompetitor & salin kata kunci"
                         >
                           <span>+ {item.term_surface_form}</span>
-                          <span style={{ fontSize: '10px', opacity: 0.85 }}>({item.competitor_consensus_count} SERP)</span>
+                          <span style={{ fontSize: '10.5px', color: 'var(--waskita-text-muted, #78716C)' }}>({item.competitor_consensus_count} SERP)</span>
                         </button>
                       );
                     })}
@@ -249,16 +250,16 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
             </span>
           )}
 
-          {/* Popover / Cuplikan Konteks Kompetitor Interaktif (Sprint 4.4) */}
+          {/* Popover / Cuplikan Konteks Kompetitor Interaktif (Persis Gambar 4) */}
           {selectedItem && (
             <div
               style={{
                 marginTop: '12px',
-                padding: '12px',
-                borderRadius: '10px',
-                background: 'var(--waskita-warm-sand, #F1ECE1)',
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
-                boxShadow: '0 4px 12px rgba(30, 41, 59, 0.08)',
+                padding: '14px 16px',
+                borderRadius: '12px',
+                background: 'var(--waskita-surface-white, #FFFFFF)',
+                border: '1px solid var(--waskita-border, rgba(125, 125, 125, 0.15))',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.04)',
               }}
             >
               <div
@@ -266,12 +267,12 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: '6px',
+                  marginBottom: '8px',
                   gap: '8px',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: COLORS.deepSlate, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--waskita-text, #1C1917)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     {selectedItem.is_consensus_priority ? (
                       <IconTarget size={13} color="#DC2626" />
                     ) : (
@@ -281,15 +282,12 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                   </span>
                   <span
                     style={{
-                      fontSize: '12px',
-                      fontWeight: 800,
-                      color: 'var(--waskita-rose-text, #991B1B)',
-                      background: 'var(--waskita-rose-bg, #FEE2E2)',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
+                      fontSize: '12.5px',
+                      fontWeight: 700,
+                      color: '#DC2626',
                     }}
                   >
-                    {selectedItem.term_surface_form}
+                    "{selectedItem.term_surface_form}"
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -301,9 +299,9 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                       alignItems: 'center',
                       gap: '4px',
                       background:
-                        copiedTerm === selectedItem.term_surface_form ? '#059669' : COLORS.softPeriwinkle,
-                      color: copiedTerm === selectedItem.term_surface_form ? '#FFFFFF' : COLORS.deepSlate,
-                      border: 'none',
+                        copiedTerm === selectedItem.term_surface_form ? '#059669' : 'var(--waskita-surface-subtle, #F5F5F4)',
+                      color: copiedTerm === selectedItem.term_surface_form ? '#FFFFFF' : 'var(--waskita-text, #1C1917)',
+                      border: '1px solid var(--waskita-border, rgba(125, 125, 125, 0.15))',
                       borderRadius: '6px',
                       padding: '4px 8px',
                       fontSize: '11px',
@@ -315,7 +313,7 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                     {copiedTerm === selectedItem.term_surface_form ? (
                       <IconCheck size={12} color="#FFFFFF" />
                     ) : (
-                      <IconCopy size={12} color={COLORS.deepSlate} />
+                      <IconCopy size={12} color="currentColor" />
                     )}
                     <span>{copiedTerm === selectedItem.term_surface_form ? 'Tersalin' : 'Salin Kata'}</span>
                   </button>
@@ -333,15 +331,15 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                     }}
                     title="Tutup Cuplikan"
                   >
-                    <IconX size={14} color="var(--waskita-text-muted, #64748B)" />
+                    <IconX size={14} color="currentColor" />
                   </button>
                 </div>
               </div>
               <p
                 style={{
                   margin: 0,
-                  fontSize: '11.5px',
-                  lineHeight: 1.5,
+                  fontSize: '12px',
+                  lineHeight: 1.55,
                   color: 'var(--waskita-text-body, #334155)',
                   fontStyle: selectedItem.competitor_snippet ? 'italic' : 'normal',
                 }}
@@ -389,19 +387,20 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                 <span
                   key={idx}
                   style={{
-                    background: 'var(--waskita-emerald-bg, #D1FAE5)',
-                    color: 'var(--waskita-emerald-text, #065F46)',
-                    border: '1px solid var(--waskita-emerald-border, rgba(16, 185, 129, 0.25))',
+                    background: 'transparent',
+                    color: 'var(--waskita-text)',
+                    border: '1px solid var(--waskita-border, rgba(125, 125, 125, 0.18))',
                     fontSize: '11.5px',
                     padding: '3px 8px',
                     borderRadius: '6px',
-                    fontWeight: 600,
+                    fontWeight: 500,
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '4px',
+                    gap: '5px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
-                  <IconStar size={11} color="#059669" />
+                  <span style={{ color: '#059669', fontSize: '10px' }}>●</span>
                   <span>{item.term_surface_form}</span>
                 </span>
               ))}
@@ -480,24 +479,20 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
               </p>
             </div>
 
-            {/* Telemetry pill */}
+            {/* Telemetry metadata (Clean text - no pill slop) */}
             <div
               style={{
                 fontSize: '11.5px',
                 fontWeight: 600,
-                color: presentCount >= 20 ? 'var(--waskita-emerald-text, #065F46)' : COLORS.deepSlate,
-                background: presentCount >= 20 ? 'var(--waskita-emerald-bg, #D1FAE5)' : 'rgba(30, 41, 59, 0.06)',
-                padding: '4px 10px',
-                borderRadius: '8px',
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+                color: 'var(--waskita-text-muted, #78716C)',
               }}
             >
               {presentCount} / {consensusEntities.length} Dicakup{' '}
-              <span style={{ opacity: 0.8 }}>(Target 80%: 20 entitas)</span>
+              <span style={{ opacity: 0.75 }}>(Target: 20 entitas)</span>
             </div>
           </div>
 
-          {/* Filter Tabs */}
+          {/* Filter Tabs (Understated Editorial Tabs) */}
           <div
             style={{
               display: 'flex',
@@ -505,7 +500,7 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
               gap: '6px',
               marginBottom: '14px',
               paddingBottom: '10px',
-              borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+              borderBottom: '1px solid var(--waskita-border, rgba(28, 25, 23, 0.08))',
               flexWrap: 'wrap',
             }}
           >
@@ -513,13 +508,13 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
               type="button"
               onClick={() => setConsensusFilter('all')}
               style={{
-                background: consensusFilter === 'all' ? COLORS.deepSlate : 'rgba(30, 41, 59, 0.06)',
-                color: consensusFilter === 'all' ? '#FFFFFF' : COLORS.deepSlate,
-                border: 'none',
+                background: consensusFilter === 'all' ? 'var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))' : 'transparent',
+                color: consensusFilter === 'all' ? 'var(--waskita-text)' : 'var(--waskita-text-muted, #78716C)',
+                border: consensusFilter === 'all' ? '1px solid var(--waskita-border-strong, rgba(125, 125, 125, 0.25))' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
+                fontSize: '11.5px',
+                fontWeight: consensusFilter === 'all' ? 600 : 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
@@ -530,30 +525,30 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
               type="button"
               onClick={() => setConsensusFilter('deficit')}
               style={{
-                background: consensusFilter === 'deficit' ? '#DC2626' : 'rgba(220, 38, 38, 0.08)',
-                color: consensusFilter === 'deficit' ? '#FFFFFF' : '#991B1B',
-                border: 'none',
+                background: consensusFilter === 'deficit' ? 'var(--waskita-surface-subtle, rgba(220, 38, 38, 0.08))' : 'transparent',
+                color: consensusFilter === 'deficit' ? '#DC2626' : 'var(--waskita-text-muted, #78716C)',
+                border: consensusFilter === 'deficit' ? '1px solid rgba(220, 38, 38, 0.3)' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
+                fontSize: '11.5px',
+                fontWeight: consensusFilter === 'deficit' ? 600 : 500,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
               }}
             >
-              + Belum Ada di Draf ({deficitCount})
+              • Belum Ada di Draf ({deficitCount})
             </button>
             <button
               type="button"
               onClick={() => setConsensusFilter('present')}
               style={{
-                background: consensusFilter === 'present' ? '#059669' : 'rgba(5, 150, 105, 0.08)',
-                color: consensusFilter === 'present' ? '#FFFFFF' : '#065F46',
-                border: 'none',
+                background: consensusFilter === 'present' ? 'var(--waskita-surface-subtle, rgba(5, 150, 105, 0.08))' : 'transparent',
+                color: consensusFilter === 'present' ? '#059669' : 'var(--waskita-text-muted, #78716C)',
+                border: consensusFilter === 'present' ? '1px solid rgba(5, 150, 105, 0.3)' : '1px solid transparent',
                 borderRadius: '6px',
                 padding: '4px 10px',
-                fontSize: '11px',
-                fontWeight: 600,
+                fontSize: '11.5px',
+                fontWeight: consensusFilter === 'present' ? 600 : 500,
                 cursor: 'pointer',
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -586,12 +581,10 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                   <div
                     key={`${ent.term_string}-${idx}`}
                     style={{
-                      background: 'var(--waskita-bg, #F7F4EB)',
-                      border: isPresent
-                        ? '1px solid rgba(5, 150, 105, 0.25)'
-                        : '1.5px solid rgba(220, 38, 38, 0.35)',
+                      background: 'var(--waskita-surface-white, #FFFFFF)',
+                      border: '1px solid var(--waskita-border, rgba(28, 25, 23, 0.08))',
                       borderRadius: '10px',
-                      padding: '10px 12px',
+                      padding: '12px 14px',
                       display: 'flex',
                       flexDirection: 'column',
                       gap: '6px',
@@ -609,33 +602,28 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span
                           style={{
-                            background: isPresent ? '#D1FAE5' : '#FEE2E2',
-                            color: isPresent ? '#065F46' : '#991B1B',
-                            fontSize: '10.5px',
-                            fontWeight: 800,
-                            padding: '2px 6px',
-                            borderRadius: '4px',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            color: 'var(--waskita-text-muted, #78716C)',
+                            width: '22px',
                           }}
                         >
-                          #{idx + 1}
+                          {idx + 1}.
                         </span>
                         <span
                           style={{
                             fontSize: '13px',
-                            fontWeight: 800,
-                            color: COLORS.deepSlate,
+                            fontWeight: 600,
+                            color: 'var(--waskita-text, #1C1917)',
                           }}
                         >
                           {ent.term_surface_form}
                         </span>
                         <span
                           style={{
-                            fontSize: '10.5px',
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: '5px',
-                            background: isPresent ? '#D1FAE5' : '#FEE2E2',
-                            color: isPresent ? '#065F46' : '#991B1B',
+                            fontSize: '11px',
+                            fontWeight: 500,
+                            color: isPresent ? '#047857' : '#B91C1C',
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
@@ -643,11 +631,11 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                         >
                           {isPresent ? (
                             <>
-                              <IconCheck size={11} color="#065F46" />
+                              <IconCheck size={11} color="#047857" />
                               <span>Ada di Naskah</span>
                             </>
                           ) : (
-                            <span>+ Belum Dicakup</span>
+                            <span>• Belum Dicakup</span>
                           )}
                         </span>
                       </div>
@@ -656,11 +644,7 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                         <span
                           style={{
                             fontSize: '11px',
-                            color: 'var(--waskita-text-muted, #64748B)',
-                            background: 'rgba(30, 41, 59, 0.05)',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            fontWeight: 600,
+                            color: 'var(--waskita-text-muted, #78716C)',
                           }}
                         >
                           {ent.doc_frequency} / {ent.total_competitors || 10} SERP ({Math.round((ent.doc_frequency / (ent.total_competitors || 10)) * 100)}%)
@@ -672,13 +656,13 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                             display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px',
-                            padding: '2px 8px',
-                            fontSize: '10.5px',
-                            fontWeight: 600,
+                            padding: '3px 8px',
+                            fontSize: '11px',
+                            fontWeight: 500,
                             borderRadius: '6px',
-                            background: copiedTerm === ent.term_surface_form ? '#059669' : COLORS.softPeriwinkle,
-                            color: copiedTerm === ent.term_surface_form ? '#FFFFFF' : COLORS.deepSlate,
-                            border: 'none',
+                            background: copiedTerm === ent.term_surface_form ? '#059669' : 'var(--waskita-surface-subtle, #F5F5F4)',
+                            color: copiedTerm === ent.term_surface_form ? '#FFFFFF' : 'var(--waskita-text, #1C1917)',
+                            border: '1px solid var(--waskita-border, rgba(28, 25, 23, 0.1))',
                             cursor: 'pointer',
                             transition: 'all 0.15s ease',
                           }}
@@ -699,17 +683,17 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                       </div>
                     </div>
 
-                    {/* Klausul cuplikan kompetitor */}
+                    {/* Klausul cuplikan kompetitor (Clean Editorial Blockquote) */}
                     {ent.competitor_snippet ? (
                       <div
                         style={{
-                          background: 'var(--waskita-warm-sand, #F1ECE1)',
-                          padding: '6px 10px',
-                          borderRadius: '6px',
-                          fontSize: '11px',
-                          lineHeight: 1.45,
-                          color: 'var(--waskita-text-body, #334155)',
                           borderLeft: isPresent ? '3px solid #059669' : '3px solid #DC2626',
+                          paddingLeft: '10px',
+                          marginTop: '4px',
+                          fontSize: '11.5px',
+                          lineHeight: 1.5,
+                          color: 'var(--waskita-text-body, #44403C)',
+                          fontStyle: 'italic',
                         }}
                       >
                         <div
@@ -727,13 +711,11 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                           {ent.competitor_domain && (
                             <span
                               style={{
-                                background: 'rgba(30, 41, 59, 0.08)',
-                                padding: '1px 5px',
-                                borderRadius: '4px',
-                                color: COLORS.deepSlate,
+                                color: 'var(--waskita-text-muted, #64748B)',
+                                fontWeight: 600,
                               }}
                             >
-                              {ent.competitor_domain}
+                              ({ent.competitor_domain})
                             </span>
                           )}
                         </div>
@@ -769,11 +751,11 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                 width: '100%',
                 padding: '9px 14px',
                 borderRadius: '10px',
-                border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
-                background: 'var(--waskita-card, #E9DFCA)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+                background: 'var(--waskita-surface-white, #FFFFFF)',
                 color: COLORS.deepSlate,
                 fontSize: '12px',
-                fontWeight: 700,
+                fontWeight: 600,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',

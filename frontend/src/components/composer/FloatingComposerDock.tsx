@@ -3,6 +3,7 @@ import {
   COLORS,
   IconPlus,
   IconArrowRight,
+  IconArrowUp,
   IconSparkles,
   IconCoffee,
   IconMaximize2,
@@ -68,6 +69,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   const isCentered = layoutMode === "centered";
   const [isMaximized, setIsMaximized] = useState(false);
   const [hoveredSample, setHoveredSample] = useState<"rev" | "ready" | null>(null);
+  const [isWordShake, setIsWordShake] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Virtual Keyboard Detection via Visual Viewport API (Auto-adjust bottom offset above keyboard)
@@ -113,7 +115,9 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
 
     if (currentWordCount < minWordCount) {
       return {
-        text: `${currentWordCount} / ${minWordCount} kata min`,
+        text: isDesktop
+          ? `${currentWordCount} / ${minWordCount} kata min`
+          : `${currentWordCount}/${minWordCount} kata`,
         color: "var(--waskita-text-subtle, rgba(30, 41, 59, 0.55))",
         title: `Minimal ${minWordCount} kata untuk memulai audit`,
       };
@@ -121,7 +125,9 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
 
     if (budgetMax && currentWordCount > budgetMax) {
       return {
-        text: `${currentWordCount} kata (Melebihi budget ${budgetMax}!) ⚠️`,
+        text: isDesktop
+          ? `${currentWordCount} kata (Melebihi budget ${budgetMax})`
+          : `${currentWordCount} kata (> ${budgetMax})`,
         color: "#B45309",
         title: `Naskah melebihi batas target maksimum (${budgetMax} kata)`,
       };
@@ -130,20 +136,24 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
     if (budgetMin && budgetMax) {
       if (currentWordCount < budgetMin) {
         return {
-          text: `${currentWordCount} kata (Target: ${budgetMin}–${budgetMax})`,
+          text: isDesktop
+            ? `${currentWordCount} kata (Target: ${budgetMin}–${budgetMax})`
+            : `${currentWordCount} kata (${budgetMin}–${budgetMax})`,
           color: "var(--waskita-text-muted, #64748B)",
           title: `Panjang naskah di bawah target (${budgetMin}–${budgetMax} kata)`,
         };
       }
       return {
-        text: `${currentWordCount} kata (Target: ${budgetMin}–${budgetMax}) ✓`,
+        text: isDesktop
+          ? `${currentWordCount} kata (Target: ${budgetMin}–${budgetMax})`
+          : `${currentWordCount} kata (${budgetMin}–${budgetMax})`,
         color: "var(--waskita-emerald-accent, #059669)",
         title: `Panjang naskah ideal sesuai budget target (${budgetMin}–${budgetMax} kata)`,
       };
     }
 
     return {
-      text: `${currentWordCount} kata ✓`,
+      text: `${currentWordCount} kata`,
       color: "var(--waskita-emerald-accent, #059669)",
       title: "Panjang naskah memenuhi syarat audit",
     };
@@ -170,13 +180,34 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
     }
   }, [draftText, isMaximized, hasContent, isDesktop]);
 
+  useEffect(() => {
+    const handleGlobalSlash = (e: KeyboardEvent) => {
+      if (
+        e.key === "/" &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA"
+      ) {
+        e.preventDefault();
+        textareaRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleGlobalSlash);
+    return () => window.removeEventListener("keydown", handleGlobalSlash);
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    // Enter (tanpa Shift) atau Ctrl/Cmd + Enter mengeksekusi submit jika >= 300 kata
+    if (e.key === "Enter" && (!e.shiftKey || e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       if (!isLoading && isEligibleToSubmit && onSubmit) {
         onSubmit();
+      } else if (!isEligibleToSubmit && !isLoading) {
+        // Animasi getar indikator kata untuk memberi tahu batas minimal belum terpenuhi
+        setIsWordShake(true);
+        setTimeout(() => setIsWordShake(false), 500);
       }
     }
+    // Shift + Enter dibiarkan natural (membuat baris / paragraf baru)
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -246,9 +277,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
         position: isCentered ? "relative" : isDesktop ? "absolute" : "fixed",
         bottom: isCentered
           ? "auto"
-          : isDesktop
-          ? "20px"
-          : effectiveMobileBottom,
+          : 0,
         left: 0,
         right: 0,
         padding: isCentered
@@ -256,9 +285,11 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
             ? "0 32px 32px 32px"
             : "0 16px 24px 16px"
           : isDesktop
-          ? "0 24px"
-          : "0 14px",
-        background: "transparent",
+          ? "20px 24px 20px 24px"
+          : "14px 14px 16px 14px",
+        background: isCentered
+          ? "transparent"
+          : "linear-gradient(to top, var(--waskita-bg) 65%, transparent 100%)",
         zIndex: 40,
         pointerEvents: "none",
         boxSizing: "border-box",
@@ -283,114 +314,31 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
           position: "relative",
         }}
       >
-        {/* Turn revision banner if active turn > 1 and in docked mode, or Query Lock indicator */}
-        {!isCentered && ((activeTurnNumber && activeTurnNumber > 1) || isQueryLocked) && (
-          <div
-            style={{
-              fontSize: "11.5px",
-              fontWeight: 600,
-              color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : "var(--waskita-emerald-text, #065F46)",
-              background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "var(--waskita-emerald-bg, #D1FAE5)",
-              padding: "3px 12px",
-              borderRadius: "9999px",
-              marginBottom: "8px",
-              pointerEvents: "auto",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              transition: "all 0.2s ease",
-            }}
-          >
-            {isLoading && (
-              <span
-                style={{
-                  display: "inline-block",
-                  width: "6px",
-                  height: "6px",
-                  borderRadius: "50%",
-                  background: "var(--waskita-emerald-accent, #059669)",
-                }}
-              />
-            )}
-            <span>
-              {isLoading
-                ? "Sedang menganalisis revisi draf..."
-                : (activeTurnNumber && activeTurnNumber > 1
-                    ? `Mode Revisi Turn #${activeTurnNumber} (Kueri: "${activeTargetQuery || targetQuery || "Target"}")`
-                    : `Kueri Terkunci: "${targetQuery}"`)}
-            </span>
-            {onToggleQueryLock && (
-              <button
-                type="button"
-                onClick={onToggleQueryLock}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  color: isQueryLocked ? "#B45309" : "#065F46",
-                  textDecoration: "underline",
-                  padding: "0 2px",
-                }}
-                title={isQueryLocked ? "Buka kunci kueri" : "Kunci kueri target"}
-              >
-                {isQueryLocked ? "Buka Kunci" : "Kunci"}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* COMPOSER CARD: Collapsed Pill vs Expanded Card */}
+        {/* COMPOSER CARD: Perplexity-Style 2-Row Rounded Rectangle */}
         {!hasContent && !isMaximized ? (
-          /* 1. KAPSUL BERSIH SAAT KOSONG (Initial Collapsed State) */
+          /* 1. KOTAK BERSIH SAAT KOSONG (Perplexity 2-Row Layout) */
           <div
             style={{
               width: "100%",
-              background: COLORS.warmSand,
-              borderRadius: "28px",
-              padding: "6px 8px 6px 10px",
+              background: "var(--waskita-surface, #FFFFFF)",
+              borderRadius: isDesktop ? "18px" : "16px",
+              padding: isDesktop ? "12px 14px 10px 14px" : "10px 12px 8px 12px",
               display: "flex",
-              alignItems: "center",
+              flexDirection: "column",
               gap: "8px",
               boxShadow: isCentered
-                ? "0 10px 30px rgba(30, 41, 59, 0.1)"
-                : "0 12px 36px rgba(30, 41, 59, 0.16), 0 2px 8px rgba(30, 41, 59, 0.06)",
+                ? "0 8px 30px rgba(0, 0, 0, 0.06)"
+                : "0 10px 36px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
               pointerEvents: "auto",
               boxSizing: "border-box",
-              border: isCentered
-                ? "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))"
-                : "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+              border: "1px solid var(--waskita-border-strong, rgba(28, 25, 23, 0.12))",
               position: "relative",
             }}
           >
-            <button
-              type="button"
-              onClick={onOpenPlus}
-              aria-label="Opsi Parameter & Berkas"
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: COLORS.mutedSkyBlue,
-                border: "none",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                flexShrink: 0,
-                color: COLORS.deepSlate,
-                animation: isPlusGlowing ? "plusGlowPulse 1.8s infinite" : "none",
-                transition: "all 0.2s ease",
-              }}
-              title="Opsi Parameter & Berkas"
-            >
-              <IconPlus size={20} color={COLORS.deepSlate} />
-            </button>
-
+            {/* Baris 1: Textarea Area */}
             <textarea
               ref={textareaRef}
-              rows={1}
+              rows={isDesktop ? 2 : 1}
               placeholder="Ketik atau tempel naskah artikel Anda..."
               value={draftText}
               onChange={(e) => onDraftTextChange && onDraftTextChange(e.target.value)}
@@ -405,104 +353,211 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
               onKeyDown={handleKeyDown}
               disabled={isLoading}
               style={{
-                flex: 1,
-                minWidth: 0,
+                width: "100%",
                 border: "none",
                 background: "transparent",
-                fontSize: isDesktop ? "14.5px" : "16px",
-                color: COLORS.deepSlate,
+                fontSize: isDesktop ? "14.5px" : "15px",
+                color: "var(--waskita-text, #1C1917)",
                 resize: "none",
                 outline: "none",
-                padding: "8px 4px",
+                padding: "4px 6px",
                 fontFamily: "inherit",
                 opacity: isLoading ? 0.6 : 1,
                 lineHeight: "22px",
-                height: "38px",
+                minHeight: isDesktop ? "44px" : "38px",
                 boxSizing: "border-box",
               }}
             />
 
-            {isLoading ? (
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "var(--waskita-emerald-accent, #059669)",
-                  whiteSpace: "nowrap",
-                  padding: "0 6px",
-                  userSelect: "none",
-                }}
-              >
-                {activeTurnNumber && activeTurnNumber > 1
-                  ? "Sedang menganalisis revisi draf..."
-                  : "Sedang menganalisis..."}
-              </span>
-            ) : (
-              <span
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: wordFeedback.color,
-                  whiteSpace: "nowrap",
-                  padding: "0 6px",
-                  userSelect: "none",
-                  transition: "color 0.2s ease",
-                }}
-                title={wordFeedback.title}
-              >
-                {wordFeedback.text}
-              </span>
-            )}
-
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={isLoading || !isEligibleToSubmit}
-              aria-label="Kirim Analisis"
+            {/* Baris 2: Integrated Action Tray (Perplexity Standard) */}
+            <div
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
-                background: isEligibleToSubmit ? COLORS.softPeriwinkle : "rgba(30, 41, 59, 0.12)",
-                border: "none",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                cursor: isLoading || !isEligibleToSubmit ? "not-allowed" : "pointer",
-                flexShrink: 0,
-                color: COLORS.deepSlate,
-                opacity: isLoading || !isEligibleToSubmit ? 0.45 : 1,
-                pointerEvents: isLoading || !isEligibleToSubmit ? "none" : "auto",
-                transition: "all 0.2s ease",
+                justifyContent: "space-between",
+                gap: "8px",
+                paddingTop: "4px",
+                borderTop: "1px solid var(--waskita-border-subtle, rgba(0, 0, 0, 0.04))",
               }}
-              title={
-                !isEligibleToSubmit
-                  ? `Minimal ${minWordCount} kata untuk memulai audit`
-                  : "Mulai Audit Kualitas"
-              }
             >
-              <IconArrowRight size={20} color={COLORS.deepSlate} />
-            </button>
+              {/* Kiri: Tombol (+) & Chip Kueri/Revisi */}
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: isDesktop ? "wrap" : "nowrap", flex: 1, minWidth: 0, overflow: "hidden" }}>
+                <button
+                  type="button"
+                  onClick={onOpenPlus}
+                  aria-label="Opsi Parameter & Berkas"
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    background: "var(--waskita-surface-subtle, #F5F5F4)",
+                    border: "1px solid var(--waskita-border, rgba(0, 0, 0, 0.08))",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    color: "var(--waskita-text, #1C1917)",
+                    animation: isPlusGlowing ? "plusGlowPulse 1.8s infinite" : "none",
+                    transition: "all 0.15s ease",
+                  }}
+                  title="Opsi Parameter & Berkas"
+                >
+                  <IconPlus size={16} color="var(--waskita-text, #1C1917)" />
+                </button>
+
+                {/* Integrated Query / Revision Chip (Borderless ala Gambar 5) */}
+                {(targetQuery || (activeTurnNumber && activeTurnNumber > 1) || isQueryLocked) && (
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      padding: "2px 4px",
+                      background: "transparent",
+                      border: "none",
+                      fontSize: "11px",
+                      fontWeight: 600,
+                      color: "var(--waskita-text-body, #44403C)",
+                      minWidth: 0,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <IconSearch size={11} color="currentColor" style={{ flexShrink: 0 }} />
+                    <span style={{ maxWidth: isDesktop ? "220px" : "105px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      "{activeTargetQuery || targetQuery || "Target"}"
+                    </span>
+                    {activeTurnNumber && activeTurnNumber > 1 && (
+                      <span style={{ fontSize: "10px", color: "var(--waskita-text-muted, #78716C)", whiteSpace: "nowrap", flexShrink: 0 }}>
+                        {isDesktop ? `• Turn #${activeTurnNumber}` : `#${activeTurnNumber}`}
+                      </span>
+                    )}
+                    {onToggleQueryLock && (
+                      <button
+                        type="button"
+                        onClick={onToggleQueryLock}
+                        title={isQueryLocked ? "Buka kunci kueri" : "Kunci kueri"}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: "0 2px",
+                          display: "flex",
+                          alignItems: "center",
+                          color: "inherit",
+                          flexShrink: 0,
+                        }}
+                      >
+                        {isQueryLocked ? <IconLock size={11} color="#B45309" /> : <IconUnlock size={11} color="#78716C" />}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Quick Sample Chips if empty */}
+                {onSelectSampleDraft && !targetQuery && (!activeTurnNumber || activeTurnNumber <= 1) && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectSampleDraft("approvedReady")}
+                    style={{
+                      background: "transparent",
+                      border: "1px dashed var(--waskita-border-strong, rgba(0, 0, 0, 0.14))",
+                      borderRadius: "6px",
+                      padding: "2px 8px",
+                      fontSize: "11px",
+                      color: "var(--waskita-text-muted, #78716C)",
+                      cursor: "pointer",
+                      display: isDesktop ? "inline-flex" : "none",
+                      alignItems: "center",
+                      gap: "4px",
+                    }}
+                  >
+                    <IconCoffee size={11} color="currentColor" />
+                    <span>Coba Draf (~700 kata)</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Kanan: Feedback Jumlah Kata & Tombol Submit (↑) */}
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
+                {isLoading ? (
+                  <span
+                    style={{
+                      fontSize: "11.5px",
+                      fontWeight: 600,
+                      color: "var(--waskita-emerald-accent, #059669)",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Sedang menganalisis...
+                  </span>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "11.5px",
+                      fontWeight: 500,
+                      color: wordFeedback.color,
+                      whiteSpace: "nowrap",
+                      animation: isWordShake ? "waskita-shake 0.45s ease" : "none",
+                      display: "inline-block",
+                    }}
+                    title={
+                      !isEligibleToSubmit
+                        ? `${wordFeedback.title} (Shift+Enter untuk baris baru)`
+                        : "Tekan Enter untuk mulai audit"
+                    }
+                  >
+                    {wordFeedback.text}
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={onSubmit}
+                  disabled={isLoading || !isEligibleToSubmit}
+                  aria-label="Kirim Analisis"
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    background: isEligibleToSubmit ? "var(--waskita-emerald-accent, #059669)" : "var(--waskita-track, rgba(125, 125, 125, 0.15))",
+                    border: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: isLoading || !isEligibleToSubmit ? "not-allowed" : "pointer",
+                    flexShrink: 0,
+                    color: isEligibleToSubmit ? "#FFFFFF" : "var(--waskita-text-subtle, #A8A29E)",
+                    transition: "all 0.15s ease",
+                  }}
+                  title={
+                    !isEligibleToSubmit
+                      ? `Minimal ${minWordCount} kata untuk memulai audit (Tekan Shift+Enter untuk baris baru)`
+                      : "Mulai Audit (Tekan Enter)"
+                  }
+                >
+                  <IconArrowUp size={16} color={isEligibleToSubmit ? "#FFFFFF" : "currentColor"} />
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           /* 2. KARTU MEGAR SAAT ADA TEKS BANYAK (Expanded State) */
           <div
             style={{
               width: "100%",
-              background: COLORS.warmSand,
-              borderRadius: isDesktop ? "24px" : "20px",
+              background: "var(--waskita-surface, #FFFFFF)",
+              borderRadius: isDesktop ? "18px" : "16px",
               padding: isDesktop ? "12px 14px 10px 14px" : "10px 12px 8px 12px",
               display: "flex",
               flexDirection: "column",
               gap: "6px",
               boxShadow: isCentered
-                ? "0 10px 30px rgba(30, 41, 59, 0.12)"
-                : "0 14px 40px rgba(30, 41, 59, 0.18), 0 4px 12px rgba(30, 41, 59, 0.08)",
+                ? "0 8px 30px rgba(0, 0, 0, 0.06)"
+                : "0 10px 36px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)",
               pointerEvents: "auto",
               boxSizing: "border-box",
-              border: isCentered
-                ? "1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))"
-                : "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.14))",
+              border: "1px solid var(--waskita-border-strong, rgba(28, 25, 23, 0.12))",
               position: "relative",
               transition: "all 0.25s ease",
             }}
@@ -556,13 +611,13 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                       onClick={onToggleQueryLock}
                       title={isQueryLocked ? "Kueri Terkunci (Klik untuk buka kunci)" : "Kunci Kueri (Mencegah penimpaan saat paste draf baru)"}
                       style={{
-                        background: isQueryLocked ? "var(--waskita-amber-bg, #FEF3C7)" : "transparent",
-                        border: isQueryLocked ? "1px solid rgba(180, 83, 9, 0.3)" : "none",
+                        background: "transparent",
+                        border: "none",
                         borderRadius: "6px",
                         padding: "3px 6px",
                         fontSize: "11px",
                         fontWeight: 600,
-                        color: isQueryLocked ? "var(--waskita-amber-text, #B45309)" : "var(--waskita-text-muted, #64748B)",
+                        color: isQueryLocked ? "#B45309" : "var(--waskita-text-muted, #64748B)",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
@@ -570,7 +625,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                       }}
                     >
                       {isQueryLocked ? (
-                        <IconLock size={12} color="var(--waskita-amber-text, #B45309)" />
+                        <IconLock size={12} color="#B45309" />
                       ) : (
                         <IconUnlock size={12} color="var(--waskita-text-muted, #64748B)" />
                       )}
@@ -703,8 +758,14 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                       padding: "0 4px",
                       userSelect: "none",
                       transition: "color 0.2s ease",
+                      animation: isWordShake ? "waskita-shake 0.45s ease" : "none",
+                      display: "inline-block",
                     }}
-                    title={wordFeedback.title}
+                    title={
+                      !isEligibleToSubmit
+                        ? `${wordFeedback.title} (Shift+Enter untuk baris baru)`
+                        : "Tekan Enter untuk mulai audit"
+                    }
                   >
                     {wordFeedback.text}
                   </span>
@@ -716,28 +777,26 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                   disabled={isLoading || !isEligibleToSubmit}
                   aria-label="Kirim Analisis"
                   style={{
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     borderRadius: "50%",
-                    background: isEligibleToSubmit ? COLORS.softPeriwinkle : "rgba(30, 41, 59, 0.12)",
+                    background: isEligibleToSubmit ? "var(--waskita-emerald-accent, #059669)" : "var(--waskita-track, rgba(125, 125, 125, 0.15))",
                     border: "none",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     cursor: isLoading || !isEligibleToSubmit ? "not-allowed" : "pointer",
                     flexShrink: 0,
-                    color: COLORS.deepSlate,
-                    opacity: isLoading || !isEligibleToSubmit ? 0.45 : 1,
-                    pointerEvents: isLoading || !isEligibleToSubmit ? "none" : "auto",
-                    transition: "all 0.2s ease",
+                    color: isEligibleToSubmit ? "#FFFFFF" : "var(--waskita-text-subtle, #A8A29E)",
+                    transition: "all 0.15s ease",
                   }}
                   title={
                     !isEligibleToSubmit
-                      ? `Minimal ${minWordCount} kata untuk memulai audit`
-                      : "Mulai Audit Kualitas"
+                      ? `Minimal ${minWordCount} kata untuk memulai audit (Tekan Shift+Enter untuk baris baru)`
+                      : "Mulai Audit (Tekan Enter)"
                   }
                 >
-                  <IconArrowRight size={18} color={COLORS.deepSlate} />
+                  <IconArrowUp size={16} color={isEligibleToSubmit ? "#FFFFFF" : "currentColor"} />
                 </button>
               </div>
             </div>
@@ -796,8 +855,8 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 <IconCoffee size={16} color={COLORS.deepSlate} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.deepSlate }}>
-                  Coba Draf Perlu Revisi — Resep Kopi Tubruk Tradisional
+                <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.deepSlate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {isDesktop ? "Coba Draf Perlu Revisi — Resep Kopi Tubruk Tradisional" : "Draf Perlu Revisi · Kopi Tubruk"}
                 </div>
                 {isDesktop && (
                   <div
@@ -852,8 +911,8 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                 <IconSparkles size={16} color="var(--waskita-emerald-accent, #059669)" />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.deepSlate }}>
-                  Coba Draf Layak Terbit — Robusta Dampit &amp; Takaran Seduh Presisi
+                <div style={{ fontSize: "13px", fontWeight: 600, color: COLORS.deepSlate, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {isDesktop ? "Coba Draf Layak Terbit — Robusta Dampit & Takaran Seduh Presisi" : "Draf Siap Terbit · Robusta Dampit Presisi"}
                 </div>
                 {isDesktop && (
                   <div

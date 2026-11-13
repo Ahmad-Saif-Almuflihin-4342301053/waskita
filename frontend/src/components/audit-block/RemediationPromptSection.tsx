@@ -79,24 +79,24 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
             type="button"
             onClick={handleCopyPrompt}
             style={{
-              background: promptCopied ? '#059669' : COLORS.softPeriwinkle,
-              color: promptCopied ? '#FFFFFF' : COLORS.deepSlate,
-              border: 'none',
-              borderRadius: '8px',
+              background: promptCopied ? '#059669' : 'var(--waskita-surface-subtle, #F5F5F4)',
+              color: promptCopied ? '#FFFFFF' : 'var(--waskita-text, #1C1917)',
+              border: '1px solid var(--waskita-border, rgba(28, 25, 23, 0.1))',
+              borderRadius: '6px',
               padding: '4px 10px',
               fontSize: '11px',
-              fontWeight: 600,
+              fontWeight: 500,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
-              transition: 'all 0.2s ease',
+              transition: 'all 0.15s ease',
             }}
           >
             {promptCopied ? (
               <IconCheck size={13} color="#FFFFFF" />
             ) : (
-              <IconCopy size={13} color={COLORS.deepSlate} />
+              <IconCopy size={13} color="currentColor" />
             )}
             <span>{promptCopied ? 'Tersalin' : 'Salin Prompt'}</span>
           </button>
@@ -264,50 +264,36 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
                 data-testid="tab-cms-pack"
                 onClick={() => setActiveTab('cms')}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
                   fontSize: '11.5px',
-                  fontWeight: activeTab === 'cms' ? 700 : 500,
-                  border: '1px solid',
-                  borderColor:
-                    activeTab === 'cms'
-                      ? 'var(--waskita-emerald-accent, #059669)'
-                      : 'var(--waskita-border, rgba(30, 41, 59, 0.15))',
-                  background:
-                    activeTab === 'cms'
-                      ? 'var(--waskita-emerald-bg, #D1FAE5)'
-                      : 'var(--waskita-card, #E9DFCA)',
-                  color: activeTab === 'cms' ? 'var(--waskita-emerald-text, #065F46)' : COLORS.deepSlate,
+                  fontWeight: activeTab === 'cms' ? 600 : 500,
+                  border: activeTab === 'cms' ? '1px solid var(--waskita-border-strong, rgba(28, 25, 23, 0.2))' : '1px solid transparent',
+                  background: activeTab === 'cms' ? 'var(--waskita-surface-subtle, #F5F5F4)' : 'transparent',
+                  color: activeTab === 'cms' ? 'var(--waskita-text, #1C1917)' : 'var(--waskita-text-muted, #78716C)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
-                Tab 1: Paket Pra-Publikasi CMS &amp; SEO {cdsScore >= 100 ? '(Rekomendasi)' : ''}
+                Paket Pra-Publikasi CMS &amp; SEO {cdsScore >= 100 ? '(Rekomendasi)' : ''}
               </button>
               <button
                 type="button"
                 data-testid="tab-perfectionist"
                 onClick={() => setActiveTab('perfectionist')}
                 style={{
-                  padding: '6px 12px',
-                  borderRadius: '8px',
+                  padding: '5px 12px',
+                  borderRadius: '6px',
                   fontSize: '11.5px',
-                  fontWeight: activeTab === 'perfectionist' ? 700 : 500,
-                  border: '1px solid',
-                  borderColor:
-                    activeTab === 'perfectionist'
-                      ? 'var(--waskita-amber-accent, #D97706)'
-                      : 'var(--waskita-border, rgba(30, 41, 59, 0.15))',
-                  background:
-                    activeTab === 'perfectionist'
-                      ? 'var(--waskita-amber-bg, #FEF3C7)'
-                      : 'var(--waskita-card, #E9DFCA)',
-                  color: activeTab === 'perfectionist' ? 'var(--waskita-amber-text, #B45309)' : COLORS.deepSlate,
+                  fontWeight: activeTab === 'perfectionist' ? 600 : 500,
+                  border: activeTab === 'perfectionist' ? '1px solid var(--waskita-border-strong, rgba(28, 25, 23, 0.2))' : '1px solid transparent',
+                  background: activeTab === 'perfectionist' ? 'var(--waskita-surface-subtle, #F5F5F4)' : 'transparent',
+                  color: activeTab === 'perfectionist' ? 'var(--waskita-text, #1C1917)' : 'var(--waskita-text-muted, #78716C)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
               >
-                Tab 2: Micro-Tuning Menuju 100% {cdsScore < 100 ? '(Rekomendasi)' : '(Perfeksionis)'}
+                Micro-Tuning Menuju 100% {cdsScore < 100 ? '(Rekomendasi)' : '(Perfeksionis)'}
               </button>
             </div>
           )}

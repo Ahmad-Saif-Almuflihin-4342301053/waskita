@@ -18,6 +18,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
   const [email, setEmail] = useState('author@waskita.id');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleDemoLogin = async () => {
@@ -123,10 +135,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         style={{
           width: '100%',
           maxWidth: '420px',
-          background: COLORS.warmCream,
+          background: 'var(--waskita-surface-white, #FFFFFF)',
           borderRadius: '24px',
           boxShadow: '0 20px 50px rgba(0, 0, 0, 0.25)',
-          border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+          border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
           padding: '28px 24px',
           position: 'relative',
           boxSizing: 'border-box',
@@ -186,23 +198,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
           disabled={isSubmitting}
           style={{
             width: '100%',
-            background: 'var(--waskita-emerald-bg, #D1FAE5)',
-            border: '1.5px solid var(--waskita-emerald-border, #059669)',
+            background: 'var(--waskita-surface-subtle, #F8FAFC)',
+            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
             borderRadius: '12px',
             padding: '10px 14px',
             fontSize: '13px',
-            fontWeight: 700,
-            color: 'var(--waskita-emerald-text, #065F46)',
+            fontWeight: 600,
+            color: COLORS.deepSlate,
             cursor: 'pointer',
             marginBottom: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
-            boxShadow: '0 2px 6px rgba(16, 185, 129, 0.12)',
           }}
         >
-          <IconZap size={14} color="var(--waskita-emerald-text, #065F46)" />
+          <IconZap size={14} color="#059669" />
           <span>Masuk Cepat (Akun Demo Penulis)</span>
         </button>
 
@@ -223,7 +234,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
         <div
           style={{
             display: 'flex',
-            background: COLORS.warmSand,
+            background: 'var(--waskita-surface-subtle, #F1F5F9)',
             borderRadius: '10px',
             padding: '3px',
             marginBottom: '16px',
@@ -281,8 +292,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 required
                 style={{
                   width: '100%',
-                  background: 'var(--waskita-card, #E9DFCA)',
-                  border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+                  background: 'var(--waskita-surface-white, #FFFFFF)',
+                  border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
                   borderRadius: '10px',
                   padding: '8px 12px',
                   fontSize: '13px',
@@ -306,8 +317,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
                 required
                 style={{
                   width: '100%',
-                  background: 'var(--waskita-card, #E9DFCA)',
-                  border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+                  background: 'var(--waskita-surface-white, #FFFFFF)',
+                  border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
                   borderRadius: '10px',
                   padding: '8px 12px',
                   fontSize: '13px',
@@ -330,8 +341,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               required
               style={{
                 width: '100%',
-                background: 'var(--waskita-card, #E9DFCA)',
-                border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+                background: 'var(--waskita-surface-white, #FFFFFF)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
                 borderRadius: '10px',
                 padding: '8px 12px',
                 fontSize: '13px',
@@ -353,8 +364,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
               required
               style={{
                 width: '100%',
-                background: 'var(--waskita-card, #E9DFCA)',
-                border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
+                background: 'var(--waskita-surface-white, #FFFFFF)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.15))',
                 borderRadius: '10px',
                 padding: '8px 12px',
                 fontSize: '13px',
@@ -370,16 +381,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onLoginSu
             disabled={isSubmitting}
             style={{
               width: '100%',
-              background: COLORS.softPeriwinkle,
-              border: 'none',
+              background: '#1C1917',
+              border: '1px solid #1C1917',
               borderRadius: '12px',
               padding: '10px 14px',
               fontSize: '13.5px',
               fontWeight: 700,
-              color: COLORS.deepSlate,
+              color: '#FFFFFF',
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
               marginTop: '6px',
-              boxShadow: '0 2px 8px rgba(30, 41, 59, 0.1)',
+              boxShadow: '0 2px 8px rgba(30, 41, 59, 0.12)',
             }}
           >
             {isSubmitting ? 'Memproses...' : tab === 'login' ? 'Masuk Sekarang' : 'Daftar Sekarang'}

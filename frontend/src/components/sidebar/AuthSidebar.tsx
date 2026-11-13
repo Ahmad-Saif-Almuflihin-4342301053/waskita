@@ -38,6 +38,7 @@ export interface AuthSidebarProps {
   onPinSession?: (id: string) => void;
   onDeleteSession?: (id: string) => void;
   onExportSession?: (id: string) => void;
+  onPrintSession?: (id: string) => void;
   userProfile?: {
     name?: string;
     email?: string;
@@ -61,6 +62,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
   onPinSession,
   onDeleteSession,
   onExportSession,
+  onPrintSession,
   userProfile = {
     name: "author_demo",
     email: "author@waskita.id",
@@ -107,14 +109,26 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
         setThemeFlyoutOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setProfilePopoverOpen(false);
+        setSettingsPopoverOpen(false);
+        setThemeFlyoutOpen(false);
+        if (!isDesktop && isOpen && onClose) {
+          onClose();
+        }
+      }
+    };
     document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
       if (themeFlyoutTimerRef.current) {
         clearTimeout(themeFlyoutTimerRef.current);
       }
     };
-  }, []);
+  }, [isDesktop, isOpen, onClose]);
 
   const handleRowClick = (sessionId: string) => {
     if (onSelectSession) onSelectSession(sessionId);
@@ -231,7 +245,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                 transition: "background 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -260,7 +274,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                     transition: "background 0.15s ease",
                   }}
                   onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                    (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
                   }}
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -287,7 +301,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                   transition: "background 0.15s ease",
                 }}
                 onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                  (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -328,12 +342,12 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
               color: COLORS.deepSlate,
               cursor: "pointer",
               border: "none",
-              background: isNewAnalysisActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+              background: isNewAnalysisActive ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
               transition: "background 0.15s ease, opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1)",
             }}
             onMouseEnter={(e) => {
               if (!isNewAnalysisActive) {
-                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
               }
             }}
             onMouseLeave={(e) => {
@@ -390,6 +404,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                   onPin={onPinSession}
                   onRename={onRenameSession}
                   onExport={onExportSession}
+                  onPrint={onPrintSession}
                   onDelete={onDeleteSession}
                 />
               ))
@@ -439,7 +454,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                 transition: "background 0.15s ease",
               }}
               onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+                (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
               }}
               onMouseLeave={(e) => {
                 (e.currentTarget as HTMLElement).style.background = "transparent";
@@ -450,8 +465,9 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                   width: "36px",
                   height: "36px",
                   borderRadius: "50%",
-                  background: COLORS.deepSlate,
-                  color: "#FFFFFF",
+                  background: "var(--waskita-avatar-bg, #1C1917)",
+                  color: "var(--waskita-avatar-text, #FFFFFF)",
+                  border: "1px solid var(--waskita-avatar-border, transparent)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -486,7 +502,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                   style={{
                     fontSize: "10px",
                     fontWeight: 700,
-                    color: "#D97706",
+                    color: "var(--waskita-amber-text, #D97706)",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -527,7 +543,7 @@ export const AuthSidebar: React.FC<AuthSidebarProps> = ({
                 width: "36px",
                 height: "36px",
                 borderRadius: "50%",
-                background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "rgba(30, 41, 59, 0.06)",
+                background: settingsPopoverOpen ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "var(--waskita-track, rgba(30, 41, 59, 0.06))",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",

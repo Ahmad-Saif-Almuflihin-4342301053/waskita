@@ -25,18 +25,25 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
   const showToast = useCallback(
-    ({ type, title, message, durationMs = 4000 }: Omit<ToastMessage, 'id'>) => {
-      const id = Math.random().toString(36).substring(2, 9);
-      const newToast: ToastMessage = { id, type, title, message, durationMs };
-      setToasts((prev) => [...prev, newToast]);
+    ({ type, title, message, durationMs = 3500 }: Omit<ToastMessage, 'id'>) => {
+      setToasts((prev) => {
+        // Anti-toast storm: Deduplicate identical recent toasts
+        const existingIdx = prev.findIndex((t) => t.message === message);
+        const id = Math.random().toString(36).substring(2, 9);
+        const newToast: ToastMessage = { id, type, title, message, durationMs };
 
-      if (durationMs > 0) {
-        setTimeout(() => {
-          removeToast(id);
-        }, durationMs);
-      }
+        if (existingIdx !== -1) {
+          const updated = [...prev];
+          updated[existingIdx] = newToast;
+          return updated;
+        }
+
+        // Limit to max 2 active toasts
+        const trimmed = prev.length >= 2 ? prev.slice(prev.length - 1) : prev;
+        return [...trimmed, newToast];
+      });
     },
-    [removeToast]
+    []
   );
 
   return (
@@ -62,15 +69,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             key={toast.id}
             style={{
               pointerEvents: 'auto',
-              background: 'var(--waskita-card, #E9DFCA)',
-              border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
-              borderRadius: '14px',
-              padding: '12px 16px',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-              color: 'var(--waskita-text, #1E293B)',
+              background: 'var(--waskita-surface, #FFFFFF)',
+              border: '1px solid var(--waskita-border-strong, rgba(28, 25, 23, 0.12))',
+              borderRadius: '12px',
+              padding: '12px 14px',
+              boxShadow: '0 8px 30px rgba(0, 0, 0, 0.1)',
+              color: 'var(--waskita-text, #1C1917)',
               display: 'flex',
               alignItems: 'flex-start',
-              gap: 12,
+              gap: 10,
               animation: 'toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
               transition: 'all 0.2s ease',
             }}

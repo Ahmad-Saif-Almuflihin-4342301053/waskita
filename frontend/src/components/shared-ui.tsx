@@ -1,13 +1,14 @@
 import React from "react";
 
-// 5 Warna Palet Resmi Waskita (PZN Vibe Engineering Standard - Dual Theme CSS Variables)
+// 5 Warna Palet Resmi Waskita (Humanizer & Editorial Quality Standard)
 export const COLORS = {
-  warmCream: "var(--waskita-bg, #F7F4EB)", // Latar utama aplikasi, latar Sidebar, latar Bottom Sheet
-  warmSand: "var(--waskita-card, #E9DFCA)", // Kontainer Floating Input Capsule, kartu Bottom Sheet, bubble masukan
-  softIceBlue: "var(--waskita-audit-bg, #D4E5F2)", // Latar wajib untuk 1 blok kesatuan Hasil Analisis
-  mutedSkyBlue: "var(--waskita-accent-subtle, #C0D5E5)", // Tombol bulat (+), track Range Slider, border halus analisis
-  softPeriwinkle: "var(--waskita-accent-primary, #C0CEE8)", // Tombol kapsul Sign in, tombol kirim panah kanan (→), thumb aktif slider, badge Plan
-  deepSlate: "var(--waskita-text, #1E293B)", // Warna teks utama dan stroke ikon SVG
+  warmCream: "var(--waskita-bg, #FAFAF9)", // Latar utama aplikasi, latar Sidebar, latar Bottom Sheet
+  warmSand: "var(--waskita-card, #FFFFFF)", // Kontainer kartu dan elevated surfaces
+  softIceBlue: "var(--waskita-audit-bg, #FFFFFF)", // Latar dokumen hasil analisis
+  mutedSkyBlue: "var(--waskita-accent-subtle, #F5F5F4)", // Surface subtle stone-100
+  softPeriwinkle: "var(--waskita-accent-soft, #E2E8F0)", // Soft neutral tint (anti black-block)
+  accentInk: "var(--waskita-accent-primary, #1C1917)", // Solid ink for primary buttons
+  deepSlate: "var(--waskita-text, #1C1917)", // Warna teks utama dan stroke ikon SVG
 } as const;
 
 // Logo Waskita Official SVG Component (viewBox="0 0 160 34", fill adapts to Theme)
@@ -96,6 +97,24 @@ export const IconArrowRight: React.FC<IconProps> = ({ size = 20, color = "curren
   >
     <line x1="5" y1="12" x2="19" y2="12" />
     <polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+export const IconArrowUp: React.FC<IconProps> = ({ size = 20, color = "currentColor", style, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={color}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={style}
+    className={className}
+  >
+    <line x1="12" y1="19" x2="12" y2="5" />
+    <polyline points="5 12 12 5 19 12" />
   </svg>
 );
 
@@ -975,7 +994,14 @@ export const SemiCircleGauge: React.FC<{
           strokeLinecap="round"
         />
         {/* Threshold Indicator Dot */}
-        <circle cx={dotX} cy={dotY} r={3.5} fill="#EF4444" stroke="var(--waskita-surface-white, #FFFFFF)" strokeWidth={1.5} />
+        <circle
+          cx={dotX}
+          cy={dotY}
+          r={3.5}
+          fill={score >= threshold ? "var(--waskita-emerald-accent, #059669)" : "var(--waskita-text-muted, #94A3B8)"}
+          stroke="var(--waskita-surface-white, #FFFFFF)"
+          strokeWidth={1.5}
+        />
       </svg>
       {/* Centered Score Display */}
       <div

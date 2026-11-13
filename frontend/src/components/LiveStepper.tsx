@@ -32,12 +32,12 @@ export const LiveStepper: React.FC<LiveStepperProps> = ({
   return (
     <div
       style={{
-        background: 'var(--waskita-card, #E9DFCA)',
-        border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
-        borderRadius: '18px',
+        background: 'var(--waskita-surface, #FFFFFF)',
+        border: '1px solid var(--waskita-border-strong, rgba(28, 25, 23, 0.12))',
+        borderRadius: '16px',
         padding: '16px 20px',
         margin: '12px 0',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.04)',
         transition: 'all 0.35s ease',
         opacity: isFadingOut ? 0 : 1,
         transform: isFadingOut ? 'scale(0.98) translateY(-6px)' : 'none',

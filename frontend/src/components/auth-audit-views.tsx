@@ -38,7 +38,7 @@ export const NewAnalysisEmptyView: React.FC<AuditStreamProps> = ({
 
       <h1
         style={{
-          fontSize: isDesktop ? "36px" : "24px",
+          fontSize: isDesktop ? "34px" : "24px",
           fontWeight: 800,
           letterSpacing: "-0.025em",
           color: COLORS.deepSlate,
@@ -46,7 +46,7 @@ export const NewAnalysisEmptyView: React.FC<AuditStreamProps> = ({
           lineHeight: 1.25,
         }}
       >
-        Segera Periksa, ARTIKELMU!
+        Periksa Kualitas &amp; Orisinalitas Artikel
       </h1>
     </div>
   );

@@ -2,7 +2,7 @@ import asyncio
 import functools
 import re
 import unicodedata
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFactory
 
@@ -294,10 +294,6 @@ NON_TOPICAL_VERBS_AND_ADJECTIVES: Set[str] = {
 FORBIDDEN_GAIN_CONNECTOR_WORDS: Set[str] = {
     "di", "ke", "dari", "dan", "atau", "yaitu", "tanpa", "karya", "untuk", "dengan",
 }
-
-# Pola akhiran klitik naratif dan kata sambung ekspositori (Sprint 4.4)
-NARRATIVE_CLITIC_SUFFIXES = ("nya", "kah", "lah", "pun")
-NARRATIVE_PASSIVE_VERB_PREFIXES = ("di", "ter")
 
 
 def is_narrative_noise(word: str) -> bool:

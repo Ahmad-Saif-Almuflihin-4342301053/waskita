@@ -88,7 +88,7 @@ export const SidebarMiniRail: React.FC<SidebarMiniRailProps> = ({
           style={{
             width: "40px",
             height: "40px",
-            background: isWLogoHovered ? "var(--waskita-card, #E9DFCA)" : "transparent",
+            background: isWLogoHovered ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
             border: "none",
             cursor: "pointer",
             borderRadius: "10px",
@@ -128,7 +128,7 @@ export const SidebarMiniRail: React.FC<SidebarMiniRailProps> = ({
             width: "40px",
             height: "40px",
             borderRadius: "12px",
-            background: isNewAnalysisActive ? "var(--waskita-card, #E9DFCA)" : "transparent",
+            background: isNewAnalysisActive ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
             border: "none",
             display: "flex",
             alignItems: "center",
@@ -139,7 +139,7 @@ export const SidebarMiniRail: React.FC<SidebarMiniRailProps> = ({
           }}
           onMouseEnter={(e) => {
             if (!isNewAnalysisActive) {
-              (e.currentTarget as HTMLElement).style.background = "var(--waskita-card, #E9DFCA)";
+              (e.currentTarget as HTMLElement).style.background = "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))";
             }
           }}
           onMouseLeave={(e) => {
@@ -167,7 +167,7 @@ export const SidebarMiniRail: React.FC<SidebarMiniRailProps> = ({
               width: "38px",
               height: "38px",
               borderRadius: "50%",
-              background: settingsPopoverOpen ? "var(--waskita-card, #E9DFCA)" : "transparent",
+              background: settingsPopoverOpen ? "var(--waskita-surface-subtle, rgba(125, 125, 125, 0.1))" : "transparent",
               border: "none",
               cursor: "pointer",
               display: "flex",
@@ -210,9 +210,9 @@ export const SidebarMiniRail: React.FC<SidebarMiniRailProps> = ({
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: COLORS.deepSlate,
-              color: "#FFFFFF",
-              border: "none",
+              background: "var(--waskita-avatar-bg, #1C1917)",
+              color: "var(--waskita-avatar-text, #FFFFFF)",
+              border: "1px solid var(--waskita-avatar-border, transparent)",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",

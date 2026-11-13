@@ -207,6 +207,26 @@ class WaskitaApiClient {
   }
 
   /**
+   * DELETE /api/v1/sessions
+   * Menghapus seluruh sesi riwayat milik pengguna aktif
+   */
+  async deleteAllSessions(): Promise<{ status: string; message: string; deleted_count: number }> {
+    const res = await fetch(`${BASE_URL}/api/v1/sessions`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(
+        errorData.detail ||
+          `Gagal menghapus seluruh sesi (HTTP ${res.status}: ${res.statusText})`
+      );
+    }
+    return await res.json();
+  }
+
+  /**
    * DELETE /api/v1/sessions/{id}
    */
   async deleteSession(sessionId: string): Promise<void> {

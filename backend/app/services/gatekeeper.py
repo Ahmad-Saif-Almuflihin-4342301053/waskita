@@ -1,7 +1,5 @@
 import re
-from typing import Any, Dict, List, Optional
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from typing import Dict, List, Optional
 
 from app.schemas.audit import AnnotatedSpan, EntityGapsGroup, ThresholdConfig
 from app.services.nlp_pipeline import (

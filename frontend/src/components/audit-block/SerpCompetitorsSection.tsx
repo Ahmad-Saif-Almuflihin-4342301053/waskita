@@ -103,16 +103,7 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
           flexWrap: 'wrap',
         }}
       >
-        <span
-          style={{
-            fontWeight: 600,
-            color: 'var(--waskita-emerald-text, #065F46)',
-            background: 'var(--waskita-emerald-bg, #D1FAE5)',
-            padding: '2px 8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-          }}
-        >
+        <span>
           Menampilkan {n} artikel acuan ({xSkipped} hasil Google dilewati: {skippedVideo} video/sosmed, {skippedPdf} PDF/dokumen)
         </span>
       </div>
@@ -124,8 +115,9 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
             display: 'flex',
             alignItems: 'flex-start',
             gap: '10px',
-            background: isSynthetic ? 'var(--waskita-amber-bg, #FEF3C7)' : 'var(--waskita-card, #E9DFCA)',
-            border: '1px solid var(--waskita-border-strong, rgba(180, 83, 9, 0.3))',
+            background: 'var(--waskita-surface-white, #FFFFFF)',
+            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+            borderLeft: '3px solid #D97706',
             borderRadius: '10px',
             padding: '10px 14px',
             marginBottom: '14px',
@@ -133,16 +125,16 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
         >
           <IconAlertTriangle
             size={18}
-            color={isSynthetic ? 'var(--waskita-amber-text, #B45309)' : COLORS.deepSlate}
+            color="#D97706"
             style={{ flexShrink: 0, marginTop: '2px' }}
           />
           <div style={{ fontSize: '12px', lineHeight: 1.5, color: COLORS.deepSlate }}>
             <strong style={{ display: 'block', marginBottom: '2px' }}>
               {isSynthetic
-                ? 'Mode Demo / Korpus Uji Internal, bukan hasil Google langsung'
-                : 'Korpus Uji Internal (Offline Curated), bukan hasil Google langsung'}
+                ? 'Mode Demo / Korpus Uji Internal'
+                : 'Korpus Uji Internal (Offline Curated)'}
             </strong>
-            <span>
+            <span style={{ color: 'var(--waskita-text-muted, #64748B)' }}>
               Pencarian SERP dijalankan dalam mode benchmark lokal offline. Tautan dummy dinonaktifkan untuk menjaga integritas pengujian.
             </span>
           </div>
@@ -177,27 +169,19 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
                 gap: '10px',
               }}
             >
-              {/* Badge Rank */}
+              {/* Nomor Rank Tipografi Bersih */}
               <span
                 style={{
-                  background:
-                    item.rank_position === 1
-                      ? 'var(--waskita-amber-bg, #FEF3C7)'
-                      : 'var(--waskita-card, #E9DFCA)',
-                  color:
-                    item.rank_position === 1
-                      ? 'var(--waskita-amber-text, #B45309)'
-                      : COLORS.deepSlate,
-                  fontSize: '11.5px',
-                  fontWeight: 800,
-                  borderRadius: '6px',
-                  padding: '3px 8px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: 'var(--waskita-text-muted, #64748B)',
+                  minWidth: '22px',
                   flexShrink: 0,
-                  marginTop: '2px',
-                  border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+                  marginTop: '1px',
+                  fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                #{item.rank_position}
+                {item.rank_position}.
               </span>
 
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -281,68 +265,45 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
                   )}
                 </div>
 
-                {/* Domain & Metrics Badges */}
+                {/* Domain & Metrics Inline Editorial (Anti-Slop) */}
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '6px',
                     flexWrap: 'wrap',
                     marginBottom: '4px',
+                    fontSize: '11px',
+                    color: 'var(--waskita-text-muted, #64748B)',
                   }}
                 >
                   <span
                     style={{
-                      fontSize: '11px',
+                      fontWeight: 600,
                       color: isDummy
                         ? 'var(--waskita-text-muted, #64748B)'
                         : 'var(--waskita-emerald-accent, #059669)',
-                      fontWeight: 600,
                     }}
                   >
                     {item.domain_name}
                   </span>
                   {typeof item.cosine_similarity === 'number' && (
-                    <span
-                      style={{
-                        fontSize: '10.5px',
-                        color: 'var(--waskita-text-muted, #64748B)',
-                        background: 'rgba(30, 41, 59, 0.06)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Cosine Sim: {item.cosine_similarity.toFixed(2)}
-                    </span>
+                    <>
+                      <span>•</span>
+                      <span>Cosine Sim: {item.cosine_similarity.toFixed(2)}</span>
+                    </>
                   )}
                   {typeof item.word_count === 'number' && item.word_count > 0 && (
-                    <span
-                      style={{
-                        fontSize: '10.5px',
-                        color: 'var(--waskita-text-muted, #64748B)',
-                        background: 'rgba(30, 41, 59, 0.06)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 500,
-                      }}
-                    >
-                      ~{item.word_count} kata
-                    </span>
+                    <>
+                      <span>•</span>
+                      <span>~{item.word_count} kata</span>
+                    </>
                   )}
                   {isDummy && (
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        color: 'var(--waskita-amber-text, #B45309)',
-                        background: 'var(--waskita-amber-bg, #FEF3C7)',
-                        padding: '1px 6px',
-                        borderRadius: '4px',
-                        fontWeight: 700,
-                      }}
-                    >
-                      Demo/Dummy Link
-                    </span>
+                    <>
+                      <span>•</span>
+                      <span style={{ fontStyle: 'italic' }}>(arsip lokal)</span>
+                    </>
                   )}
                 </div>
 
@@ -376,11 +337,11 @@ export const SerpCompetitorsSection: React.FC<SerpCompetitorsSectionProps> = ({ 
             width: '100%',
             padding: '9px 14px',
             borderRadius: '10px',
-            border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
-            background: 'var(--waskita-card, #E9DFCA)',
+            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+            background: 'var(--waskita-surface-white, #FFFFFF)',
             color: COLORS.deepSlate,
             fontSize: '12px',
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',

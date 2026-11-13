@@ -72,43 +72,62 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
           (turn.draftContent ? turn.draftContent.trim().split(/\s+/).length : 0);
         const isExpanded = !!expandedDrafts[index];
 
+        const rawTitle = turn.draftTitle || turn.auditResult.draft_title || 'Naskah Draf Artikel';
+        const displayTitle = rawTitle.replace(/^Draf:\s*/i, '').replace(/^Draf Masukan:\s*/i, '');
+
         return (
           <React.Fragment key={turn.auditResult.session_id || index}>
-            {/* User Input Bubble */}
+            {/* User Input Bubble (Clean Editorial Standard) */}
             <div
               style={{
                 alignSelf: 'flex-end',
-                maxWidth: isDesktop ? '75%' : '92%',
-                background: COLORS.warmSand,
-                color: COLORS.deepSlate,
-                borderRadius: '18px 18px 4px 18px',
-                padding: '12px 16px',
+                maxWidth: isDesktop ? '78%' : '94%',
+                background: 'var(--waskita-surface, #FFFFFF)',
+                color: 'var(--waskita-text, #1C1917)',
+                borderRadius: '16px 16px 4px 16px',
+                padding: '14px 16px',
                 fontSize: '13px',
-                lineHeight: 1.45,
-                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-                boxShadow: '0 2px 8px rgba(30, 41, 59, 0.03)',
+                lineHeight: 1.5,
+                border: '1px solid var(--waskita-border, rgba(28, 25, 23, 0.08))',
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '8px',
               }}
             >
-              {/* Header Bubble: Label Turn & Title */}
-              <div>
-                <span style={{ fontWeight: 700 }}>
-                  {index === 0 ? 'Draf Masukan #1:' : `Revisi Pengguna #${turnNum}:`}
-                </span>{' '}
-                <span style={{ fontWeight: 600 }}>
-                  {turn.draftTitle || turn.auditResult.draft_title || 'Naskah Draf Artikel'}
+              {/* Clean Title */}
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--waskita-text-muted, #78716C)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                  }}
+                >
+                  {index === 0 ? 'Draf Awal' : `Revisi #${turnNum}`}
+                </span>
+                <span
+                  style={{
+                    fontWeight: 600,
+                    fontSize: '13.5px',
+                    color: 'var(--waskita-text, #1C1917)',
+                  }}
+                >
+                  {displayTitle}
                 </span>
               </div>
 
-              {/* Badges: Kueri Target & Jumlah Kata */}
+              {/* Meta: Kueri Target & Jumlah Kata */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '8px',
                   flexWrap: 'wrap',
+                  fontSize: '11.5px',
+                  color: 'var(--waskita-text-muted, #78716C)',
                 }}
               >
                 {targetQ && (
@@ -117,12 +136,13 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      background: 'rgba(30, 41, 59, 0.06)',
+                      background: 'var(--waskita-surface-subtle, #F5F5F4)',
                       padding: '2px 8px',
                       borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.8))',
+                      fontSize: '11.5px',
+                      fontWeight: 500,
+                      color: 'var(--waskita-text-body, #44403C)',
+                      border: '1px solid var(--waskita-border-subtle, rgba(0, 0, 0, 0.05))',
                     }}
                   >
                     <IconSearch size={11} color="currentColor" />
@@ -132,12 +152,8 @@ export const MultiTurnAuditStreamView: React.FC<MultiTurnAuditStreamViewProps> =
                 {wordCount > 0 && (
                   <span
                     style={{
-                      background: 'var(--waskita-emerald-bg, rgba(16, 185, 129, 0.12))',
-                      color: 'var(--waskita-emerald-accent, #059669)',
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      fontSize: '11px',
-                      fontWeight: 600,
+                      fontWeight: 500,
+                      color: 'var(--waskita-text-muted, #78716C)',
                     }}
                   >
                     {wordCount} kata

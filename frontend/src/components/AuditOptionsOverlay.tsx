@@ -44,16 +44,16 @@ export interface WordBudgetPreset {
 }
 
 export const WORD_BUDGET_PRESETS: WordBudgetPreset[] = [
-  { id: 'adaptive', label: 'Adaptif SERP', desc: 'Disesuaikan dinamis dengan artikel acuan SERP' },
-  { id: 'compact', label: 'Ringkas (500–800)', min: 500, max: 800, desc: 'Berita ringkas, rangkuman, atau update kilat' },
-  { id: 'standard', label: 'Standar SEO (800–1.200)', min: 800, max: 1200, desc: 'Format ideal untuk SEO blog informatif' },
-  { id: 'pillar', label: 'Pillar Riset (1.200–1.800)', min: 1200, max: 1800, desc: 'Pillar post komprehensif atau riset mendalam' },
-  { id: 'custom', label: 'Kustom', desc: 'Atur batas kata minimum dan maksimum sendiri' },
+  { id: 'adaptive', label: 'Adaptif', desc: 'Adaptif SERP — Disesuaikan dinamis dengan artikel acuan SERP' },
+  { id: 'compact', label: 'Ringkas', min: 500, max: 800, desc: 'Ringkas (500–800 kata) — Berita kilat atau rangkuman' },
+  { id: 'standard', label: 'Standar', min: 800, max: 1200, desc: 'Standar SEO (800–1.200 kata) — Format ideal artikel web informatif' },
+  { id: 'pillar', label: 'Pilar', min: 1200, max: 1800, desc: 'Pilar Riset (1.200–1.800 kata) — Artikel pilar komprehensif' },
+  { id: 'custom', label: 'Kustom', desc: 'Kustom — Atur batas kata minimum dan maksimum sendiri' },
 ];
 
 export const PRESET_OPTIONS = [
   {
-    name: 'Standar Editorial (Default)',
+    name: 'Editorial (Standar)',
     desc: 'Standar umum artikel informatif & web SEO',
     thresholds: {
       max_cosine_similarity: 0.60,
@@ -63,7 +63,7 @@ export const PRESET_OPTIONS = [
     },
   },
   {
-    name: 'Blog / Opini (Fleksibel)',
+    name: 'Blog (Fleksibel)',
     desc: 'Lebih toleran untuk gaya bahasa santai atau personal',
     thresholds: {
       max_cosine_similarity: 0.70,
@@ -73,7 +73,7 @@ export const PRESET_OPTIONS = [
     },
   },
   {
-    name: 'Riset / Akademis (Ketat)',
+    name: 'Riset (Ketat)',
     desc: 'Standar ketat orisinalitas riset & variasi kosakata',
     thresholds: {
       max_cosine_similarity: 0.45,
@@ -203,6 +203,15 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
       setIsExpandedSheet(false);
       setDragOffsetY(0);
       setIsDragging(false);
+    } else {
+      const handleEsc = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          handleClose();
+        }
+      };
+      window.addEventListener('keydown', handleEsc);
+      return () => window.removeEventListener('keydown', handleEsc);
     }
   }, [isOpen]);
 
@@ -345,11 +354,21 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             appearance: none;
             width: 100%;
             height: 6px;
-            background: ${COLORS.mutedSkyBlue};
+            background: var(--waskita-track, rgba(125, 125, 125, 0.22));
             border-radius: 9999px;
             outline: none;
-            margin: 6px 0;
-            accent-color: ${COLORS.softPeriwinkle};
+            margin: 8px 0;
+            accent-color: var(--waskita-emerald-accent, #059669);
+          }
+          .waskita-slider-custom::-webkit-slider-runnable-track {
+            height: 6px;
+            border-radius: 9999px;
+            background: var(--waskita-track, rgba(125, 125, 125, 0.22));
+          }
+          .waskita-slider-custom::-moz-range-track {
+            height: 6px;
+            border-radius: 9999px;
+            background: var(--waskita-track, rgba(125, 125, 125, 0.22));
           }
           .waskita-slider-custom::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -357,19 +376,35 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: #7B8BA6;
+            background: var(--waskita-emerald-accent, #059669);
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-            border: 2px solid #FFFFFF;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+            border: 2px solid var(--waskita-card, #FFFFFF);
+            margin-top: -6px;
           }
           .waskita-slider-custom::-moz-range-thumb {
             width: 18px;
             height: 18px;
             border-radius: 50%;
-            background: #7B8BA6;
+            background: var(--waskita-emerald-accent, #059669);
             cursor: pointer;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.25);
-            border: 2px solid #FFFFFF;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+            border: 2px solid var(--waskita-card, #FFFFFF);
+          }
+          input[type=number]::-webkit-inner-spin-button,
+          input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+          }
+          input[type=number] {
+            -moz-appearance: textfield;
+          }
+          .waskita-overlay-scroll::-webkit-scrollbar {
+            width: 5px;
+          }
+          .waskita-overlay-scroll::-webkit-scrollbar-thumb {
+            background: var(--waskita-border-strong, rgba(125, 125, 125, 0.2));
+            border-radius: 9999px;
           }
         `}
       </style>
@@ -400,10 +435,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           transform: isDesktop
             ? 'translate(-50%, -50%)'
             : `translateY(${dragOffsetY}px)`,
-          width: isDesktop ? '460px' : '100%',
+          width: isDesktop ? '480px' : '100%',
           maxHeight: isDesktop ? '86vh' : isExpandedSheet ? '94vh' : '76vh',
           height: isDesktop ? 'auto' : isExpandedSheet ? '94vh' : 'auto',
-          background: COLORS.warmCream,
+          background: 'var(--waskita-surface-white, #FFFFFF)',
           borderRadius: isDesktop ? '24px' : '26px 26px 0 0',
           boxShadow: '0 20px 50px rgba(30, 41, 59, 0.28)',
           zIndex: 50,
@@ -431,7 +466,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               padding: '10px 0 4px 0',
               cursor: 'grab',
               touchAction: 'none',
-              background: COLORS.warmCream,
+              background: 'var(--waskita-surface-white, #FFFFFF)',
               flexShrink: 0,
               userSelect: 'none',
             }}
@@ -460,7 +495,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             borderBottom: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-            background: COLORS.warmCream,
+            background: 'var(--waskita-surface-white, #FFFFFF)',
             zIndex: 10,
             flexShrink: 0,
             cursor: !isDesktop ? 'grab' : 'default',
@@ -491,6 +526,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
 
         {/* Content Body */}
         <div
+          className="waskita-overlay-scroll"
           onScroll={handleBodyScroll}
           style={{
             padding: '16px 20px 16px 20px',
@@ -504,7 +540,8 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           {/* 1. Unggah Berkas */}
           <div
             style={{
-              background: COLORS.warmSand,
+              background: 'var(--waskita-surface-white, #FFFFFF)',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
               borderRadius: '16px',
               padding: '14px',
               display: 'flex',
@@ -518,7 +555,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                   width: 36,
                   height: 36,
                   borderRadius: '10px',
-                  background: COLORS.mutedSkyBlue,
+                  background: 'var(--waskita-surface-subtle, #F5F5F4)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -540,10 +577,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               style={{
-                background: COLORS.softPeriwinkle,
-                border: 'none',
-                borderRadius: '10px',
-                padding: '8px 14px',
+                background: 'var(--waskita-surface-subtle, #F1F5F9)',
+                border: '1px solid rgba(30, 41, 59, 0.15)',
+                borderRadius: '8px',
+                padding: '7px 14px',
                 fontSize: '12px',
                 fontWeight: 600,
                 color: COLORS.deepSlate,
@@ -557,7 +594,8 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           {/* 2. Kueri Target */}
           <div
             style={{
-              background: COLORS.warmSand,
+              background: 'var(--waskita-surface-white, #FFFFFF)',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
               borderRadius: '16px',
               padding: '12px 14px',
               display: 'flex',
@@ -577,7 +615,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '6px',
-                background: COLORS.warmCream,
+                background: 'var(--waskita-surface-subtle, #F8FAFC)',
                 border: '1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.15))',
                 borderRadius: '10px',
                 padding: '6px 10px',
@@ -643,7 +681,8 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           {/* 3. Target Panjang Naskah (Word Budget - Sprint 4.4) */}
           <div
             style={{
-              background: COLORS.warmSand,
+              background: 'var(--waskita-surface-white, #FFFFFF)',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
               borderRadius: '16px',
               padding: '14px',
               display: 'flex',
@@ -701,17 +740,17 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                     type="button"
                     onClick={() => handleSelectBudgetPreset(preset)}
                     style={{
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       padding: '7px 6px',
                       fontSize: '11px',
                       fontWeight: active ? 700 : 500,
                       background: active
-                        ? 'var(--waskita-accent-primary, #C0CEE8)'
-                        : 'rgba(30, 41, 59, 0.06)',
+                        ? 'var(--waskita-emerald-accent, #059669)'
+                        : 'var(--waskita-surface-subtle, #F8FAFC)',
                       border: active
-                        ? '1px solid rgba(30, 41, 59, 0.2)'
-                        : '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-                      color: COLORS.deepSlate,
+                        ? '1px solid var(--waskita-emerald-accent, #059669)'
+                        : '1px solid var(--waskita-border, rgba(125, 125, 125, 0.15))',
+                      color: active ? '#FFFFFF' : 'var(--waskita-text, #1C1917)',
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -726,7 +765,9 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                     title={preset.desc}
                   >
                     {getPresetIcon()}
-                    <span>{preset.label}</span>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {preset.label}
+                    </span>
                   </button>
                 );
               })}
@@ -806,7 +847,8 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           {/* 4. Ambang Batas (4 Range Sliders) & 3 Segmented Preset Pills */}
           <div
             style={{
-              background: COLORS.warmSand,
+              background: 'var(--waskita-surface-white, #FFFFFF)',
+              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
               borderRadius: '16px',
               padding: '14px',
               display: 'flex',
@@ -845,17 +887,17 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
                     onClick={() => applyPreset(preset.thresholds)}
                     style={{
                       flex: isDesktop ? 1 : '1 1 auto',
-                      borderRadius: '10px',
+                      borderRadius: '8px',
                       padding: '7px 10px',
                       fontSize: '11.5px',
                       fontWeight: active ? 700 : 500,
                       background: active
-                        ? 'var(--waskita-accent-primary, #C0CEE8)'
-                        : 'rgba(30, 41, 59, 0.06)',
+                        ? 'var(--waskita-emerald-accent, #059669)'
+                        : 'var(--waskita-surface-subtle, #F8FAFC)',
                       border: active
-                        ? '1px solid rgba(30, 41, 59, 0.2)'
-                        : '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
-                      color: COLORS.deepSlate,
+                        ? '1px solid var(--waskita-emerald-accent, #059669)'
+                        : '1px solid var(--waskita-border, rgba(125, 125, 125, 0.15))',
+                      color: active ? '#FFFFFF' : 'var(--waskita-text, #1C1917)',
                       cursor: 'pointer',
                       textAlign: 'center',
                       transition: 'all 0.15s ease',
@@ -984,9 +1026,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             {isUnderConstrained && (
               <div
                 style={{
-                  background: 'var(--waskita-amber-bg, #FEF3C7)',
-                  border: '1px solid var(--waskita-amber-border, #F59E0B)',
-                  borderRadius: '10px',
+                  background: 'rgba(217, 119, 6, 0.05)',
+                  border: '1px solid rgba(217, 119, 6, 0.2)',
+                  borderLeft: '3px solid #D97706',
+                  borderRadius: '8px',
                   padding: '8px 12px',
                   fontSize: '11px',
                   color: 'var(--waskita-amber-body, #92400E)',
@@ -1006,9 +1049,10 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
             {isOverConstrained && (
               <div
                 style={{
-                  background: 'var(--waskita-rose-bg, #FEE2E2)',
-                  border: '1px solid var(--waskita-rose-border, #EF4444)',
-                  borderRadius: '10px',
+                  background: 'rgba(220, 38, 38, 0.05)',
+                  border: '1px solid rgba(220, 38, 38, 0.2)',
+                  borderLeft: '3px solid #DC2626',
+                  borderRadius: '8px',
                   padding: '8px 12px',
                   fontSize: '11px',
                   color: 'var(--waskita-rose-text, #991B1B)',
@@ -1032,11 +1076,11 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
           style={{
             position: 'sticky',
             bottom: 0,
-            background: COLORS.warmCream,
+            background: 'var(--waskita-surface-white, #FFFFFF)',
             padding: isDesktop
               ? '12px 20px'
               : '10px 16px calc(14px + env(safe-area-inset-bottom, 12px)) 16px',
-            borderTop: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+            borderTop: '1px solid var(--waskita-border, rgba(125, 125, 125, 0.12))',
             zIndex: 10,
             flexShrink: 0,
           }}
@@ -1048,16 +1092,16 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               height: '46px',
               width: '100%',
               borderRadius: '12px',
-              background: COLORS.softPeriwinkle,
-              border: '1px solid rgba(30, 41, 59, 0.12)',
-              color: COLORS.deepSlate,
+              background: 'var(--waskita-emerald-accent, #059669)',
+              border: '1px solid #047857',
+              color: '#FFFFFF',
               fontSize: '13.5px',
               fontWeight: 700,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(30, 41, 59, 0.06)',
+              boxShadow: '0 2px 10px rgba(5, 150, 105, 0.25)',
               transition: 'background 0.15s ease',
             }}
           >
