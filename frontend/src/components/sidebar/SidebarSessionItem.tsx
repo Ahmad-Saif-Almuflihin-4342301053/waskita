@@ -38,15 +38,27 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
   onDelete,
 }) => {
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [openUpward, setOpenUpward] = useState<boolean>(false);
+
+  // Hitung posisi floating fixed saat menu dibuka (Anti-glitch & Anti-overflow)
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
   useEffect(() => {
     if (isMenuOpen && menuButtonRef.current) {
       const rect = menuButtonRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
+      const POPUP_HEIGHT = 175; // Tinggi total popover (4 menu item + padding)
       const spaceBelow = viewportHeight - rect.bottom;
-      // Jika ruang di bawah kurang dari 190px (tinggi popover menu), posisikan membuka ke atas
-      setOpenUpward(spaceBelow < 190);
+      const rightCoord = window.innerWidth - rect.right;
+
+      // Jika ruang di bawah kurang dari 180px, buka ke atas tombol
+      if (spaceBelow < 180) {
+        const topCoord = Math.max(10, rect.top - POPUP_HEIGHT - 4);
+        setMenuPosition({ top: topCoord, right: rightCoord });
+      } else {
+        setMenuPosition({ top: rect.bottom + 4, right: rightCoord });
+      }
+    } else {
+      setMenuPosition(null);
     }
   }, [isMenuOpen]);
 
@@ -132,18 +144,18 @@ export const SidebarSessionItem: React.FC<SidebarSessionItemProps> = ({
         />
       )}
 
-      {isMenuOpen && (
+      {isMenuOpen && menuPosition && (
         <div
           style={{
-            position: "absolute",
-            ...(openUpward ? { bottom: "100%", marginBottom: "4px" } : { top: "100%", marginTop: "4px" }),
-            right: "4px",
+            position: "fixed",
+            top: `${menuPosition.top}px`,
+            right: `${menuPosition.right}px`,
             width: "180px",
             background: "var(--waskita-surface-white, #FFFFFF)",
             borderRadius: "12px",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.22)",
             border: "1px solid var(--waskita-border-strong, rgba(30, 41, 59, 0.12))",
-            zIndex: 60,
+            zIndex: 70,
             padding: "6px",
             display: "flex",
             flexDirection: "column",
