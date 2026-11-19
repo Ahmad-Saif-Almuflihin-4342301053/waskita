@@ -299,15 +299,55 @@ function sanitizePlainTextMedia(
   };
 }
 
+/**
+ * Pola penyaring residu elemen tata letak web mentah (Ctrl+A Web Chrome: Kumparan, Detik, Kompas, IDN Times, dsb.)
+ */
+export const WEB_CHROME_LINE_PATTERNS: RegExp[] = [
+  /^\s*(?:baca|simak|lihat)\s+(?:juga|video|selengkapnya)/i,
+  /^\s*(?:berita|artikel)\s+terpopuler/i,
+  /^\s*trending\s+(?:sekarang|hari ini|topik)/i,
+  /^\s*tags?\s*:\s*#/i,
+  /^\s*komentar\s+pembaca\s*(?:\(\d+\)|:)/i,
+  /^\s*(?:penulis|editor|reporter|kontributor|writer)\s*:\s*[A-Za-z]/i,
+  /(?:tentang kami|redaksi|pedoman media siber|kebijakan privasi|all rights reserved)/i,
+  /hak cipta\s+\d{4}/i,
+  /^\s*bagikan\s*:\s*(?:whatsapp|facebook|twitter|salin tautan)/i,
+  /^\s*kumparan\s*(?:news|bisnis|bola|mom|travel|tech|hits|otomotif)?\b/i,
+  /^\s*detik\s*(?:news|finance|hot|sport|inet|food|health|travel)?\b/i,
+  /^\s*(?:kompas\.com|tribunnews|tribun network|idn times|cnn indonesia|cnbc indonesia)\b/i,
+  /^\s*perbesar\s*$/i,
+  /^\s*(?:foto|video|ilustrasi)\s*:\s*.+/i,
+  /^\s*(?:advertisement|scroll to (?:resume|continue) (?:with )?content)\s*$/i,
+  /^\s*(?:pilihan editor|pilihan redaksi)\s*:\s*/i,
+  /ikuti (?:kabar|berita) (?:terkini|terbaru).+di whatsapp channel/i,
+  /konten ini diproduksi oleh/i,
+  /\b\d{1,2}\s+(?:januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\s+\d{4}.+wib/i,
+  /^\s*(?:senin|selasa|rabu|kamis|jumat|sabtu|minggu),\s+\d{1,2}\s+[a-z]{3,9}\s+\d{4}.*wib/i,
+  /·\s*waktu baca\s+\d+\s+menit/i,
+];
+
+export function isWebChromeNoiseLine(line: string): boolean {
+  const l = line.trim();
+  if (!l) return false;
+  return WEB_CHROME_LINE_PATTERNS.some((p) => p.test(l));
+}
+
 function cleanUpExtractedText(text: string): string {
-  return text
+  const normalized = text
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     // Bersihkan boilerplate WordPress / Blog metadata (Sprint 4.3)
     .replace(/\bPosted on\s+[^\n]+?\s+by\s+[^\n]+/gi, '')
     .replace(/\bDipublikasikan pada\s+[^\n]+?\s+oleh\s+[^\n]+/gi, '')
     // Perbaiki titik menempel ke huruf kapital berikutnya (.Mengenal -> . Mengenal) (Sprint 4.3)
-    .replace(/\.([A-Z\u00C0-\u024F])/g, '. $1')
+    .replace(/\.([A-Z\u00C0-\u024F])/g, '. $1');
+
+  // Filter baris residu elemen web chrome (Kumparan, Detik, Kompas, dsb.)
+  const lines = normalized.split('\n');
+  const cleanLines = lines.filter((line) => !isWebChromeNoiseLine(line));
+
+  return cleanLines
+    .join('\n')
     .replace(/[ \t]+/g, ' ')
     .replace(/\n\s+\n/g, '\n\n')
     .replace(/\n{3,}/g, '\n\n')
@@ -356,7 +396,11 @@ const INDONESIAN_STOPWORDS = new Set([
   // Kata lokasional, struktural, fungsional & transisi (Sprint 3.2 Hotfix):
   'bagian', 'bawah', 'atas', 'tengah', 'depan', 'belakang', 'samping', 'luar',
   'sisi', 'aspek', 'bentuk', 'macam', 'jenis', 'melampaui', 'sekadar', 'berupa',
-  'terdiri', 'yakni', 'yaitu', 'balik'
+  'terdiri', 'yakni', 'yaitu', 'balik',
+  // Residu Portal Berita, Elemen Chrome & Agensi Media (Sprint 4.5 / DSRM Evaluasi):
+  'perbesar', 'kumparan', 'kumparannews', 'detikcom', 'detiknews', 'kompascom',
+  'tribunnews', 'tempoco', 'antaranews', 'suaracom', 'liputan6', 'idntimes',
+  'advertisement', 'foto', 'video', 'ilustrasi', 'redaksi', 'editor', 'reporter'
 ]);
 
 /**
@@ -369,13 +413,14 @@ const INDONESIAN_STOPWORDS = new Set([
 export function extractSmartKeyword(text: string): string {
   if (!text || !text.trim()) return '';
 
-  // 1. Bersihkan token media [gambar N], [video N], dsb. serta baris metadata footer/author/reviewer
+  // 1. Bersihkan token media [gambar N], [video N], dsb. serta baris metadata footer/author/reviewer/web chrome
   const clean = text
     .replace(/\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]/gi, ' ')
     .split('\n')
     .filter((line) => {
       const l = line.trim().toLowerCase();
       if (!l) return false;
+      if (isWebChromeNoiseLine(line)) return false;
       if (/^(?:ditinjau oleh|penulis|ditulis oleh|editor|author|reviewed by|sumber|referensi|terakhir diperbarui|tag|kategori|baca juga|artikel terkait)\s*[:\-]/i.test(l)) {
         return false;
       }
@@ -393,7 +438,7 @@ export function extractSmartKeyword(text: string): string {
   // Deteksi judul: lines[0] hanya dianggap judul jika <= 140 karakter dan <= 20 kata (Sprint 4.4 Title Boundary)
   let titleText = '';
   let titleSubstantivePhrase = '';
-  const firstLineClean = lines[0].replace(/^#+\s*/, '').trim();
+  const firstLineClean = lines[0].replace(/^#+\s*/, '').replace(/^perbesar[,\s:-]+/i, '').trim();
   const firstLineWords = firstLineClean.split(/\s+/).filter(Boolean);
   if (firstLineClean.length <= 140 && firstLineWords.length <= 20) {
     // Jika judul memiliki pemisah subjudul seperti ':', ' - ', atau koma pemisah klausa
@@ -535,6 +580,8 @@ export function extractSmartKeyword(text: string): string {
   }
 
   if (!primary) return clean.slice(0, 30).trim().toLowerCase();
+
+  primary = primary.replace(/^perbesar\s+/i, '').replace(/\s+perbesar$/i, '').trim();
 
   // Jika primary berasal dari judul substantif atau sudah memiliki >= 2 kata,
   // JANGAN menambahkan kata pelengkap dari badan naskah agar terhindar dari polusi nama dokter/editor/metadata!

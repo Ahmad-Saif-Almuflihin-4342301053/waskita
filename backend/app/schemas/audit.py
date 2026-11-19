@@ -51,7 +51,7 @@ class AuditExecuteRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_word_count(self) -> "AuditExecuteRequest":
-        # Menghitung jumlah kata murni (mengabaikan placeholder media [gambar N], [video N], dsb)
+        # Menghitung jumlah kata murni (mempertahankan alt/caption media jika ada deskripsi)
         cleaned_pure = re.sub(
             r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]",
             " ",
@@ -59,7 +59,8 @@ class AuditExecuteRequest(BaseModel):
             flags=re.IGNORECASE,
         )
         words = re.findall(r"\b\w+\b", cleaned_pure)
-        min_words = 300
+        # Mode Adaptif WASKITA (FR-02): Mendukung naskah pendek bermedia (min 30 kata) hingga panjang
+        min_words = 30
         if self.thresholds and getattr(self.thresholds, "min_draft_words", None) is not None:
             min_words = self.thresholds.min_draft_words
         elif self.word_budget_min is not None:
@@ -67,7 +68,7 @@ class AuditExecuteRequest(BaseModel):
 
         if len(words) < min_words:
             raise ValueError(
-                f"Draf artikel Anda hanya memuat {len(words)} kata murni. "
+                f"Draf naskah Anda hanya memuat {len(words)} kata murni. "
                 f"Sesuai standar audit WASKITA (FR-02), panjang naskah minimal adalah {min_words} kata "
                 "agar analisis semantik IR dan stilometri dapat dihitung secara valid."
             )

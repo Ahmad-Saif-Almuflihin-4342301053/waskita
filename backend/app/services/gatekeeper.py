@@ -1,10 +1,12 @@
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
+from datasketch import MinHash
 
 from app.schemas.audit import AnnotatedSpan, EntityGapsGroup, ThresholdConfig
 from app.services.nlp_pipeline import (
     ALL_INDONESIAN_STOPWORDS,
     NON_TOPICAL_VERBS_AND_ADJECTIVES,
+    is_web_chrome_noise_line,
     normalize_text_ascii,
     stem_word,
 )
@@ -87,6 +89,73 @@ def is_commercial_or_sponsor(term: str) -> bool:
     return False
 
 
+def _build_sentence_minhash(words: List[str], num_perm: int = 64) -> MinHash:
+    """Membangun representasi MinHash berbasis 3-shingles kata untuk mendeteksi redundansi urutan frasa."""
+    m = MinHash(num_perm=num_perm)
+    if len(words) >= 3:
+        for i in range(len(words) - 2):
+            shingle = f"{words[i]} {words[i+1]} {words[i+2]}"
+            m.update(shingle.encode("utf-8"))
+    else:
+        for w in words:
+            m.update(w.encode("utf-8"))
+    return m
+
+
+def detect_web_chrome_noise(text: str) -> Tuple[bool, int, List[str]]:
+    """Mendeteksi apakah naskah memuat sampah elemen tata letak web hasil copas mentah (Ctrl+A)."""
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    matched_noise = []
+    for line in lines:
+        if is_web_chrome_noise_line(line):
+            matched_noise.append(line[:60])
+    has_noise = len(matched_noise) >= 2
+    return has_noise, len(matched_noise), matched_noise
+
+
+COMMERCIAL_HARD_SELLING_PATTERNS = [
+    re.compile(r"\b(?:08\d{8,12}|\+62\d{8,12})\b"),
+    re.compile(r"\b(?:kode\s+voucher|voucher\s+diskon|tebus\s+murah|diskon\s+spesial)\b", re.IGNORECASE),
+    re.compile(r"\b(?:promo\s+terbatas|hubungi\s+admin|pemesanan\s+agen|beli\s+sekarang)\b", re.IGNORECASE),
+    re.compile(r"\b(?:sembuh\s+total\s+tanpa\s+operasi|dijamin\s+sembuh\s+dalam\s+\w+\s+hari|obat\s+ajaib)\b", re.IGNORECASE),
+    re.compile(r"\b(?:slot\s+gacor|jackpot\s+sensational|deposit\s+pulsa|tanpa\s+potongan)\b", re.IGNORECASE),
+]
+
+
+def detect_commercial_drift(text: str) -> Tuple[bool, List[str]]:
+    """Mendeteksi pergeseran naskah ke arah hard-selling produk, kontak WA, atau klaim komersial agresif (Bait-and-Switch)."""
+    matches = []
+    for pat in COMMERCIAL_HARD_SELLING_PATTERNS:
+        found = pat.findall(text)
+        if found:
+            matches.extend(found[:2])
+    has_drift = len(matches) >= 2
+    return has_drift, matches
+
+
+AI_PROMPT_LEAK_PATTERNS = [
+    re.compile(r"^\s*(?:tentu(?:lah)?|tentu saja|pasti|baiklah)[!,.]?\s*(?:sebagai asisten ai|berikut (?:adalah )?(?:draf|artikel|panduan))", re.IGNORECASE),
+    re.compile(r"\b(?:sebagai model bahasa ai|sebagai asisten virtual|sebagai asisten cerdas)\b", re.IGNORECASE),
+    re.compile(r"\b(?:apakah ada hal lain yang (?:bisa|dapat) saya bantu|silakan beri tahu saya jika (?:anda|kamu) ingin)\b", re.IGNORECASE),
+    re.compile(r"\b(?:semoga (?:draf\s+)?artikel ini (?:membantu|bermanfaat) (?:untuk|dalam) mendongkrak)\b", re.IGNORECASE),
+    re.compile(r"^\s*meta title\s*:", re.IGNORECASE),
+    re.compile(r"^\s*meta description\s*:", re.IGNORECASE),
+]
+
+
+def detect_ai_prompt_leak(text: str) -> Tuple[bool, List[str]]:
+    """Mendeteksi apakah naskah menyisakan teks pembuka/penutup percakapan chatbot AI."""
+    matches = []
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    for line in lines:
+        for pat in AI_PROMPT_LEAK_PATTERNS:
+            if pat.search(line):
+                matches.append(line[:60])
+                break
+    has_leak = len(matches) >= 1
+    return has_leak, matches
+
+
 PROMPT_DRAFT_DELIMITER = (
     "\n\n--------------------------------------------------\n"
     "[NASKAH ARTIKEL YANG AKAN DIPROSES]:\n"
@@ -150,11 +219,26 @@ def generate_annotated_spans(
     # Ekstraksi heading resmi
     detected_headings = set(extract_headings_from_markdown_or_text(draft_content))
 
+    # Ekstraksi rentang kutipan sah (markdown blockquotes '>' atau tanda kutip ganda "...")
+    quoted_texts = set()
+    for m in re.finditer(r'[\"“]([^\"”]{15,})[\"”]', draft_content):
+        q_clean = m.group(1).strip().lower()
+        if any(w in q_clean for w in ["menurut", "berdasarkan", "dikutip", "ujar", "kata", "melansir", "penelitian", "studi"]):
+            for s in re.split(r"(?<=[.!?])\s+", m.group(1)):
+                if len(s.strip().split()) >= 4:
+                    quoted_texts.add(s.strip(" \"“”'").lower())
+    for line in draft_content.split("\n"):
+        if line.strip().startswith(">"):
+            for s in re.split(r"(?<=[.!?])\s+", line.strip().lstrip(">")):
+                if len(s.strip().split()) >= 4:
+                    quoted_texts.add(s.strip(" \"“”'").lower())
+
     # Himpunan stem entitas gain unik
     gain_stems = {item.term_string for item in entity_gaps.gain}
 
-    # Pra-komputasi himpunan stem kalimat kompetitor satu kali (Sprint 4.1)
+    # Pra-komputasi himpunan stem dan MinHash kalimat kompetitor (Sprint 4.5)
     competitor_sentence_stems_list: List[Set[str]] = []
+    competitor_sentence_minhashes: List[MinHash] = []
     for c_text in competitor_clean_texts:
         for s in _split_into_sentences(c_text):
             comp_words = re.findall(r"\b\w+\b", s.lower())
@@ -166,8 +250,21 @@ def generate_annotated_spans(
                 }
                 if len(c_stems) >= 4:
                     competitor_sentence_stems_list.append(c_stems)
+                    competitor_sentence_minhashes.append(_build_sentence_minhash(comp_words))
 
     for sentence in sentences:
+        # Cek apakah segmen merupakan residu web chrome (Ctrl+A Liar)
+        if is_web_chrome_noise_line(sentence):
+            spans.append(
+                AnnotatedSpan(
+                    text=sentence,
+                    color="yellow",
+                    label="Residu Elemen Web (Ctrl+A)",
+                    is_heading=False,
+                )
+            )
+            continue
+
         # Cek apakah segmen merupakan token slot visual media [gambar N: ...] (Sprint 4.3)
         if re.match(r"^\[gambar\s+\d+", sentence, re.IGNORECASE):
             spans.append(AnnotatedSpan(text=sentence, color=None, label="Slot Visual Media", is_heading=False))
@@ -201,20 +298,43 @@ def generate_annotated_spans(
 
         local_ttr = len(set(words)) / word_count if word_count > 0 else 1.0
 
-        # Prioritas #1: Cek Merah (Red - Sprint 4.1): Redundansi VSM Kalimat Lokal terhadap Kalimat Kompetitor
+        # Cek Kutipan Beretika Sah (Fair-Use Quotation with Attribution)
+        s_clean_quote = s_lower.strip(" \"“”'")
+        is_quote = (
+            s_clean_quote in quoted_texts
+            or any(s_clean_quote in qt or qt in s_clean_quote for qt in quoted_texts)
+            or (
+                (sentence.startswith('"') or sentence.startswith('“') or sentence.startswith("'"))
+                and any(w in s_lower for w in ["menurut", "berdasarkan", "dikutip", "ujar", "kata", "melansir", "penelitian"])
+            )
+        )
+        if is_quote:
+            spans.append(
+                AnnotatedSpan(
+                    text=sentence,
+                    color=None,
+                    label="Kutipan Beretika / Rujukan",
+                    is_heading=False,
+                )
+            )
+            continue
+
+        # Prioritas #1: Cek Merah (Red - Sprint 4.1 & 4.5): Redundansi VSM & MinHash Kalimat Lokal terhadap Kalimat Kompetitor
         is_redundant = False
         if competitor_sentence_stems_list and word_count >= 6:
+            sent_minhash = _build_sentence_minhash(words)
             sentence_stems = {
                 stem_word(w)
                 for w in words
                 if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
             }
             if len(sentence_stems) >= 4:
-                for comp_stems in competitor_sentence_stems_list:
+                for idx_comp, comp_stems in enumerate(competitor_sentence_stems_list):
                     overlap = len(sentence_stems.intersection(comp_stems))
                     jaccard = overlap / len(sentence_stems.union(comp_stems))
                     containment = overlap / min(len(sentence_stems), len(comp_stems))
-                    if jaccard >= 0.50 or (containment >= 0.72 and overlap >= 4):
+                    minhash_sim = sent_minhash.jaccard(competitor_sentence_minhashes[idx_comp]) if idx_comp < len(competitor_sentence_minhashes) else 0.0
+                    if jaccard >= 0.50 or (containment >= 0.72 and overlap >= 4) or (minhash_sim >= 0.45 and overlap >= 4):
                         is_redundant = True
                         break
 
@@ -307,6 +427,9 @@ def calculate_composite_cds(
     avg_cosine_sim: Optional[float] = None,
     red_span_ratio: float = 0.0,
     max_consecutive_red: int = 0,
+    has_web_chrome_noise: bool = False,
+    is_commercial_drift: bool = False,
+    has_ai_prompt_leak: bool = False,
 ) -> Dict[str, any]:
     """
     Rumus Komposit Content Differentiation Score (CDS 0-100%) & Keputusan Gatekeeper (Bab 2.4 & FR-10):
@@ -388,6 +511,15 @@ def calculate_composite_cds(
         # Skor CDS tidak boleh melebihi 58.0% jika ada redundansi kalimat signifikan / jiplakan beruntun
         effective_penalty_ratio = max(red_span_ratio, 0.20 if max_consecutive_red >= 3 else 0.0)
         cds = min(cds, round(58.0 * (1.0 - (effective_penalty_ratio - 0.20)), 1))
+    elif has_web_chrome_noise:
+        verdict_status = "Perlu Revisi - Residu Elemen Website Terdeteksi"
+        cds = min(cds, 48.0)
+    elif is_commercial_drift:
+        verdict_status = "Perlu Revisi - Promosi Komersial Terselubung"
+        cds = min(cds, 42.0)
+    elif has_ai_prompt_leak:
+        verdict_status = "Perlu Revisi - Teks Percakapan AI Terdeteksi"
+        cds = min(cds, 45.0)
     elif (
         (cds >= thresholds.min_cds_score)
         and (not is_redundant)
@@ -407,6 +539,9 @@ def calculate_composite_cds(
         "red_span_ratio": round(red_span_ratio, 3),
         "is_keyword_stuffed": is_keyword_stuffed,
         "is_out_of_domain": is_out_of_domain,
+        "has_web_chrome_noise": has_web_chrome_noise,
+        "is_commercial_drift": is_commercial_drift,
+        "has_ai_prompt_leak": has_ai_prompt_leak,
         "verdict_status": verdict_status,
         "sub_scores": {
             "vsm": round(0.35 * c_vsm, 1),

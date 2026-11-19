@@ -210,6 +210,13 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
         async with httpx.AsyncClient(http2=True, timeout=fast_timeout, follow_redirects=True, headers=headers) as client:
             resp = await client.get(url)
             status_code = resp.status_code
+            content_type = resp.headers.get("content-type", "").lower()
+            if content_type and not any(h in content_type for h in ("text/html", "application/xhtml", "text/plain")):
+                logger.warning(f"Skipping non-HTML Content-Type: {content_type} on {url}")
+                result["fetch_status"] = "failed"
+                _log_domain_quarantine(urlparse(url).netloc, f"non_html_mime_{content_type[:30]}", status_code)
+                return result
+
             if resp.status_code == 200:
                 html_content = resp.text
                 fetch_method = "success"
@@ -217,11 +224,14 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
             elif resp.status_code in (401, 403, 406, 429, 503):
                 logger.warning(f"HTTPX blocked by bot guard with status {resp.status_code} on {url}, falling back to curl_cffi")
                 trigger_curl_fallback = True
+                _log_domain_quarantine(urlparse(url).netloc, "bot_protection", resp.status_code)
             else:
                 logger.warning(f"HTTPX failed with non-bot status {resp.status_code} on {url}")
+                _log_domain_quarantine(urlparse(url).netloc, f"http_status_{resp.status_code}", resp.status_code)
     except (httpx.TimeoutException, httpx.ConnectError) as e:
         logger.warning(f"HTTPX fast-fail (timeout/connect error) on {url}: {e} - skipping curl_cffi")
         trigger_curl_fallback = False
+        _log_domain_quarantine(urlparse(url).netloc, "timeout_or_connect_error", 0)
     except Exception as e:
         logger.warning(f"HTTPX fetch error on {url}: {e}")
         trigger_curl_fallback = False
@@ -337,6 +347,44 @@ def passes_three_tier_relevance_guard(
     return True
 
 
+async def _fetch_duckduckgo_results(query: str, max_results: int = 20) -> List[Dict[str, Any]]:
+    """Live search fallback menggunakan duckduckgo-search (DDGS) region Indonesia."""
+    try:
+        from ddgs import DDGS
+        def _ddgs_call():
+            with DDGS() as ddgs:
+                return list(ddgs.text(query, region="id-id", max_results=max_results))
+        results = await asyncio.to_thread(_ddgs_call)
+        organic = []
+        for r in results:
+            organic.append({
+                "title": r.get("title", ""),
+                "link": r.get("href", ""),
+                "snippet": r.get("body", ""),
+            })
+        return organic
+    except Exception as e:
+        logger.warning(f"DuckDuckGo search fallback error on query '{query}': {e}")
+        return []
+
+
+def _log_domain_quarantine(domain: str, reason: str, status_code: int = 0):
+    """Mencatat domain bermasalah/terblokir ke berkas audit karantina (Sprint 4.5)."""
+    try:
+        from datetime import datetime, timezone
+        import json
+        log_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "domain": domain,
+            "reason": reason,
+            "status_code": status_code,
+        }
+        with open("backend/logs/quarantined_domains.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 async def _fetch_serper_page(client: httpx.AsyncClient, query: str, page_num: int = 1) -> List[Dict[str, Any]]:
     """Helper untuk mengambil hasil organik Google per halaman dari Serper.dev."""
     url = "https://google.serper.dev/search"
@@ -402,13 +450,15 @@ async def search_and_scrape_competitors(
         return cached_serp
 
     if not settings.SERPER_API_KEY:
-        if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-            logger.warning("SERPER_API_KEY is not configured and FEATURE_OFFLINE_CORPUS_FALLBACK is disabled.")
-            return []
-        logger.info(f"SERPER_API_KEY is not set. Using offline fallback corpus for query: {clean_query}")
-        fallback_docs = get_fallback_corpus(clean_query)
-        # SPRINT 3.0: Dokumen offline TIDAK di-cache sebagai data live
-        return fallback_docs
+        logger.info(f"SERPER_API_KEY is not set. Trying live search fallback via DDGS for query: {clean_query}")
+        organic_results = await _fetch_duckduckgo_results(clean_query, max_results=20)
+        if not organic_results:
+            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                logger.warning("SERPER_API_KEY is not configured, DDGS failed, and FEATURE_OFFLINE_CORPUS_FALLBACK is disabled.")
+                return []
+            logger.info(f"DDGS returned 0 results. Using offline fallback corpus for query: {clean_query}")
+            fallback_docs = get_fallback_corpus(clean_query)
+            return fallback_docs
 
     try:
         organic_results: List[Dict[str, Any]] = []
@@ -423,10 +473,12 @@ async def search_and_scrape_competitors(
                 organic_results.extend(p_res)
 
         if not organic_results:
-            logger.warning("Serper.dev returned 0 organic results across queried pages.")
-            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-                return []
-            return get_fallback_corpus(clean_query)
+            logger.warning("Serper.dev returned 0 results. Trying live search fallback via DDGS...")
+            organic_results = await _fetch_duckduckgo_results(clean_query, max_results=20)
+            if not organic_results:
+                if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                    return []
+                return get_fallback_corpus(clean_query)
 
         summary["total_candidates_evaluated"] = len(organic_results)
 

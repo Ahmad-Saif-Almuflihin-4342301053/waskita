@@ -8,18 +8,67 @@ from Sastrawi.StopWordRemover.StopWordRemoverFactory import StopWordRemoverFacto
 
 from app.core.cache import get_nlp_preproc_cache, set_nlp_preproc_cache
 
-# Regex pembersih placeholder media [gambar 1], [video 2], [tabel 1], dsb.
-MEDIA_PLACEHOLDER_REGEX = re.compile(
+# Regex pembersih placeholder media dengan preservasi alt-text / figcaption deskriptif (E-E-A-T Visual Experience)
+MEDIA_WITH_CAPTION_REGEX = re.compile(
+    r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*\s*:\s*(?:Ilustrasi\s+)?([^\]]+)\]",
+    re.IGNORECASE,
+)
+MEDIA_PLAIN_REGEX = re.compile(
     r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]",
     re.IGNORECASE,
 )
 
+# Pola penyaring residu elemen tata letak web mentah (Ctrl+A Web Chrome: Kumparan, Detik, Kompas, dll.)
+WEB_CHROME_LINE_PATTERNS: List[re.Pattern] = [
+    re.compile(r"^\s*(?:baca|simak|lihat)\s+(?:juga|video|selengkapnya)", re.IGNORECASE),
+    re.compile(r"^\s*(?:berita|artikel)\s+terpopuler", re.IGNORECASE),
+    re.compile(r"^\s*trending\s+(?:sekarang|hari ini|topik)", re.IGNORECASE),
+    re.compile(r"^\s*tags?\s*:\s*#", re.IGNORECASE),
+    re.compile(r"^\s*komentar\s+pembaca\s*(?:\(\d+\)|:)", re.IGNORECASE),
+    re.compile(r"^\s*(?:penulis|editor|reporter|kontributor|writer)\s*:\s*[A-Za-z]", re.IGNORECASE),
+    re.compile(r"(?:tentang kami|redaksi|pedoman media siber|kebijakan privasi|all rights reserved)", re.IGNORECASE),
+    re.compile(r"hak cipta\s+\d{4}", re.IGNORECASE),
+    re.compile(r"^\s*bagikan\s*:\s*(?:whatsapp|facebook|twitter|salin tautan)", re.IGNORECASE),
+    re.compile(r"^\s*kumparan\s*(?:news|bisnis|bola|mom|travel|tech|hits|otomotif)?\b", re.IGNORECASE),
+    re.compile(r"^\s*detik\s*(?:news|finance|hot|sport|inet|food|health|travel)?\b", re.IGNORECASE),
+    re.compile(r"^\s*(?:kompas\.com|tribunnews|tribun network|idn times|cnn indonesia|cnbc indonesia)\b", re.IGNORECASE),
+    re.compile(r"^\s*perbesar\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(?:foto|video|ilustrasi)\s*:\s*.+", re.IGNORECASE),
+    re.compile(r"^\s*(?:advertisement|scroll to (?:resume|continue) (?:with )?content)\s*$", re.IGNORECASE),
+    re.compile(r"^\s*(?:pilihan editor|pilihan redaksi)\s*:\s*", re.IGNORECASE),
+    re.compile(r"ikuti (?:kabar|berita) (?:terkini|terbaru).+di whatsapp channel", re.IGNORECASE),
+    re.compile(r"konten ini diproduksi oleh", re.IGNORECASE),
+    re.compile(r"\b\d{1,2}\s+(?:januari|februari|maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\s+\d{4}.+wib", re.IGNORECASE),
+    re.compile(r"^\s*(?:senin|selasa|rabu|kamis|jumat|sabtu|minggu),\s+\d{1,2}\s+[a-z]{3,9}\s+\d{4}.*wib", re.IGNORECASE),
+]
 
-def strip_media_placeholders(text: str) -> str:
-    """Hapus placeholder media seperti [gambar 1], [video 2], [tabel 1], dsb. dari naskah."""
+
+def is_web_chrome_noise_line(line: str) -> bool:
+    """Mengecek apakah satu baris teks merupakan residu elemen tata letak web (Ctrl+A)."""
+    l_strip = line.strip()
+    if not l_strip:
+        return False
+    return any(p.search(l_strip) for p in WEB_CHROME_LINE_PATTERNS)
+
+
+def strip_web_chrome_noise(text: str) -> str:
+    """Membersihkan residu baris web chrome dari naskah sebelum diekstraksi ke VSM dan Information Gain."""
     if not text:
         return ""
-    return MEDIA_PLACEHOLDER_REGEX.sub(" ", text)
+    clean_lines = [line for line in text.split("\n") if not is_web_chrome_noise_line(line)]
+    return "\n".join(clean_lines)
+
+
+def strip_media_placeholders(text: str, keep_captions: bool = True) -> str:
+    """
+    Hapus placeholder media seperti [gambar 1], [video 2], [tabel 1], dsb. dari naskah.
+    Jika keep_captions=True, teks deskripsi caption/alt ([gambar 1: Ilustrasi X]) dipertahankan sebagai teks analitis.
+    """
+    if not text:
+        return ""
+    if keep_captions:
+        text = MEDIA_WITH_CAPTION_REGEX.sub(r" \1 ", text)
+    return MEDIA_PLAIN_REGEX.sub(" ", text)
 
 
 def normalize_text_ascii(text: str) -> str:
@@ -117,16 +166,25 @@ WEB_NOISE_STOPWORDS: Set[str] = {
     "null",
     "true",
     "false",
-    # Sprint 4.1: Derau Media, Agensi Foto, & Elemen CMS
+    # Sprint 4.1: Derau Media, Agensi Foto, Portal Berita & Elemen CMS
     "bbc",
     "cnn",
     "cnbc",
     "kompasiana",
     "idntimes",
     "liputan6",
-    "kompasiana",
     "tirto",
     "reuters",
+    "kumparan",
+    "kumparannews",
+    "detikcom",
+    "detiknews",
+    "kompascom",
+    "tribunnews",
+    "tempoco",
+    "antaranews",
+    "suaracom",
+    "perbesar",
     "getty",
     "shutterstock",
     "unsplash",
@@ -371,8 +429,9 @@ def stem_word(word: str) -> str:
 
 
 def _sync_clean_and_tokenize(text: str) -> List[str]:
-    """Tokenisasi dan pembersihan regex sederhana setelah normalisasi aksen ASCII dan penghapusan media (Sprint 4.2)."""
-    text_without_media = strip_media_placeholders(text)
+    """Tokenisasi dan pembersihan regex sederhana setelah pembersihan web noise dan pemrosesan media."""
+    text_without_chrome = strip_web_chrome_noise(text)
+    text_without_media = strip_media_placeholders(text_without_chrome, keep_captions=True)
     text_folded = normalize_text_ascii(text_without_media)
     text_clean = re.sub(r"[^\w\s]", " ", text_folded.lower())
     tokens = [t.strip() for t in text_clean.split() if t.strip()]
@@ -532,7 +591,8 @@ def extract_candidate_gain_entities(text: str) -> List[Tuple[str, str, int]]:
     if not text:
         return []
 
-    text_without_media = strip_media_placeholders(text)
+    text_without_chrome = strip_web_chrome_noise(text)
+    text_without_media = strip_media_placeholders(text_without_chrome, keep_captions=True)
     text_folded = normalize_text_ascii(text_without_media)
 
     lines = [l.strip() for l in text_folded.split("\n") if l.strip()]

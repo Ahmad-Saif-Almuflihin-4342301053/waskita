@@ -32,36 +32,49 @@ def make_text_with_word_count(count: int, base_word: str = "kata") -> str:
 class TestWordCountValidationFR02:
     """
     FR-02 & NFR-10:
-    Draf artikel < 300 kata wajib ditolak dengan HTTP 422 Unprocessable Entity
-    dan pesan Bahasa Indonesia baku.
+    Draf artikel di bawah batas minimal (default 30 kata untuk mode adaptif, atau custom min_draft_words)
+    wajib ditolak dengan HTTP 422 Unprocessable Entity dan pesan Bahasa Indonesia baku.
     """
 
-    def test_draft_under_300_words_rejected_http_422(self, client):
-        short_draft = make_text_with_word_count(150)
+    def test_draft_under_30_words_rejected_http_422(self, client):
+        short_draft = make_text_with_word_count(20)
         payload = {
             "target_query": "resep kopi tubruk tradisional",
-            "draft_title": "Draf Singkat Uji Validasi",
+            "draft_title": "Draf Terlalu Singkat",
             "draft_content": short_draft,
         }
         response = client.post("/api/v1/audit/execute", json=payload)
         assert response.status_code == 422
-        
         data = response.json()
         error_detail = str(data)
-        # Verifikasi pesan kesalahan dalam Bahasa Indonesia baku sesuai FR-02
-        assert "300 kata" in error_detail
+        assert "30 kata" in error_detail
         assert "FR-02" in error_detail or "standar audit WASKITA" in error_detail
 
-    def test_draft_boundary_299_words_rejected(self, client):
-        draft_299 = make_text_with_word_count(299)
+    def test_draft_under_custom_threshold_300_words_rejected(self, client):
+        draft_150 = make_text_with_word_count(150)
         payload = {
             "target_query": "resep kopi tubruk tradisional",
-            "draft_title": "Draf Batas 299 Kata",
-            "draft_content": draft_299,
+            "draft_title": "Draf Batas 150 Kata Custom Min 300",
+            "draft_content": draft_150,
+            "thresholds": {"min_draft_words": 300},
         }
         response = client.post("/api/v1/audit/execute", json=payload)
         assert response.status_code == 422
-        assert "299" in str(response.json())
+        assert "300 kata" in str(response.json())
+
+    def test_draft_adaptive_short_content_accepted(self, client):
+        # 150 kata dalam mode adaptif default (>= 30 kata) harus diterima
+        draft_150 = (
+            "Kopi tubruk adalah minuman khas nusantara yang diseduh dengan air mendidih tanpa kertas saringan. "
+            "Karakter rasa tebal dan aroma harum biji kopi robusta sangat memikat penikmat kopi lokal setiap pagi. "
+        ) * 6
+        payload = {
+            "target_query": "resep kopi tubruk tradisional",
+            "draft_title": "Draf Pendek Adaptif 150 Kata",
+            "draft_content": draft_150,
+        }
+        response = client.post("/api/v1/audit/execute", json=payload)
+        assert response.status_code == 200
 
     def test_draft_boundary_300_words_accepted(self, client):
         # 300 kata realistis harus lolos validasi request Pydantic

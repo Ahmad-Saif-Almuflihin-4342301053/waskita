@@ -78,7 +78,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     # 5. Analisis Stilometri (TTR, MATTR w=50, HKO %)
     stylometrics = calculate_stylometrics(content, query)
 
-    # 6. Analisis Stabilo Kalimat & Deteksi Red-Span (Sprint 4.0 & 4.4)
+    # 6. Analisis Stabilo Kalimat & Deteksi Red-Span (Sprint 4.0, 4.4 & 4.5)
     annotated_spans = generate_annotated_spans(
         draft_content=content,
         competitor_clean_texts=[c.get("clean_text", "") for c in competitor_docs],
@@ -87,8 +87,12 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         threshold_hko=thresholds.max_hko_percentage,
     )
 
-    red_spans = [span for span in annotated_spans if span.color == "red"]
-    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+    valid_content_spans = [
+        span for span in annotated_spans
+        if not span.is_heading and span.text.strip() and span.label != "Residu Elemen Web (Ctrl+A)"
+    ]
+    red_spans = [span for span in valid_content_spans if span.color == "red"]
+    red_span_ratio = len(red_spans) / max(1, len(valid_content_spans))
 
     max_consecutive_red = 0
     curr_consecutive_red = 0
@@ -115,7 +119,13 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
 
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
 
-    # 8. Gatekeeper Composite CDS & Aturan Vonis (Sprint 3.1 Topic Relevance & Sprint 4.0 Red-Span Veto)
+    # 8. Detektor E-E-A-T & Konten Liar (Sprint 4.5)
+    from app.services.gatekeeper import detect_web_chrome_noise, detect_commercial_drift, detect_ai_prompt_leak
+    has_chrome_noise, _, _ = detect_web_chrome_noise(content)
+    is_commercial_drift, _ = detect_commercial_drift(content)
+    has_ai_prompt_leak, _ = detect_ai_prompt_leak(content)
+
+    # 9. Gatekeeper Composite CDS & Aturan Vonis (Sprint 3.1, 4.0 & 4.5 E-E-A-T Veto)
     decision = calculate_composite_cds(
         max_cosine_sim=vsm_results["max_cosine_similarity"],
         draft_entities_count=len(full_draft_stems),
@@ -128,6 +138,9 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         avg_cosine_sim=vsm_results["avg_cosine_similarity"],
         red_span_ratio=red_span_ratio,
         max_consecutive_red=max_consecutive_red,
+        has_web_chrome_noise=has_chrome_noise,
+        is_commercial_drift=is_commercial_drift,
+        has_ai_prompt_leak=has_ai_prompt_leak,
     )
 
     predicted_verdict = decision["verdict_status"]

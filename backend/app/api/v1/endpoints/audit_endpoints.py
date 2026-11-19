@@ -568,9 +568,13 @@ async def execute_audit(
         threshold_hko=thresholds.max_hko_percentage,
     )
 
-    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate & Consecutive Red Guard (Sprint 4.4)
-    red_spans = [span for span in annotated_spans if span.color == "red"]
-    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate & Consecutive Red Guard (Sprint 4.4 & 4.5)
+    valid_content_spans = [
+        span for span in annotated_spans
+        if not span.is_heading and span.text.strip() and span.label != "Residu Elemen Web (Ctrl+A)"
+    ]
+    red_spans = [span for span in valid_content_spans if span.color == "red"]
+    red_span_ratio = len(red_spans) / max(1, len(valid_content_spans))
 
     max_consecutive_red = 0
     curr_consecutive_red = 0
@@ -584,7 +588,12 @@ async def execute_audit(
         else:
             curr_consecutive_red = 0
 
-    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.3 80% Saturation)
+    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4, Sprint 4.3 80% Saturation & Sprint 4.5 E-E-A-T Veto)
+    from app.services.gatekeeper import detect_web_chrome_noise, detect_commercial_drift, detect_ai_prompt_leak
+    has_chrome_noise, _, _ = detect_web_chrome_noise(draft_content)
+    is_commercial_drift, _ = detect_commercial_drift(draft_content)
+    has_ai_prompt_leak, _ = detect_ai_prompt_leak(draft_content)
+
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
     consensus_matched_count = len(shared_consensus)
     consensus_total_count = len(consensus_serp_stems)
@@ -602,6 +611,9 @@ async def execute_audit(
         avg_cosine_sim=vsm_results["avg_cosine_similarity"],
         red_span_ratio=red_span_ratio,
         max_consecutive_red=max_consecutive_red,
+        has_web_chrome_noise=has_chrome_noise,
+        is_commercial_drift=is_commercial_drift,
+        has_ai_prompt_leak=has_ai_prompt_leak,
     )
 
     serp_source = determine_serp_source(competitor_docs)

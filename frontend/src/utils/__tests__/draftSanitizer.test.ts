@@ -701,6 +701,82 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertTrue(!extracted.toLowerCase().includes('copyright'), 'Kueri tidak boleh memuat footer');
   });
 
+  // Test 33 (Sprint 4.5 / DSRM Evaluasi): Sanitasi Ctrl+A Kumparan (Perbesar, kumparanNEWS, SCROLL TO RESUME CONTENT, dsb.)
+  runCase('Sanitasi Ctrl+A Kumparan membersihkan noise chrome dan mengekstrak kata kunci judul murni', () => {
+    const rawKumparanPaste = `kumparanNEWS
+19 November 2026 10:30 WIB · waktu baca 3 menit
+
+Sekolah Rakyat di Pelosok Negeri: Asa Baru Pendidikan Anak Bangsa
+
+Perbesar
+<img src="https://blue.kumparan.com/image/upload/fl_progressive,fl_lossy,c_fill,q_auto:best,w_640/v1/sekolah.jpg" alt="Suasana belajar di sekolah darurat">
+Foto: Dok. Kemendikbud
+
+Pemerintah melalui Kementerian Pendidikan terus menggenjot program Sekolah Rakyat di berbagai daerah pelosok untuk memperluas akses pendidikan formal anak bangsa. Program ini melibatkan ratusan guru penggerak yang siap mengabdi di wilayah terpencil.
+
+ADVERTISEMENT
+
+SCROLL TO RESUME CONTENT
+
+Pilihan Editor:
+- Kabar Terkini Sekolah Terpencil
+- Alokasi Anggaran Pendidikan Daerah
+
+Fasilitas gedung sekolah darurat kini mulai dibangun secara bertahap dengan melibatkan partisipasi aktif warga desa setempat.
+
+Ikuti berita terbaru kumparan di WhatsApp Channel`;
+
+    const sanitized = sanitizePastedOrUploadedDraft(rawKumparanPaste);
+    assertTrue(!sanitized.cleanText.includes('kumparanNEWS'), 'kumparanNEWS harus dibersihkan dari teks');
+    assertTrue(!sanitized.cleanText.includes('waktu baca'), 'Waktu baca kumparan harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Perbesar'), 'Kata Perbesar tombol zoom harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('ADVERTISEMENT'), 'ADVERTISEMENT harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('SCROLL TO RESUME CONTENT'), 'SCROLL TO RESUME CONTENT harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Pilihan Editor:'), 'Pilihan editor harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('WhatsApp Channel'), 'Footer WhatsApp Channel harus dibersihkan');
+    assertTrue(sanitized.cleanText.includes('Sekolah Rakyat di Pelosok Negeri'), 'Judul substantif wajib dipertahankan');
+    assertTrue(sanitized.cleanText.includes('[gambar 1'), 'Placeholder gambar harus tetap ada');
+
+    const kw = extractSmartKeyword(sanitized.cleanText);
+    assertTrue(kw.includes('sekolah rakyat'), `Kata kunci harus memuat 'sekolah rakyat', hasil: "${kw}"`);
+    assertTrue(!kw.toLowerCase().includes('perbesar'), `Kata kunci tidak boleh memuat 'perbesar', hasil: "${kw}"`);
+    assertTrue(!kw.toLowerCase().includes('kumparan'), `Kata kunci tidak boleh memuat 'kumparan', hasil: "${kw}"`);
+  });
+
+  // Test 34 (Sprint 4.5 / DSRM Evaluasi): Sanitasi Ctrl+A Detik & Kompas (detikNews, kompas.com, WIB dateline)
+  runCase('Sanitasi Ctrl+A Detikcom & Kompascom membuang derau dateline dan navigasi baca juga', () => {
+    const rawDetikPaste = `detikNews
+Rabu, 19 Nov 2026 10:00 WIB | 20 komentar
+
+Revitalisasi Jalur Kereta Api Logistik: Solusi Atasi Kemacetan Pantura
+
+Foto: Rengga Sancaya/detikcom
+
+Jakarta - Pemerintah mematangkan rencana revitalisasi jalur rel ganda kereta api logistik guna mengurangi beban armada truk berat di jalur pantura Jawa.
+
+Simak Video "Target Rampung Rel Kereta Api Logistik"
+
+BACA JUGA: Menhub Tinjau Kesiapan Rel Ganda Stasiun Cirebon
+
+SCROLL TO RESUME CONTENT
+
+Langkah integrasi moda transportasi barang ini diyakini mampu menekan biaya logistik nasional hingga lima belas persen.
+
+detikcom (redaksi@detik.com)`;
+
+    const sanitized = sanitizePastedOrUploadedDraft(rawDetikPaste);
+    assertTrue(!sanitized.cleanText.includes('detikNews'), 'detikNews harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Rabu, 19 Nov 2026'), 'Dateline Detik harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Simak Video'), 'Simak Video harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('BACA JUGA:'), 'BACA JUGA harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('SCROLL TO RESUME CONTENT'), 'SCROLL TO RESUME CONTENT harus dibersihkan');
+    assertTrue(sanitized.cleanText.includes('Revitalisasi Jalur Kereta Api Logistik'), 'Judul harus tetap utuh');
+
+    const kw = extractSmartKeyword(sanitized.cleanText);
+    assertTrue(kw.includes('kereta api') || kw.includes('jalur kereta') || kw.includes('revitalisasi'), `Kueri harus substantif, hasil: "${kw}"`);
+    assertTrue(!kw.toLowerCase().includes('detik'), `Kueri tidak boleh memuat detik, hasil: "${kw}"`);
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
