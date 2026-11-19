@@ -79,6 +79,18 @@ class TestWordCountValidationFR02:
         # Bukan 422, artinya validasi FR-02 berhasil dilalui
         assert response.status_code in (200, 503)
 
+    def test_draft_custom_min_words_accepted(self, client):
+        # Naskah 150 kata diterima jika word_budget_min disetel 100 atau 150
+        draft_150 = make_text_with_word_count(150)
+        payload = {
+            "target_query": "resep kopi tubruk tradisional",
+            "draft_title": "Draf Kustom 150 Kata",
+            "draft_content": draft_150,
+            "thresholds": {"min_draft_words": 150},
+        }
+        response = client.post("/api/v1/audit/execute", json=payload)
+        assert response.status_code in (200, 503)
+
 
 # =====================================================================
 # 2. PENGUJIAN FR-13: GRACEFUL DEGRADATION & SCRAPER RESILIENCE

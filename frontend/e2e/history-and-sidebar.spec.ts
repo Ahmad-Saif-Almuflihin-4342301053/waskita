@@ -105,6 +105,9 @@ test.describe('Sidebar History & UI Heavy Load Test', () => {
     await item30.scrollIntoViewIfNeeded();
     await expect(item30).toBeVisible();
 
+    // Ambil screenshot bukti visual histori penuh
+    await page.screenshot({ path: `test-results/screenshots/sidebar-40-${isMobile ? 'mobile' : 'desktop'}.png` });
+
     // Verifikasi tombol Analisis Baru (+ / Sesi Baru) di sidebar tetap ada dan dapat diklik
     const newAuditBtn = sidebar.getByRole('button', { name: /analisis baru/i });
     await expect(newAuditBtn).toBeVisible();

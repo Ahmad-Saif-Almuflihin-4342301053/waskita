@@ -27,11 +27,37 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
     setActiveTab(getInitialTab());
   }, [audit.session_id, isReadyToPublish, cdsScore]);
 
-  const currentPromptText = isReadyToPublish
+  const isOutOfDomain =
+    audit.verdict_status === 'Perlu Revisi - Topik Tidak Relevan' ||
+    (audit.metrics?.avg_cosine_similarity != null && audit.metrics.avg_cosine_similarity < 0.05);
+
+  const getExecutablePrompt = (basePrompt: string | undefined): string => {
+    if (!basePrompt) return '';
+    // Jika out of domain, prompt berupa Clean Re-write tanpa teks naskah lama (ADR-01)
+    if (isOutOfDomain) {
+      return basePrompt;
+    }
+    // Jika in-domain dan prompt masih memuat placeholder delimiter, sisipkan draf aktual
+    if (
+      audit.draft_content &&
+      audit.draft_content.trim() &&
+      basePrompt.includes('(Tempelkan naskah draf artikel Anda di sini sebelum dikirim ke AI)')
+    ) {
+      return basePrompt.replace(
+        '(Tempelkan naskah draf artikel Anda di sini sebelum dikirim ke AI)',
+        audit.draft_content.trim()
+      );
+    }
+    return basePrompt;
+  };
+
+  const rawPromptText = isReadyToPublish
     ? (activeTab === 'cms'
         ? (audit.remediation_prompt_cms || audit.remediation_prompt)
         : (audit.remediation_prompt_perfectionist || audit.remediation_prompt))
     : audit.remediation_prompt;
+
+  const currentPromptText = getExecutablePrompt(rawPromptText);
 
   const handleCopyPrompt = () => {
     if (!currentPromptText) return;
@@ -42,6 +68,8 @@ export const RemediationPromptSection: React.FC<RemediationPromptSectionProps> =
       title: 'Prompt Tersalin',
       message: isReadyToPublish && activeTab === 'perfectionist'
         ? 'Prompt Micro-Tuning (Perfeksionis) berhasil disalin.'
+        : isOutOfDomain
+        ? 'Prompt Reorientasi Topik Total berhasil disalin ke papan klip.'
         : 'Prompt remediasi berhasil disalin ke papan klip.',
     });
     setTimeout(() => setPromptCopied(false), 2000);

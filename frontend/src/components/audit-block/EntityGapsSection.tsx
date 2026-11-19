@@ -25,6 +25,11 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
   const priorityDeficits = deficitItems.filter((item) => item.is_consensus_priority);
   const additionalDeficits = deficitItems.filter((item) => !item.is_consensus_priority);
 
+  const isOutOfDomain =
+    !!audit.metrics?.is_out_of_domain ||
+    audit.verdict_status.includes('Topik Tidak Relevan') ||
+    (audit.metrics?.avg_cosine_similarity !== undefined && audit.metrics.avg_cosine_similarity < 0.05);
+
   // Kumpulkan list consensus_entities dengan fallback cerdas dari deficit/gain jika audit.consensus_entities kosong
   const consensusEntities: ConsensusEntityItem[] = useMemo(() => {
     if (audit.consensus_entities && audit.consensus_entities.length > 0) {
@@ -118,22 +123,47 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
         >
           <div
             style={{
-              fontSize: '12.5px',
-              fontWeight: 700,
-              color: 'var(--waskita-rose-text, #991B1B)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: '4px',
             }}
           >
-            Entitas Defisit (Harus Ditambahkan)
+            <span
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 700,
+                color: isOutOfDomain ? '#B45309' : 'var(--waskita-rose-text, #991B1B)',
+              }}
+            >
+              {isOutOfDomain ? 'Entitas Konsensus Topik Target' : 'Entitas Defisit (Harus Ditambahkan)'}
+            </span>
+            {isOutOfDomain && (
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 600,
+                  color: '#B45309',
+                  background: 'rgba(245, 158, 11, 0.1)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                Panduan Menulis Ulang
+              </span>
+            )}
           </div>
           <p
             style={{
               fontSize: '11px',
               color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.6))',
               margin: '0 0 8px 0',
+              lineHeight: 1.45,
             }}
           >
-            Entitas penting kompetitor SERP yang absen di naskah Anda (klik chip untuk melihat cuplikan &amp; salin):
+            {isOutOfDomain
+              ? 'Entitas konsensus Google SERP untuk topik kueri ini. Karena naskah terdeteksi berada di luar domain topik, jangan sekadar menyisipkan kata-kata ini ke naskah lama. Gunakan daftar entitas ini sebagai acuan pokok bahasan jika ingin menulis ulang naskah yang relevan:'
+              : 'Entitas penting kompetitor SERP yang absen di naskah Anda (klik chip untuk melihat cuplikan & salin):'}
           </p>
 
           {deficitItems.length > 0 ? (
@@ -145,15 +175,19 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
                     style={{
                       fontSize: '11px',
                       fontWeight: 700,
-                      color: 'var(--waskita-rose-text, #991B1B)',
+                      color: isOutOfDomain ? '#B45309' : 'var(--waskita-rose-text, #991B1B)',
                       marginBottom: '6px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '5px',
                     }}
                   >
-                    <IconTarget size={13} color="#DC2626" />
-                    <span>Prioritas Utama Konsensus SERP (Paling Cepat Mendongkrak Skor ke 100%):</span>
+                    <IconTarget size={13} color={isOutOfDomain ? '#D97706' : '#DC2626'} />
+                    <span>
+                      {isOutOfDomain
+                        ? 'Entitas Kunci Konsensus SERP (Pokok Bahasan Wajib):'
+                        : 'Prioritas Utama Konsensus SERP (Paling Cepat Mendongkrak Skor ke 100%):'}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                     {priorityDeficits.map((item, idx) => {
@@ -358,63 +392,111 @@ export const EntityGapsSection: React.FC<EntityGapsSectionProps> = ({ audit, isD
             background: 'var(--waskita-surface-white, #FFFFFF)',
             padding: '14px 16px',
             borderRadius: '14px',
-            border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
+            border: isOutOfDomain
+              ? '1px solid rgba(220, 38, 38, 0.2)'
+              : '1px solid var(--waskita-border, rgba(30, 41, 59, 0.08))',
           }}
         >
           <div
             style={{
               fontSize: '12.5px',
               fontWeight: 700,
-              color: 'var(--waskita-emerald-text, #065F46)',
+              color: isOutOfDomain
+                ? 'var(--waskita-text-muted, #64748B)'
+                : 'var(--waskita-emerald-text, #065F46)',
               marginBottom: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            Information Gain (Nilai Tambah Baru)
+            <span>Information Gain (Nilai Tambah Baru)</span>
+            {isOutOfDomain && (
+              <span
+                style={{
+                  fontSize: '10.5px',
+                  fontWeight: 600,
+                  color: '#DC2626',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  padding: '2px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                Dinonaktifkan
+              </span>
+            )}
           </div>
-          <p
-            style={{
-              fontSize: '11px',
-              color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.6))',
-              margin: '0 0 8px 0',
-            }}
-          >
-            Entitas pembeda unik yang tidak dimiliki kompetitor:
-          </p>
 
-          {audit.entity_gaps.gain && audit.entity_gaps.gain.length > 0 ? (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {audit.entity_gaps.gain.map((item, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    background: 'transparent',
-                    color: 'var(--waskita-text)',
-                    border: '1px solid var(--waskita-border, rgba(125, 125, 125, 0.18))',
-                    fontSize: '11.5px',
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontWeight: 500,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  <span style={{ color: '#059669', fontSize: '10px' }}>●</span>
-                  <span>{item.term_surface_form}</span>
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span
+          {isOutOfDomain ? (
+            <div
               style={{
-                fontSize: '11.5px',
-                color: 'var(--waskita-text-muted, #64748B)',
-                fontStyle: 'italic',
+                background: 'rgba(239, 68, 68, 0.04)',
+                border: '1px dashed rgba(239, 68, 68, 0.25)',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                marginTop: '6px',
               }}
             >
-              Belum ada entitas pembeda unik baru.
-            </span>
+              <p
+                style={{
+                  fontSize: '11.5px',
+                  color: '#991B1B',
+                  margin: 0,
+                  lineHeight: 1.45,
+                  fontWeight: 500,
+                }}
+              >
+                Nilai tambah (Information Gain) dinonaktifkan karena naskah terdeteksi berada di luar domain topik utama (&lt; 5% kemiripan semantik). Fokuskan naskah kembali ke topik inti kueri terlebih dahulu.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--waskita-text-muted, rgba(30, 41, 59, 0.6))',
+                  margin: '0 0 8px 0',
+                }}
+              >
+                Entitas pembeda unik yang tidak dimiliki kompetitor:
+              </p>
+
+              {audit.entity_gaps.gain && audit.entity_gaps.gain.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {audit.entity_gaps.gain.map((item, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        background: 'transparent',
+                        color: 'var(--waskita-text)',
+                        border: '1px solid var(--waskita-border, rgba(125, 125, 125, 0.18))',
+                        fontSize: '11.5px',
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        fontWeight: 500,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span style={{ color: '#059669', fontSize: '10px' }}>●</span>
+                      <span>{item.term_surface_form}</span>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '11.5px',
+                    color: 'var(--waskita-text-muted, #64748B)',
+                    fontStyle: 'italic',
+                  }}
+                >
+                  Belum ada entitas pembeda unik baru.
+                </span>
+              )}
+            </>
           )}
         </div>
       </div>

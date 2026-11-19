@@ -38,6 +38,7 @@ from app.services.gatekeeper import (
 )
 from app.services.information_gain import (
     calculate_information_gain,
+    deduplicate_consensus_stems,
     find_snippet_and_domain,
 )
 from app.services.nlp_pipeline import (
@@ -99,11 +100,13 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
     deficit_items = []
     gain_items = []
     for g in session.entity_gaps:
+        is_prio = bool((g.competitor_consensus_count or 0) >= 2) if g.entity_type == "deficit" else False
         item = EntityGapItem(
             term_string=g.term_string,
             term_surface_form=g.term_surface_form,
             tfidf_weight=g.tfidf_weight,
             competitor_consensus_count=g.competitor_consensus_count,
+            is_consensus_priority=is_prio,
         )
         if g.entity_type == "deficit":
             deficit_items.append(item)
@@ -233,6 +236,7 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         highest_competitor=highest_comp,
         redundant_snippets=red_snippets,
         competitor_count=len(serp_items) if serp_items else 5,
+        draft_content=session.draft_content,
     )
     overview_bullets = ov_rem.get("overview_bullets", [
         f"Audit selesai dengan status vonis {session.verdict_status}.",
@@ -370,10 +374,16 @@ async def execute_audit(
 
     # 1. Tentukan nomor turn jika revisi berulang (Multi-Turn)
     turn_number = 1
+    parent_session = None
+    is_same_query = True
     if req.parent_session_id:
-        parent = db.query(AuditSession).filter(AuditSession.session_id == req.parent_session_id).first()
-        if parent:
-            turn_number = parent.turn_number + 1
+        parent_session = db.query(AuditSession).filter(AuditSession.session_id == req.parent_session_id).first()
+        if parent_session:
+            turn_number = parent_session.turn_number + 1
+            is_same_query = bool(
+                parent_session.target_query
+                and parent_session.target_query.strip().lower() == target_query.strip().lower()
+            )
 
     # 2. Akuisisi SERP Competitors (Scraper / Snapshot Cache / Fallback)
     competitor_docs = None
@@ -386,13 +396,10 @@ async def execute_audit(
         "total_candidates_evaluated": 0,
     }
 
-    if req.use_cached_serp and req.parent_session_id:
-        parent_session = (
-            db.query(AuditSession)
-            .filter(AuditSession.session_id == req.parent_session_id)
-            .first()
-        )
-        if parent_session and parent_session.snapshot and parent_session.snapshot.documents:
+    if req.use_cached_serp and req.parent_session_id and is_same_query and parent_session:
+        # Hanya gunakan snapshot jika kueri target SAMA persis dengan kueri sesi induk!
+        # Jika kueri berbeda (pengguna mengganti kata kunci target), korpus SERP lama tidak boleh dipakai.
+        if parent_session.snapshot and parent_session.snapshot.documents:
             valid_docs = [
                 normalize_competitor_doc(
                     {
@@ -458,11 +465,11 @@ async def execute_audit(
         if idx < len(competitor_docs):
             competitor_docs[idx]["cosine_similarity"] = sim
 
-    # Topic Shift Guard (Sprint 3.4):
-    # Jika draf revisi memiliki kemiripan < 0.05 terhadap kompetitor parent, tolak cache parent dan tandai pergantian topik.
+    # Topic Shift Guard (Sprint 3.4 & Langkah 2.1):
+    # Jika kueri sama dan draf revisi memiliki kemiripan < 0.05 terhadap kompetitor parent, tandai pergantian topik.
     avg_cosine_sim = vsm_results.get("avg_cosine_similarity", 0.0)
     topic_shift_detected = False
-    if req.parent_session_id and (avg_cosine_sim is not None and avg_cosine_sim < 0.05):
+    if req.parent_session_id and is_same_query and (avg_cosine_sim is not None and avg_cosine_sim < 0.05):
         topic_shift_detected = True
         degradation_warning = (
             "Perhatian: Terdeteksi pergantian topik dari sesi induk. "
@@ -496,13 +503,15 @@ async def execute_audit(
         and e[0] not in ALL_INDONESIAN_STOPWORDS
     }
     consensus_serp_stems = set()
+    stem_freqs = []
     if len(full_comp_stems_list) >= 2:
-        stem_freqs = []
         for st in serp_candidate_stems:
             doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
             if doc_freq >= 2:
                 stem_freqs.append((st, doc_freq))
         stem_freqs.sort(key=lambda x: x[1], reverse=True)
+        # ADR-04 & Langkah 2.4: Terapkan Sanderson Subsumption deduplikasi unigram
+        stem_freqs = deduplicate_consensus_stems(stem_freqs)
         consensus_serp_stems = {st for st, _ in stem_freqs[:25]}
     if not consensus_serp_stems:
         consensus_serp_stems = serp_candidate_stems
@@ -541,6 +550,11 @@ async def execute_audit(
         consensus_serp_stems=consensus_serp_stems,
         competitor_docs=competitor_docs,
     )
+
+    # ADR-02 & Langkah 2.2: Isolasi mutlak Out-of-Domain (Zero-Gain Policy)
+    is_ood = (avg_cosine_sim is not None and avg_cosine_sim < 0.05)
+    if is_ood:
+        entity_gaps = EntityGapsGroup(deficit=entity_gaps.deficit, gain=[])
 
     # 6. Analisis Stilometri (TTR, MATTR, HKO)
     stylometrics = calculate_stylometrics(draft_content, target_query)
@@ -625,6 +639,7 @@ async def execute_audit(
         draft_word_count=draft_word_count,
         word_budget_min=req.word_budget_min,
         word_budget_max=req.word_budget_max,
+        draft_content=draft_content,
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)

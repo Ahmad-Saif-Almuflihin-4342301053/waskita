@@ -126,6 +126,9 @@ test.describe('Audit UI & Anti-Slop Remediation Prompt Test', () => {
     await expect(page.locator('text=Prompt Pra-Publikasi CMS & SEO')).toBeVisible();
     await expect(page.locator('text=Meta Title SEO')).toBeVisible();
 
+    // Ambil screenshot bukti visual audit block & prompt
+    await page.screenshot({ path: 'test-results/screenshots/audit-dual-tab.png' });
+
     // Uji Tombol Salin Prompt
     const copyBtn = page.getByRole('button', { name: /salin prompt/i });
     await expect(copyBtn).toBeVisible();

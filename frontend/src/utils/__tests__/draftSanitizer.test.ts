@@ -677,6 +677,30 @@ Perencanaan fasilitas universitas memerlukan zonasi terpadu antar fakultas. Di b
     assertEqual(visibleCountExpanded, 25, 'Saat dibuka (expanded), seluruh 25 entitas konsensus tampil');
   });
 
+  // Test 32 (ADR-03 / Langkah 1): DOM Pruning elemen web struktural (nav, header, footer, aside)
+  runCase('DOM Pruning membuang elemen web struktural dan membebaskan judul berita murni', () => {
+    const dirtyWebHtml = `
+      <header><nav role="navigation"><ul><li>Beranda</li><li>News</li><li>Kumparan</li><li>Jawa Barat</li></ul></nav></header>
+      <aside class="sidebar-trending">Trending Topics: Berita Terkini Hari Ini</aside>
+      <article>
+        <h1>Gubernur KDM Luncurkan Fitur Angkut ODGJ di Aplikasi Sapawarga</h1>
+        <p>Pemerintah Provinsi Jawa Barat resmi memperluas jangkauan layanan aplikasi Sapawarga dengan menambahkan fitur pengaduan dan penjemputan warga dengan gangguan jiwa.</p>
+      </article>
+      <footer role="contentinfo"><p>Copyright 2026 PT Media Digital Terbuka. All rights reserved.</p></footer>
+    `;
+
+    const sanitized = sanitizePastedOrUploadedDraft('', dirtyWebHtml);
+    assertTrue(!sanitized.cleanText.includes('Beranda'), 'Elemen navigasi harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Trending Topics'), 'Elemen aside harus dibersihkan');
+    assertTrue(!sanitized.cleanText.includes('Copyright 2026'), 'Elemen footer harus dibersihkan');
+    assertTrue(sanitized.cleanText.includes('Gubernur KDM Luncurkan Fitur Angkut ODGJ di Aplikasi Sapawarga'), 'Judul naskah wajib dipertahankan');
+
+    const extracted = extractSmartKeyword(sanitized.cleanText);
+    assertTrue(extracted.length > 0, 'Kueri cerdas harus berhasil diekstrak');
+    assertTrue(!extracted.toLowerCase().includes('beranda'), 'Kueri tidak boleh memuat kata beranda navigasi');
+    assertTrue(!extracted.toLowerCase().includes('copyright'), 'Kueri tidak boleh memuat footer');
+  });
+
   console.log(`\nHasil: ${passed} lulus, ${failed} gagal.\n`);
   if (failed > 0) {
     throw new Error(`${failed} unit test gagal.`);
