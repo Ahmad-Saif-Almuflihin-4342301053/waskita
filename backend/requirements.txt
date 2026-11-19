@@ -23,3 +23,5 @@ datasketch>=2.0.0
 duckduckgo-search>=8.1.0
 ddgs>=9.16.0
 slowapi>=0.1.10
+nltk>=3.9.0
+nlp-id>=0.1.24.0
