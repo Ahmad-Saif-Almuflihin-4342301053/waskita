@@ -12,6 +12,7 @@ import {
   IconPencil,
   IconLock,
   IconUnlock,
+  IconSettings,
 } from "../shared-ui";
 import {
   countPureWords,
@@ -25,6 +26,7 @@ export interface FloatingComposerDockProps {
   layoutMode?: "centered" | "docked";
   plusToggleId?: string;
   onOpenPlus?: () => void;
+  onOpenWordSettings?: () => void;
   draftText?: string;
   onDraftTextChange?: (text: string) => void;
   onSubmit?: () => void;
@@ -49,6 +51,7 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   isDesktop = false,
   layoutMode = "docked",
   onOpenPlus,
+  onOpenWordSettings,
   draftText = "",
   onDraftTextChange,
   onSubmit,
@@ -71,6 +74,15 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
   const [hoveredSample, setHoveredSample] = useState<"rev" | "ready" | null>(null);
   const [isWordShake, setIsWordShake] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onOpenWordSettings) {
+      onOpenWordSettings();
+    } else if (onOpenPlus) {
+      onOpenPlus();
+    }
+  };
 
   // Virtual Keyboard Detection via Visual Viewport API (Auto-adjust bottom offset above keyboard)
   const [keyboardOffset, setKeyboardOffset] = useState(0);
@@ -492,23 +504,32 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                     Sedang menganalisis...
                   </span>
                 ) : (
-                  <span
+                  <button
+                    type="button"
+                    onClick={handleBadgeClick}
                     style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "2px 6px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
                       fontSize: "11.5px",
-                      fontWeight: 500,
+                      fontWeight: 600,
                       color: wordFeedback.color,
                       whiteSpace: "nowrap",
                       animation: isWordShake ? "waskita-shake 0.45s ease" : "none",
-                      display: "inline-block",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "3px",
+                      transition: "background 0.15s ease",
                     }}
-                    title={
-                      !isEligibleToSubmit
-                        ? `${wordFeedback.title} (Shift+Enter untuk baris baru)`
-                        : "Tekan Enter untuk mulai audit"
-                    }
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(30, 41, 59, 0.06)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    title={`Batas minimal saat ini: ${minWordCount} kata. Klik untuk atur batas kata di menu slider.`}
                   >
-                    {wordFeedback.text}
-                  </span>
+                    <span>{wordFeedback.text}</span>
+                    <IconSettings size={10} color={wordFeedback.color} style={{ opacity: 0.6 }} />
+                  </button>
                 )}
 
                 <button
@@ -749,26 +770,33 @@ export const FloatingComposerDock: React.FC<FloatingComposerDockProps> = ({
                       : "Sedang menganalisis..."}
                   </span>
                 ) : (
-                  <span
+                  <button
+                    type="button"
+                    onClick={handleBadgeClick}
                     style={{
+                      background: "transparent",
+                      border: "none",
+                      padding: "2px 6px",
+                      borderRadius: "6px",
+                      cursor: "pointer",
                       fontSize: "12px",
                       fontWeight: 600,
                       color: wordFeedback.color,
                       whiteSpace: "nowrap",
-                      padding: "0 4px",
-                      userSelect: "none",
-                      transition: "color 0.2s ease",
                       animation: isWordShake ? "waskita-shake 0.45s ease" : "none",
-                      display: "inline-block",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      userSelect: "none",
+                      transition: "all 0.15s ease",
                     }}
-                    title={
-                      !isEligibleToSubmit
-                        ? `${wordFeedback.title} (Shift+Enter untuk baris baru)`
-                        : "Tekan Enter untuk mulai audit"
-                    }
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(30, 41, 59, 0.06)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    title={`Batas minimal saat ini: ${minWordCount} kata. Klik untuk atur batas kata di menu slider.`}
                   >
-                    {wordFeedback.text}
-                  </span>
+                    <span>{wordFeedback.text}</span>
+                    <IconSettings size={11} color={wordFeedback.color} style={{ opacity: 0.6 }} />
+                  </button>
                 )}
 
                 <button

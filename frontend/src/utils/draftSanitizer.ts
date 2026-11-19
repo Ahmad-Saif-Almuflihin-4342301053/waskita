@@ -21,6 +21,14 @@ export function sanitizePastedOrUploadedDraft(
         const parser = new DOMParser();
         const doc = parser.parseFromString(rawHtml, 'text/html');
 
+        // ADR-03 & Langkah 1: Pruning DOM elemen struktural web non-konten
+        const nonContentElements = doc.querySelectorAll(
+          'nav, header, footer, aside, script, style, noscript, [role="navigation"], [role="banner"], [role="contentinfo"]'
+        );
+        nonContentElements.forEach((el) => {
+          el.parentNode?.removeChild(el);
+        });
+
         // Helper untuk mencari teks heading/sub-judul terdekat sebelumnya (Sprint 4.3 Contextual Media Slot)
         const findPrecedingHeadingText = (el: Element): string | null => {
           let curr: Element | null = el;
@@ -136,6 +144,14 @@ export function sanitizePastedOrUploadedDraft(
           el.parentNode?.replaceChild(token, el);
         });
 
+        // Pastikan setiap elemen blok diakhiri baris baru agar teks tidak melekat satu sama lain
+        const blockElements = doc.querySelectorAll(
+          'h1, h2, h3, h4, h5, h6, p, div, article, section, blockquote, li, tr'
+        );
+        blockElements.forEach((el) => {
+          el.appendChild(doc.createTextNode('\n\n'));
+        });
+
         // 3. Ambil teks hasil parsing DOM
         let extractedText = doc.body.innerText || doc.body.textContent || '';
         extractedText = cleanUpExtractedText(extractedText);
@@ -152,8 +168,16 @@ export function sanitizePastedOrUploadedDraft(
       }
     } else {
       // Fallback parser untuk environment tanpa DOMParser (seperti CLI Node.js runner)
+      // ADR-03 & Langkah 1: Pruning regex elemen struktural web non-konten
+      let prunedHtml = rawHtml
+        .replace(/<(nav|header|footer|aside|script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+        .replace(/<[a-z0-9_-]+\b[^>]*\brole=["'](?:navigation|banner|contentinfo)["'][^>]*>[\s\S]*?<\/[a-z0-9_-]+>/gi, '');
+
+      // Pastikan tag penutup blok diakhiri baris baru
+      prunedHtml = prunedHtml.replace(/<\/(?:h[1-6]|p|div|article|section|blockquote|li|tr)>/gi, '\n\n');
+
       let headingContext = '';
-      const parts = rawHtml.split(/(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>|<img[^>]*>|<figure[\s\S]*?<\/figure>|<iframe[\s\S]*?<\/iframe>)/gi);
+      const parts = prunedHtml.split(/(<h[1-6][^>]*>[\s\S]*?<\/h[1-6]>|<img[^>]*>|<figure[\s\S]*?<\/figure>|<iframe[\s\S]*?<\/iframe>)/gi);
       let simulatedHtml = '';
       for (const part of parts) {
         const hMatch = part.match(/<h[1-6][^>]*>([\s\S]*?)<\/h[1-6]>/i);
@@ -255,6 +279,12 @@ function sanitizePlainTextMedia(
       return `\n[gambar ${imageCounter}]\n`;
     }
   );
+
+  // ADR-03 & Langkah 1: Pruning elemen struktural non-konten jika ada sisa HTML di teks
+  clean = clean
+    .replace(/<(nav|header|footer|aside|script|style|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, '')
+    .replace(/<[a-z0-9_-]+\b[^>]*\brole=["'](?:navigation|banner|contentinfo)["'][^>]*>[\s\S]*?<\/[a-z0-9_-]+>/gi, '')
+    .replace(/<\/(?:h[1-6]|p|div|article|section|blockquote|li|tr)>/gi, '\n\n');
 
   // Strip remaining HTML tags but keep paragraph breaks
   clean = clean.replace(/<\/?[^>]+(>|$)/g, ' ');

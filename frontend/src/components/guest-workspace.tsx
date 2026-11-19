@@ -11,11 +11,13 @@ export interface GuestWorkspaceProps {
   onOpenSidebar?: () => void;
   onToggleSidebar?: () => void;
   onOpenPlus?: () => void;
+  onOpenWordSettings?: () => void;
   onSignIn?: () => void;
   draftText?: string;
   onDraftTextChange?: (text: string) => void;
   onSubmit?: () => void;
   isLoading?: boolean;
+  minWordCount?: number;
   onSelectSampleDraft?: (sampleKey: "revisionNeeded" | "approvedReady") => void;
 }
 
@@ -25,11 +27,13 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
   onOpenSidebar,
   onToggleSidebar,
   onOpenPlus,
+  onOpenWordSettings,
   onSignIn,
   draftText = "",
   onDraftTextChange,
   onSubmit,
   isLoading = false,
+  minWordCount = 300,
   onSelectSampleDraft,
 }) => {
   const [isPlusGlowing, setIsPlusGlowing] = useState(false);
@@ -224,12 +228,13 @@ export const GuestWorkspace: React.FC<GuestWorkspaceProps> = ({
             isDesktop={isDesktop}
             layoutMode="centered"
             onOpenPlus={onOpenPlus}
+            onOpenWordSettings={onOpenWordSettings}
             draftText={draftText}
             onDraftTextChange={onDraftTextChange}
             onSubmit={onSubmit}
             isLoading={isLoading}
             wordCount={wordCount}
-            minWordCount={300}
+            minWordCount={minWordCount}
             isPlusGlowing={isPlusGlowing}
             detectedKeywordHint={detectedKeywordHint}
             onPasteSanitized={handlePasteSanitized}

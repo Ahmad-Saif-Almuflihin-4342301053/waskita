@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     DEFAULT_MIN_CDS_SCORE: float = 75.0
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[".env", "backend/.env"],
         env_file_encoding="utf-8",
         extra="ignore"
     )

@@ -80,3 +80,5 @@ frontend/playwright-report/
 
 # Log runtime start.sh
 .run-logs/
+backend/logs/
+

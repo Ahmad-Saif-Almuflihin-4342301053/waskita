@@ -1,3 +1,4 @@
+import math
 import re
 from typing import Any, Dict, List, Optional, Set, Tuple
 from app.schemas.audit import EntityGapItem, EntityGapsGroup
@@ -99,31 +100,64 @@ def _find_competitor_snippet(
 
 def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 12) -> List[EntityGapItem]:
     """
-    Bigram Subsumption Filter (Sprint 4.1 & 4.4):
-    Jika suatu bigram 'A B' sudah masuk daftar teratas, hilangkan unigram 'A' atau 'B'
-    yang konsensusnya tidak lebih tinggi dari bigram tersebut agar tidak terjadi duplikasi chip.
-    Item konsensus prioritas dipertahankan.
+    Sanderson & Croft (1999) Lexical Subsumption Filter (ADR-04 & Langkah 3):
+    Jika suatu unigram 'u' adalah bagian dari n-gram majemuk 'M' (misal: 'Wakil', 'Presiden' vs 'Wakil Presiden'),
+    unigram 'u' diserap (subsumed) dan dieliminasi jika:
+    DF(M) >= floor(0.75 * DF(u)) dan DF(M) >= 2.
     """
-    bigram_parts_consensus: Dict[str, int] = {}
+    compound_parts_consensus: Dict[str, List[int]] = {}
     for it in items:
         parts = it.term_string.split()
         if len(parts) >= 2:
             for p in parts:
-                bigram_parts_consensus[p] = max(
-                    bigram_parts_consensus.get(p, -1),
-                    it.competitor_consensus_count,
-                )
+                if p not in compound_parts_consensus:
+                    compound_parts_consensus[p] = []
+                compound_parts_consensus[p].append(it.competitor_consensus_count)
 
     filtered: List[EntityGapItem] = []
     for it in items:
         parts = it.term_string.split()
-        if len(parts) == 1 and not it.is_consensus_priority:
+        if len(parts) == 1:
             uni = parts[0]
-            if uni in bigram_parts_consensus and it.competitor_consensus_count <= bigram_parts_consensus[uni]:
-                continue
+            matching_compound_dfs = compound_parts_consensus.get(uni, [])
+            if matching_compound_dfs:
+                if it.competitor_consensus_count == 0:
+                    # Untuk entitas gain (di luar SERP, consensus=0), unigram diserap oleh compound
+                    continue
+                # Ambang relaksasi Sanderson: floor(0.75 * DF_unigram)
+                threshold = math.floor(0.75 * it.competitor_consensus_count)
+                if any(compound_df >= 2 and compound_df >= threshold for compound_df in matching_compound_dfs):
+                    continue  # Subsumed!
         filtered.append(it)
         if len(filtered) >= limit:
             break
+    return filtered
+
+
+def deduplicate_consensus_stems(stem_freqs: List[Tuple[str, int]]) -> List[Tuple[str, int]]:
+    """
+    Terapkan Sanderson Subsumption pada daftar stem konsensus SERP (Langkah 2.4 & ADR-04).
+    Unigram diserap jika ada n-gram majemuk dengan DF >= floor(0.75 * DF_unigram) dan DF >= 2.
+    """
+    compound_parts_df: Dict[str, List[int]] = {}
+    for st, df in stem_freqs:
+        parts = st.split()
+        if len(parts) >= 2:
+            for p in parts:
+                if p not in compound_parts_df:
+                    compound_parts_df[p] = []
+                compound_parts_df[p].append(df)
+
+    filtered: List[Tuple[str, int]] = []
+    for st, df in stem_freqs:
+        parts = st.split()
+        if len(parts) == 1:
+            uni = parts[0]
+            matching_compound_dfs = compound_parts_df.get(uni, [])
+            threshold = math.floor(0.75 * df)
+            if any(compound_df >= 2 and compound_df >= threshold for compound_df in matching_compound_dfs):
+                continue
+        filtered.append((st, df))
     return filtered
 
 

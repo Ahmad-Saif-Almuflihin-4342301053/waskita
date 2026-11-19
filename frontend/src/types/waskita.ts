@@ -55,6 +55,7 @@ export interface QualityThresholds {
   min_mattr: number;
   max_hko_percentage: number;
   min_cds_score: number;
+  min_draft_words?: number;
   word_budget_min?: number;
   word_budget_max?: number;
   word_budget_mode?: 'adaptive' | 'compact' | 'standard' | 'pillar' | 'custom';
