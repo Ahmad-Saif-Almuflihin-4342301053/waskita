@@ -16,6 +16,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 from typing import Any, Dict, List, Tuple
 
 # Tambahkan direktori root backend ke PYTHONPATH
@@ -34,6 +35,7 @@ from app.services.vsm_calculator import compute_vsm_similarity
 
 async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> Dict[str, Any]:
     """Mengeksekusi pipa IR Engine secara jujur end-to-end pada satu draf artikel."""
+    t_start = time.perf_counter()
     query = draft["target_query"]
     content = draft["draft_content"]
     title = draft["draft_title"]
@@ -168,6 +170,8 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         category = "FN"  # False Negative
         is_match = False
 
+    latency_ms = round((time.perf_counter() - t_start) * 1000.0, 2)
+
     return {
         "id": draft["id"],
         "stratum": stratum,
@@ -188,6 +192,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         "is_out_of_domain": decision["is_out_of_domain"],
         "confusion_category": category,
         "is_match": is_match,
+        "latency_ms": latency_ms,
     }
 
 
@@ -281,6 +286,13 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
         print(f"Strata {st:<3} : {data['correct']:>2}/{data['total']:>2} Sukses ({pct:>5.1f}%)")
     print("=" * 60 + "\n")
 
+    latencies = sorted(r.get("latency_ms", 0.0) for r in results)
+    avg_latency_ms = round(sum(latencies) / max(1, len(latencies)), 2)
+    min_latency_ms = round(latencies[0], 2) if latencies else 0.0
+    max_latency_ms = round(latencies[-1], 2) if latencies else 0.0
+    p95_idx = min(len(latencies) - 1, int(len(latencies) * 0.95)) if latencies else 0
+    p95_latency_ms = round(latencies[p95_idx], 2) if latencies else 0.0
+
     summary = {
         "total_samples": total,
         "confusion_matrix": {
@@ -298,6 +310,12 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
             "precision_percentage": f"{precision * 100:.2f}%",
             "recall_percentage": f"{recall * 100:.2f}%",
             "f1_score_percentage": f"{f1_score * 100:.2f}%",
+        },
+        "latency_benchmark_ms": {
+            "avg_latency_ms": avg_latency_ms,
+            "min_latency_ms": min_latency_ms,
+            "max_latency_ms": max_latency_ms,
+            "p95_latency_ms": p95_latency_ms,
         },
         "strata_performance": strata_performance,
         "detailed_results": results,
