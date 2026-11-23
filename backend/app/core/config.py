@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     FEATURE_CURL_CFFI_FALLBACK: bool = True
     FEATURE_SERP_CACHE: bool = True
     FEATURE_OFFLINE_CORPUS_FALLBACK: bool = True
+    SEARXNG_URL: Optional[str] = None
+    SEARXNG_ENGINES: str = "google,startpage,brave"
     SERPER_API_KEY: Optional[str] = None
 
     # Global Default Thresholds (Tabel 3.5 & FR-10)

@@ -58,44 +58,12 @@ def _find_competitor_snippet(
 ) -> Optional[str]:
     """
     Ekstrak 1 kalimat cuplikan nyata dari artikel kompetitor yang memuat kata defisit (Sprint 4.4).
-    Memberikan konteks empiris kepada penulis mandiri tanpa perlu bertanya ke AI.
+    Menggunakan find_snippet_and_domain (DRY / Prinsip Ponytail).
     """
-    if not competitor_docs:
+    s_clean, domain = find_snippet_and_domain(term_stem, term_surface, competitor_docs)
+    if not s_clean:
         return None
-    stem_low = term_stem.lower().strip()
-    surface_low = term_surface.lower().strip()
-
-    for doc in competitor_docs:
-        text = ""
-        domain = ""
-        if isinstance(doc, dict):
-            text = doc.get("clean_text") or doc.get("snippet_text") or ""
-            domain = doc.get("domain_name") or ""
-        elif isinstance(doc, str):
-            text = doc
-
-        if not text:
-            continue
-
-        sentences = re.split(r"(?<=[.!?])\s+", text)
-        for s in sentences:
-            s_clean = s.strip()
-            s_low = s_clean.lower()
-            # DOM-03: Word-boundary matching agar cuplikan kompetitor presisi
-            matched = False
-            for cand in (surface_low, stem_low):
-                if not cand:
-                    continue
-                if re.search(rf"\b{re.escape(cand)}\b", s_low):
-                    matched = True
-                    break
-            if matched and len(s_clean.split()) >= 5:
-                if len(s_clean) > 160:
-                    s_clean = s_clean[:157] + "..."
-                if domain:
-                    return f'"{s_clean}" ({domain})'
-                return f'"{s_clean}"'
-    return None
+    return f'"{s_clean}" ({domain})' if domain else f'"{s_clean}"'
 
 
 def _deduplicate_subsumed_unigrams(items: List[EntityGapItem], limit: int = 12) -> List[EntityGapItem]:

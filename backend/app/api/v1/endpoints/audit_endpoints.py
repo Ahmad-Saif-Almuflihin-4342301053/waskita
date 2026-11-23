@@ -172,19 +172,23 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         hko_pts = round(0.15 * c_hko_100, 1)
         ig_pts = max(0.0, round((m.content_differentiation_score or 0.0) - vsm_pts - mattr_pts - hko_pts, 1))
 
+        c_ig_100 = max(0.0, min(100.0, round((ig_pts / 0.30), 1))) if ig_pts > 0 else 0.0
         sub_scores = {
             "vsm": vsm_pts,
             "ig": ig_pts,
             "mattr": mattr_pts,
             "hko": hko_pts,
-            "c_vsm": vsm_pts,
-            "c_ig": ig_pts,
-            "c_mattr": mattr_pts,
-            "c_hko": hko_pts,
+            "c_vsm": round(c_vsm_100, 1),
+            "c_ig": c_ig_100,
+            "c_mattr": round(c_mattr_100, 1),
+            "c_hko": round(c_hko_100, 1),
         }
 
+    total_entity_pool = len(deficit_items) + len(gain_items)
+    dynamic_target = max(1, min(20, total_entity_pool)) if total_entity_pool > 0 else 10
+    dynamic_total = max(dynamic_target, total_entity_pool)
     priority_deficits_count = sum(1 for d in deficit_items if d.is_consensus_priority)
-    consensus_matched = max(0, 20 - priority_deficits_count) if priority_deficits_count > 0 else 20
+    consensus_matched = max(0, dynamic_target - priority_deficits_count)
 
     metrics_schema = MetricResultSchema(
         content_differentiation_score=m.content_differentiation_score if m else 0.0,
@@ -198,8 +202,8 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         is_keyword_stuffed=m.is_keyword_stuffed if m else False,
         sub_scores=sub_scores,
         consensus_matched_count=consensus_matched,
-        consensus_target_count=20,
-        consensus_total_count=25,
+        consensus_target_count=dynamic_target,
+        consensus_total_count=dynamic_total,
     )
 
     # Rekonstruksi overview_bullets & remediation_prompt asli saat memuat riwayat (Sprint 4.1)
@@ -368,6 +372,8 @@ async def execute_audit(
     draft_content = req.draft_content.strip()
     thresholds = req.thresholds or ThresholdConfig()
 
+    import time
+    start_audit_time = time.time()
     clean_text_for_count = strip_media_placeholders(draft_content)
     words = clean_text_for_count.split()
     draft_word_count = len(words)
@@ -591,7 +597,11 @@ async def execute_audit(
     # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4, Sprint 4.3 80% Saturation & Sprint 4.5 E-E-A-T Veto)
     from app.services.gatekeeper import detect_web_chrome_noise, detect_commercial_drift, detect_ai_prompt_leak
     has_chrome_noise, _, _ = detect_web_chrome_noise(draft_content)
-    is_commercial_drift, _ = detect_commercial_drift(draft_content)
+    is_commercial_drift, _ = detect_commercial_drift(
+        draft_content,
+        consensus_serp_stems=consensus_serp_stems,
+        target_query=target_query,
+    )
     has_ai_prompt_leak, _ = detect_ai_prompt_leak(draft_content)
 
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
@@ -617,10 +627,8 @@ async def execute_audit(
     )
 
     serp_source = determine_serp_source(competitor_docs)
-    if cds_decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan":
-        final_verdict_status = "Perlu Revisi - Topik Tidak Relevan"
-    elif cds_decision["verdict_status"] == "Perlu Revisi - Redundansi Kalimat Tinggi":
-        final_verdict_status = "Perlu Revisi - Redundansi Kalimat Tinggi"
+    if cds_decision["verdict_status"].startswith("Perlu Revisi - "):
+        final_verdict_status = cds_decision["verdict_status"]
     elif serp_source == "offline_synthetic":
         final_verdict_status = "Mode Demo"
     else:
@@ -759,6 +767,25 @@ async def execute_audit(
         )
 
     db.commit()
+
+    try:
+        from app.core.logging_config import append_structured_jsonl_log
+        elapsed_audit_ms = round((time.time() - start_audit_time) * 1000, 2)
+        append_structured_jsonl_log("audit_decision_forensics.jsonl", {
+            "session_id": session_id,
+            "target_query": target_query,
+            "word_count": draft_word_count,
+            "verdict_status": final_verdict_status,
+            "cds_score": cds_decision["content_differentiation_score"],
+            "sub_scores": cds_decision.get("sub_scores", {}),
+            "is_out_of_domain": cds_decision.get("is_out_of_domain", False),
+            "has_web_chrome_noise": has_chrome_noise,
+            "is_commercial_drift": is_commercial_drift,
+            "has_ai_prompt_leak": has_ai_prompt_leak,
+            "elapsed_ms": elapsed_audit_ms,
+        })
+    except Exception:
+        pass
 
     return AuditExecuteResponse(
         session_id=session_id,

@@ -413,13 +413,34 @@ const INDONESIAN_STOPWORDS = new Set([
 export function extractSmartKeyword(text: string): string {
   if (!text || !text.trim()) return '';
 
-  // 1. Bersihkan token media [gambar N], [video N], dsb. serta baris metadata footer/author/reviewer/web chrome
-  const clean = text
+  // Celah #8 & #9 Fix: Potong seksi komentar blog (WordPress/Blogger/Disqus)
+  const rawLines = text.split('\n');
+  const keptRawLines: string[] = [];
+  let accumulatedWordCount = 0;
+  for (const line of rawLines) {
+    const lTrim = line.trim();
+    if (
+      accumulatedWordCount >= 40 &&
+      (/^\s*\d+\s+thoughts?\s+on\b/i.test(lTrim) ||
+        /^\s*(?:leave\s+a\s+reply|leave\s+a\s+comment|tinggalkan\s+balasan|tinggalkan\s+komentar)\s*$/i.test(lTrim) ||
+        /^\s*(?:\d+\s+komentar|komentar\s+pembaca)\s*$/i.test(lTrim))
+    ) {
+      break;
+    }
+    keptRawLines.push(line);
+    accumulatedWordCount += lTrim.split(/\s+/).filter(Boolean).length;
+  }
+  const textTruncated = keptRawLines.join('\n');
+
+  // 1. Bersihkan token media, Markdown link [anchor](url) -> anchor, baris URL murni, dan baris metadata/chrome
+  const clean = textTruncated
     .replace(/\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]/gi, ' ')
+    .replace(/\[([^\]]+)\]\(https?:\/\/[^\s)]+\)/gi, '$1') // Celah #8: [anchor](url) -> anchor
     .split('\n')
     .filter((line) => {
       const l = line.trim().toLowerCase();
       if (!l) return false;
+      if (/^https?:\/\/\S+$/i.test(line.trim())) return false; // Celah #8: baris URL murni
       if (isWebChromeNoiseLine(line)) return false;
       if (/^(?:ditinjau oleh|penulis|ditulis oleh|editor|author|reviewed by|sumber|referensi|terakhir diperbarui|tag|kategori|baca juga|artikel terkait)\s*[:\-]/i.test(l)) {
         return false;

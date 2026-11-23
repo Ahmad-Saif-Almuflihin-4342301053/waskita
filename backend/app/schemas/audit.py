@@ -28,7 +28,7 @@ class ThresholdConfig(BaseModel):
     min_mattr: float = Field(default=0.55, ge=0.0, le=1.0)
     max_hko_percentage: float = Field(default=40.0, ge=0.0, le=100.0)
     min_cds_score: float = Field(default=75.0, ge=0.0, le=100.0)
-    min_draft_words: Optional[int] = Field(default=None, ge=100, le=5000)
+    min_draft_words: Optional[int] = Field(default=None, ge=30, le=5000)
 
 
 class AuditExecuteRequest(BaseModel):
@@ -39,8 +39,8 @@ class AuditExecuteRequest(BaseModel):
     use_cached_serp: bool = True
     thresholds: Optional[ThresholdConfig] = Field(default_factory=ThresholdConfig)
     # Dynamic Word Budget (Sprint 4.4)
-    word_budget_min: Optional[int] = Field(default=None, ge=100, le=5000)
-    word_budget_max: Optional[int] = Field(default=None, ge=100, le=6000)
+    word_budget_min: Optional[int] = Field(default=None, ge=30, le=5000)
+    word_budget_max: Optional[int] = Field(default=None, ge=30, le=6000)
 
     @field_validator("target_query", "draft_title", "draft_content", mode="before")
     @classmethod

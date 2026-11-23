@@ -347,6 +347,51 @@ def passes_three_tier_relevance_guard(
     return True
 
 
+async def _fetch_searxng_results(query: str, max_results: int = 25) -> List[Dict[str, Any]]:
+    """
+    Tier-1 SERP Provider: Mengambil hasil pencarian organik dari instance SearXNG (Google, Startpage, Brave)
+    dalam format JSON (gl=ID, language=id-ID) tanpa biaya per-kueri.
+    """
+    if not settings.SEARXNG_URL:
+        return []
+    base_url = settings.SEARXNG_URL.rstrip("/")
+    search_url = f"{base_url}/search"
+    params = {
+        "q": query,
+        "format": "json",
+        "language": "id-ID",
+        "engines": settings.SEARXNG_ENGINES,
+    }
+    headers = {
+        "User-Agent": settings.USER_AGENT,
+        "Accept": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+            resp = await client.get(search_url, params=params, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_results = data.get("results", [])
+                organic: List[Dict[str, Any]] = []
+                for r in raw_results[:max_results]:
+                    link = r.get("url", "")
+                    if not link:
+                        continue
+                    organic.append({
+                        "title": r.get("title", ""),
+                        "link": link,
+                        "snippet": r.get("content", ""),
+                    })
+                logger.info(f"SearXNG Tier-1 returned {len(organic)} results for query '{query}'")
+                return organic
+            else:
+                logger.warning(f"SearXNG Tier-1 returned HTTP {resp.status_code} on query '{query}'")
+                return []
+    except Exception as e:
+        logger.warning(f"SearXNG Tier-1 fetch error on query '{query}': {e}")
+        return []
+
+
 async def _fetch_duckduckgo_results(query: str, max_results: int = 20) -> List[Dict[str, Any]]:
     """Live search fallback menggunakan duckduckgo-search (DDGS) region Indonesia."""
     try:
@@ -449,36 +494,60 @@ async def search_and_scrape_competitors(
         logger.info(f"Cache-Aside HIT: SERP snapshot for query '{clean_query}' resolved in < 5ms.")
         return cached_serp
 
-    if not settings.SERPER_API_KEY:
-        logger.info(f"SERPER_API_KEY is not set. Trying live search fallback via DDGS for query: {clean_query}")
-        organic_results = await _fetch_duckduckgo_results(clean_query, max_results=20)
-        if not organic_results:
-            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-                logger.warning("SERPER_API_KEY is not configured, DDGS failed, and FEATURE_OFFLINE_CORPUS_FALLBACK is disabled.")
-                return []
-            logger.info(f"DDGS returned 0 results. Using offline fallback corpus for query: {clean_query}")
-            fallback_docs = get_fallback_corpus(clean_query)
-            return fallback_docs
+    import time
+    start_serp_time = time.time()
+    tier_used = "offline_fallback"
 
     try:
         organic_results: List[Dict[str, Any]] = []
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            # Sprint 4.1: Tarik 4 halaman paralel (40 hasil mentah Google)
-            page_tasks = [
-                _fetch_serper_page(client, clean_query, page_num=p)
-                for p in (1, 2, 3, 4)
-            ]
-            pages_data = await asyncio.gather(*page_tasks)
-            for p_res in pages_data:
-                organic_results.extend(p_res)
 
+        # TIER 1: Self-Hosted SearXNG (Google + Startpage + Brave) jika SEARXNG_URL dikonfigurasi
+        if settings.SEARXNG_URL:
+            organic_results = await _fetch_searxng_results(clean_query, max_results=30)
+            if organic_results:
+                tier_used = "tier1_searxng"
+
+        # TIER 2: Serper.dev Google.co.id API jika Tier 1 kosong/tidak aktif dan SERPER_API_KEY tersedia
+        if not organic_results and settings.SERPER_API_KEY:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                page_tasks = [
+                    _fetch_serper_page(client, clean_query, page_num=p)
+                    for p in (1, 2, 3, 4)
+                ]
+                pages_data = await asyncio.gather(*page_tasks)
+                for p_res in pages_data:
+                    organic_results.extend(p_res)
+            if organic_results:
+                tier_used = "tier2_serper"
+
+        # TIER 3: DuckDuckGo Indonesia (ddgs) Live Fallback jika Tier 1 & Tier 2 tidak menghasilkan kandidat
         if not organic_results:
-            logger.warning("Serper.dev returned 0 results. Trying live search fallback via DDGS...")
+            logger.info(f"Trying Tier-3 live search fallback via DDGS for query: {clean_query}")
             organic_results = await _fetch_duckduckgo_results(clean_query, max_results=20)
-            if not organic_results:
-                if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-                    return []
-                return get_fallback_corpus(clean_query)
+            if organic_results:
+                tier_used = "tier3_ddgs"
+
+        # TIER 4: Offline Benchmark Corpus (Jaring Pengaman Terakhir)
+        if not organic_results:
+            tier_used = "tier4_offline_corpus"
+            if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                logger.warning("All live SERP tiers (SearXNG, Serper, DDGS) returned 0 results and offline fallback is disabled.")
+                return []
+            logger.info(f"All live SERP tiers empty. Using Tier-4 offline fallback corpus for query: {clean_query}")
+            fallback_res = get_fallback_corpus(clean_query)
+            try:
+                from app.core.logging_config import append_structured_jsonl_log
+                elapsed_serp_ms = round((time.time() - start_serp_time) * 1000, 2)
+                append_structured_jsonl_log("serp_waterfall_telemetry.jsonl", {
+                    "query": clean_query,
+                    "tier_used": tier_used,
+                    "candidates_found": 0,
+                    "valid_docs_returned": len(fallback_res),
+                    "elapsed_ms": elapsed_serp_ms,
+                })
+            except Exception:
+                pass
+            return fallback_res
 
         summary["total_candidates_evaluated"] = len(organic_results)
 
@@ -625,14 +694,31 @@ async def search_and_scrape_competitors(
             if len(scraped_docs) >= settings.SERP_TOP_K:
                 break
 
+        final_return_docs = []
         if len(scraped_docs) >= 2:
             await set_serp_cache(clean_query, scraped_docs)
-            return scraped_docs
+            final_return_docs = scraped_docs
         else:
             logger.warning(f"Scraping live articles yielded {len(scraped_docs)} usable documents (< 2).")
             if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-                return scraped_docs
-            return get_fallback_corpus(clean_query)
+                final_return_docs = scraped_docs
+            else:
+                final_return_docs = get_fallback_corpus(clean_query)
+
+        try:
+            from app.core.logging_config import append_structured_jsonl_log
+            elapsed_serp_ms = round((time.time() - start_serp_time) * 1000, 2)
+            append_structured_jsonl_log("serp_waterfall_telemetry.jsonl", {
+                "query": clean_query,
+                "tier_used": tier_used,
+                "candidates_found": len(organic_results),
+                "valid_docs_returned": len(final_return_docs),
+                "elapsed_ms": elapsed_serp_ms,
+            })
+        except Exception:
+            pass
+
+        return final_return_docs
 
     except Exception as e:
         logger.error(f"Error in search_and_scrape_competitors: {e}")

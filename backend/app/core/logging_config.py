@@ -55,3 +55,32 @@ def setup_app_logging() -> None:
         level="INFO",
         enqueue=True,
     )
+
+
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Dict
+
+LOGS_DIR = Path("backend/logs") if Path("backend").exists() else Path("logs")
+
+
+def append_structured_jsonl_log(filename: str, payload: Dict[str, Any]) -> None:
+    """
+    Mencatat telemetri produksi & forensik Bab 4 DSRM ke berkas JSONL terstruktur:
+    - serp_waterfall_telemetry.jsonl
+    - audit_decision_forensics.jsonl
+    - nlp_oov_and_disambiguation.jsonl
+    """
+    try:
+        LOGS_DIR.mkdir(parents=True, exist_ok=True)
+        record = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            **payload,
+        }
+        target_path = LOGS_DIR / filename
+        with target_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except Exception as exc:
+        logger.debug(f"Gagal menulis structured JSONL log {filename}: {exc}")
+

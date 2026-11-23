@@ -759,7 +759,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               <input
                 type="range"
                 className="waskita-slider-custom"
-                min="100"
+                min="30"
                 max="1000"
                 step="25"
                 value={thresholds.min_draft_words ?? 300}
@@ -772,6 +772,7 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               {/* Quick Preset Buttons */}
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
                 {[
+                  { label: '30 (Multimedia)', val: 30 },
                   { label: '100 (Berita Kilat)', val: 100 },
                   { label: '150 (Ringkas)', val: 150 },
                   { label: '300 (Standar)', val: 300 },

@@ -122,7 +122,11 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     # 8. Detektor E-E-A-T & Konten Liar (Sprint 4.5)
     from app.services.gatekeeper import detect_web_chrome_noise, detect_commercial_drift, detect_ai_prompt_leak
     has_chrome_noise, _, _ = detect_web_chrome_noise(content)
-    is_commercial_drift, _ = detect_commercial_drift(content)
+    is_commercial_drift, _ = detect_commercial_drift(
+        content,
+        consensus_serp_stems=consensus_serp_stems,
+        target_query=query,
+    )
     has_ai_prompt_leak, _ = detect_ai_prompt_leak(content)
 
     # 9. Gatekeeper Composite CDS & Aturan Vonis (Sprint 3.1, 4.0 & 4.5 E-E-A-T Veto)

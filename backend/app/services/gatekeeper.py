@@ -103,34 +103,92 @@ def _build_sentence_minhash(words: List[str], num_perm: int = 64) -> MinHash:
 
 
 def detect_web_chrome_noise(text: str) -> Tuple[bool, int, List[str]]:
-    """Mendeteksi apakah naskah memuat sampah elemen tata letak web hasil copas mentah (Ctrl+A)."""
+    """
+    Mendeteksi apakah naskah memuat sampah elemen tata letak web hasil copas mentah (Ctrl+A).
+    Menggabungkan:
+    1. Pola baris navigasi/footer eksplisit (is_web_chrome_noise_line).
+    2. Analisis Kepadatan Struktural Tata Letak Web (Structural Layout Density - Anti-Hardcode):
+       - Rasio baris sangat pendek (<= 3 kata) yang ekstrem (> 45% pada dokumen >= 15 baris).
+       - Kepadatan baris tautan Markdown `[anchor](url)` (> 35% baris) atau baris daftar harga/direktori.
+    """
     lines = [line.strip() for line in text.split("\n") if line.strip()]
-    matched_noise = []
+    matched_noise: List[str] = []
     for line in lines:
         if is_web_chrome_noise_line(line):
             matched_noise.append(line[:60])
+
+    # Heuristik Kepadatan Struktural (Structural Layout Density) untuk dokumen >= 15 baris
+    if len(lines) >= 15:
+        short_lines = sum(1 for l in lines if len(l.split()) <= 3)
+        md_link_lines = sum(1 for l in lines if re.search(r"\[[^\]]+\]\(https?://", l))
+        short_ratio = short_lines / len(lines)
+        link_ratio = md_link_lines / len(lines)
+        if short_ratio > 0.45 and link_ratio > 0.30:
+            matched_noise.append(
+                f"[Structural Layout Density: {short_ratio:.0%} short-lines, {link_ratio:.0%} link-lines]"
+            )
+            matched_noise.append("[Directory/Portal Listing Dump Structure Detected]")
+
     has_noise = len(matched_noise) >= 2
     return has_noise, len(matched_noise), matched_noise
 
 
-COMMERCIAL_HARD_SELLING_PATTERNS = [
-    re.compile(r"\b(?:08\d{8,12}|\+62\d{8,12})\b"),
+TRANSACTIONAL_SOLICITATION_PATTERNS = [
+    re.compile(
+        r"(?:https?://(?:wa\.me/|api\.whatsapp\.com/send\?phone=))?(?:\+?62|08)\d{8,12}\b",
+        re.IGNORECASE,
+    ),
     re.compile(r"\b(?:kode\s+voucher|voucher\s+diskon|tebus\s+murah|diskon\s+spesial)\b", re.IGNORECASE),
-    re.compile(r"\b(?:promo\s+terbatas|hubungi\s+admin|pemesanan\s+agen|beli\s+sekarang)\b", re.IGNORECASE),
+    re.compile(r"\b(?:promo\s+terbatas|hubungi\s+admin|pemesanan\s+agen|beli\s+sekarang|order\s+sekarang|transfer\s+mahar)\b", re.IGNORECASE),
     re.compile(r"\b(?:sembuh\s+total\s+tanpa\s+operasi|dijamin\s+sembuh\s+dalam\s+\w+\s+hari|obat\s+ajaib)\b", re.IGNORECASE),
     re.compile(r"\b(?:slot\s+gacor|jackpot\s+sensational|deposit\s+pulsa|tanpa\s+potongan)\b", re.IGNORECASE),
 ]
 
 
-def detect_commercial_drift(text: str) -> Tuple[bool, List[str]]:
-    """Mendeteksi pergeseran naskah ke arah hard-selling produk, kontak WA, atau klaim komersial agresif (Bait-and-Switch)."""
-    matches = []
-    for pat in COMMERCIAL_HARD_SELLING_PATTERNS:
+def detect_commercial_drift(
+    text: str,
+    consensus_serp_stems: Optional[Set[str]] = None,
+    target_query: str = "",
+) -> Tuple[bool, List[str]]:
+    """
+    Mendeteksi Bait-and-Switch (Kuda Troya) secara kontekstual dan SERP-Relative (Tanpa Hardcode Topik):
+    1. Tidak pernah menghukum topik cerita mistis/klenik/budaya/hiburan selama konsisten dengan kueri/SERP.
+    2. Hanya memicu veto apabila naskah memuat >= 2 sinyal ajakan transaksi/kontak komersial eksplisit
+       YANG TIDAK ADA di dalam target_query maupun konsensus SERP (Tail Semantic Drift).
+    """
+    if not text:
+        return False, []
+
+    q_lower = (target_query or "").lower()
+    matches: List[str] = []
+    for pat in TRANSACTIONAL_SOLICITATION_PATTERNS:
         found = pat.findall(text)
-        if found:
-            matches.extend(found[:2])
-    has_drift = len(matches) >= 2
-    return has_drift, matches
+        for item in found[:2]:
+            item_low = item.lower().strip()
+            # Jika frasa tersebut memang bagian dari kueri yang dicari pengguna, jangan anggap penyimpangan
+            if item_low and item_low in q_lower:
+                continue
+            matches.append(item)
+
+    if len(matches) < 2:
+        return False, matches
+
+    # Jika consensus_serp_stems tersedia, cek apakah paragraf akhir (tail) mengalami penyimpangan dari konsensus SERP
+    if consensus_serp_stems:
+        paragraphs = [p.strip() for p in text.split("\n") if len(p.strip().split()) >= 6]
+        if len(paragraphs) >= 2:
+            tail_text = " ".join(paragraphs[-2:]).lower()
+            tail_tokens = set(re.findall(r"\b[a-z]{3,}\b", tail_text))
+            # Jika tail masih sangat padat dengan istilah konsensus SERP (>= 5 irisan) dan tidak memuat spam judi/klaim medis palsu, izinkan
+            overlap_with_serp = len(tail_tokens.intersection(consensus_serp_stems))
+            has_hard_scam = any(
+                re.search(r"slot\s+gacor|jackpot\s+sensational|sembuh\s+total\s+tanpa\s+operasi|obat\s+ajaib", m, re.IGNORECASE)
+                for m in matches
+            )
+            if overlap_with_serp >= 5 and not has_hard_scam:
+                return False, matches
+
+    return True, matches
 
 
 AI_PROMPT_LEAK_PATTERNS = [
@@ -624,11 +682,14 @@ def generate_overview_and_remediation(
     if word_budget_min and word_budget_max and word_budget_max > word_budget_min:
         min_target_words = word_budget_min
         max_target_words = word_budget_max
+    elif 0 < draft_word_count < 300:
+        min_target_words = max(50, int(draft_word_count * 0.90))
+        max_target_words = max(min_target_words + 60, int(draft_word_count * 1.35))
     elif draft_word_count >= 300:
-        min_target_words = max(800, int(draft_word_count * 0.85))
-        max_target_words = max(min_target_words + 150, min(1400, int(draft_word_count * 1.05)))
+        min_target_words = max(300, int(draft_word_count * 0.85))
+        max_target_words = max(min_target_words + 150, int(draft_word_count * 1.15))
     else:
-        min_target_words = 900
+        min_target_words = 800
         max_target_words = 1200
 
     # 4. Filter entitas defisit dari noise komersial/sponsor dan verba/adjektiva non-topikal (Sprint 4.2)
@@ -723,6 +784,18 @@ def generate_overview_and_remediation(
             remediation_points.append(f"Topik naskah tidak relevan dengan sesi/kueri '{target_query}'. Mulai sesi analisis baru jika naskah ini membahas topik yang berbeda agar dievaluasi terhadap kompetitor SERP yang sesuai.")
         if verdict_status == "Perlu Revisi - Redundansi Kalimat Tinggi":
             bullets.append("Naskah terdeteksi memiliki kepadatan kalimat redundan langsung yang tinggi (≥ 20% kalimat naskah mirip kompetitor). Skor CDS dipangkas secara proporsional.")
+        elif verdict_status == "Perlu Revisi - Residu Elemen Website Terdeteksi":
+            bullets.append(
+                "Naskah terdeteksi memuat residu elemen tata letak website (navigasi, footer, daftar tautan direktori, atau hasil salin tempel Ctrl+A). Skor CDS dibatasi maksimal 48.0%."
+            )
+        elif verdict_status == "Perlu Revisi - Promosi Komersial Terselubung":
+            bullets.append(
+                "Naskah terindikasi mengalami pembelokan muatan transaksi/promosi komersial terselubung (Commercial Drift / kontak transaksi langsung di luar konsensus SERP). Skor CDS dibatasi maksimal 42.0%."
+            )
+        elif verdict_status == "Perlu Revisi - Teks Percakapan AI Terdeteksi":
+            bullets.append(
+                "Naskah masih memuat kebocoran teks percakapan asisten AI (prolog/epilog chatbot seperti 'Tentu, berikut artikelnya...'). Skor CDS dibatasi maksimal 45.0%."
+            )
         elif is_redundant:
             if comp_citation:
                 bullets.append(f"Tingkat kemiripan semantik tinggi terhadap {comp_citation} (melampaui ambang batas).")
