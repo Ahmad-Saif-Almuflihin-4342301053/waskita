@@ -1297,3 +1297,48 @@ class TestSprint43StabiloPrecisionAndVisualSlots:
         assert decision["sub_scores"]["ig"] == 0.0
         assert decision["sub_scores"]["c_ig"] == 0.0
         assert decision["content_differentiation_score"] <= 20.0
+
+    def test_multimodal_social_domains_not_blocked_and_meta_extracted(self):
+        """
+        Sprint 4.6: Platform sosial/UGC (LinkedIn, Quora, Medium, TikTok, Instagram, YouTube)
+        tidak lagi diblokir hardcode oleh classify_url_skip_reason, dan _extract_meta_and_jsonld_text
+        mampu memanen caption/articleBody secara efisien.
+        """
+        from app.services.serp_scraper import classify_url_skip_reason, _extract_meta_and_jsonld_text
+        from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS
+
+        for url in [
+            "https://www.linkedin.com/advice/0/how-does-feel-work-digital-marketing-agency",
+            "https://id.quora.com/Bagaimana-pengalamanmu-bekerja-di-digital-agency",
+            "https://medium.com/@adnan/suka-duka-bekerja-di-bidang-digital-marketing",
+            "https://www.tiktok.com/@creator/photo/734567890123",
+            "https://www.instagram.com/p/C9xyz123/",
+            "https://www.youtube.com/post/Ugkx12345",
+        ]:
+            assert classify_url_skip_reason(url) is None, f"URL {url} tidak boleh diblokir hardcode"
+
+        # Pastikan entitas platform sosial tidak lagi dibuang oleh stopwords
+        for platform in ("instagram", "tiktok", "youtube", "facebook", "whatsapp"):
+            assert platform not in ALL_INDONESIAN_STOPWORDS
+
+        # Uji ekstraksi Lapis 2 (OpenGraph + JSON-LD)
+        sample_html = """
+        <html>
+        <head>
+            <meta property="og:title" content="Pengalaman Kerja Digital Marketing Agency dan Strategi Konten TikTok" />
+            <meta property="og:description" content="Bekerja di agensi pemasaran digital membutuhkan kemampuan analisis kampanye Instagram Reels, optimasi SEO website, serta manajemen iklan berbayar yang terukur." />
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SocialMediaPosting",
+                "articleBody": "Panduan lengkap mengelola kampanye digital marketing lintas platform mulai dari riset audiens hingga evaluasi konversi organik."
+            }
+            </script>
+        </head>
+        <body><div id="app"></div></body>
+        </html>
+        """
+        harvested = _extract_meta_and_jsonld_text(sample_html)
+        assert "Pengalaman Kerja Digital Marketing" in harvested
+        assert "Instagram Reels" in harvested
+        assert "Panduan lengkap mengelola kampanye" in harvested

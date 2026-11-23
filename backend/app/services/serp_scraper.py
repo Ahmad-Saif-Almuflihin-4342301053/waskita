@@ -15,37 +15,19 @@ from app.fixtures.benchmark_corpus import get_fallback_corpus
 
 logger = logging.getLogger(__name__)
 
-# FR-04: Domain video, sosmed, ecommerce
-VIDEO_SOCIAL_DOMAINS = {
-    "youtube.com",
-    "www.youtube.com",
-    "m.youtube.com",
-    "youtu.be",
-    "tiktok.com",
-    "www.tiktok.com",
-    "instagram.com",
-    "www.instagram.com",
-    "facebook.com",
-    "www.facebook.com",
-    "twitter.com",
-    "www.twitter.com",
-    "x.com",
-    "www.x.com",
-    "shopee.co.id",
-    "www.shopee.co.id",
-    "tokopedia.com",
-    "www.tokopedia.com",
-    "bukalapak.com",
-    "www.bukalapak.com",
-    "lazada.co.id",
-    "www.lazada.co.id",
-    "blibli.com",
-    "www.blibli.com",
-    "pinterest.com",
-    "www.pinterest.com",
-    "linkedin.com",
-    "www.linkedin.com",
-}
+# Sprint 4.6 (Platform Convergence Architecture):
+# WASKITA tidak lagi memblokir domain sosial media/UGC (LinkedIn, Quora, Medium, TikTok Carousel,
+# Instagram, YouTube Post, X) secara hardcode di awal. Seluruh URL dievaluasi secara objektif
+# melalui Ekstraksi Hibrida 3-Lapis (Trafilatura Body + OpenGraph/JSON-LD Metadata + SERP Snippet)
+# dan Saringan Relevansi 3-Tier.
+VIDEO_SOCIAL_DOMAINS: Set[str] = set()
+
+# Penanda domain platform multi-modal/sosial untuk pengayaan ekstraksi metadata & snippet
+MULTIMODAL_SOCIAL_DOMAINS = (
+    "youtube.com", "youtu.be", "tiktok.com", "instagram.com",
+    "facebook.com", "twitter.com", "x.com", "pinterest.com",
+    "linkedin.com", "quora.com", "medium.com", "reddit.com", "threads.net",
+)
 
 DOC_EXTENSIONS = (
     ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip", ".rar"
@@ -159,10 +141,86 @@ def _extract_headings_from_html(html_str: str) -> List[Dict[str, str]]:
     return headings
 
 
+def _extract_meta_and_jsonld_text(html_str: str) -> str:
+    """
+    Lapis 2 Ekstraksi Hibrida (Sprint 4.6):
+    Mengekstrak teks substantif dari meta tags (og:title, og:description, twitter:description,
+    description) serta blok JSON-LD (articleBody, text, description, headline).
+    Sangat efektif memanen teks caption panjang dari TikTok Carousel, Instagram Post,
+    YouTube Community/Video Description, LinkedIn Pulse/Advice, Quora, dan X Articles
+    tanpa membutuhkan headless browser.
+    """
+    if not html_str:
+        return ""
+    fragments: List[str] = []
+    seen_fragments: Set[str] = set()
+
+    def _add_frag(val: str) -> None:
+        if not val or not isinstance(val, str):
+            return
+        cleaned = re.sub(r"\s+", " ", val).strip()
+        # Abaikan boilerplate login pendek
+        if len(cleaned) < 25:
+            return
+        low = cleaned.lower()
+        if any(b in low for b in ("log in to", "sign in to", "masuk untuk melanjutkan", "buat akun atau masuk")):
+            return
+        if low not in seen_fragments:
+            seen_fragments.add(low)
+            fragments.append(cleaned)
+
+    try:
+        import json
+        parser = etree.HTMLParser(recover=True, encoding="utf-8")
+        tree = etree.fromstring(html_str.encode("utf-8"), parser=parser)
+        if tree is None:
+            return ""
+
+        # 1. Panen Meta Description & OpenGraph / Twitter Card
+        for meta in tree.xpath("//meta"):
+            prop = (meta.get("property") or meta.get("name") or "").lower().strip()
+            content = meta.get("content") or ""
+            if prop in (
+                "og:title", "og:description", "twitter:title",
+                "twitter:description", "description",
+            ):
+                _add_frag(content)
+
+        # 2. Panen JSON-LD (Schema.org Article, SocialMediaPosting, DiscussionForumPosting, VideoObject, FAQPage)
+        for script in tree.xpath("//script[@type='application/ld+json']"):
+            raw_json = "".join(script.itertext()).strip()
+            if not raw_json:
+                continue
+            try:
+                data = json.loads(raw_json)
+                stack = [data]
+                while stack:
+                    curr = stack.pop()
+                    if isinstance(curr, dict):
+                        for k in ("headline", "name", "description", "articleBody", "text", "transcript"):
+                            if isinstance(curr.get(k), str):
+                                _add_frag(curr[k])
+                        for v in curr.values():
+                            if isinstance(v, (dict, list)):
+                                stack.append(v)
+                    elif isinstance(curr, list):
+                        for item in curr:
+                            if isinstance(item, (dict, list)):
+                                stack.append(item)
+            except Exception:
+                continue
+    except Exception as e:
+        logger.debug(f"Meta/JSON-LD extraction fallback error: {e}")
+
+    return "\n\n".join(fragments)
+
+
 def _heavy_trafilatura_extract(html_str: str) -> str:
     """
-    Operasi CPU berat #1: Ekstraksi teks web bersih dari DOM XML Trafilatura.
-    Wajib dieksekusi via asyncio.to_thread!
+    Operasi CPU berat #1: Ekstraksi teks web bersih Hibrida (DOM XML Trafilatura + OpenGraph/JSON-LD Metadata).
+    Jika teks body utama dari Trafilatura panjangnya memadai (>= 150 kata), gunakan body utama.
+    Jika halaman merupakan platform sosial/SPA (TikTok Carousel, IG, YouTube, LinkedIn, Quora)
+    di mana body HTML tipis, perkaya dengan ekstraksi Meta & JSON-LD secara efisien.
     """
     if not html_str:
         return ""
@@ -171,8 +229,18 @@ def _heavy_trafilatura_extract(html_str: str) -> str:
         include_comments=False,
         include_tables=False,
         no_fallback=False,
-    )
-    return extracted or ""
+    ) or ""
+
+    body_words = len(re.findall(r"\b\w+\b", extracted))
+    if body_words >= 150:
+        return extracted
+
+    meta_jsonld_text = _extract_meta_and_jsonld_text(html_str)
+    if not extracted:
+        return meta_jsonld_text
+    if meta_jsonld_text and meta_jsonld_text.lower() not in extracted.lower():
+        return f"{extracted}\n\n{meta_jsonld_text}".strip()
+    return extracted
 
 
 # Korpus fallback diekstrak ke app.fixtures.benchmark_corpus
@@ -609,14 +677,11 @@ async def search_and_scrape_competitors(
 
             fetch_st = res.get("fetch_status", "failed")
             http_st = res.get("http_status_code", 0)
-
-            if fetch_st == "failed" or not res.get("clean_text"):
-                # Gagal fetch atau terkena proteksi bot / firewall
-                summary["skipped_bot_protect_count"] += 1
-                continue
-
-            # Periksa URL akhir setelah redirect (misal redirect google goto ke detik, youtube, pdf, dll.)
             final_url = res.get("source_url") or meta.get("link", "")
+            page_title = meta.get("title", f"Kompetitor {current_rank}")
+            serp_snippet = (meta.get("snippet") or "").strip()
+
+            # Periksa URL akhir setelah redirect (misal redirect google goto ke pdf, proxy, dll.)
             final_skip = classify_url_skip_reason(final_url)
             if final_skip == "video_social":
                 summary["skipped_video_social_count"] += 1
@@ -628,14 +693,30 @@ async def search_and_scrape_competitors(
                 summary["skipped_proxy_count"] += 1
                 continue
 
-            word_count = res.get("word_count", 0)
-            if word_count < min_words:
-                # Teks terlalu pendek (< SERP_MIN_DOC_WORDS)
-                summary["skipped_short_text_count"] += 1
+            clean_text = (res.get("clean_text") or "").strip()
+            # Lapis 3 Ekstraksi Hibrida: Gabungkan SERP Snippet yang diindeks Google jika teks hasil fetch tipis
+            if serp_snippet and serp_snippet.lower() not in clean_text.lower():
+                if len(re.findall(r"\b\w+\b", clean_text)) < min_words:
+                    clean_text = f"{page_title}. {serp_snippet}\n\n{clean_text}".strip()
+                    if fetch_st == "failed" and clean_text:
+                        fetch_st = "serp_snippet_enriched"
+
+            if not clean_text:
+                summary["skipped_bot_protect_count"] += 1
                 continue
 
-            clean_text = res.get("clean_text", "")
-            page_title = meta.get("title", f"Kompetitor {current_rank}")
+            word_count = len(re.findall(r"\b\w+\b", clean_text))
+            is_multimodal_social = any(m_dom in final_url.lower() for m_dom in MULTIMODAL_SOCIAL_DOMAINS)
+            # Untuk platform sosial/UGC multi-modal di halaman 1 (idx_cand < 10) yang sudah diperkaya
+            # metadata/snippet, ambang batas efektif adalah 35 kata; untuk situs web standar tetap min_words (150)
+            effective_min_words = 35 if (is_multimodal_social and idx_cand < 10) else min_words
+
+            if word_count < effective_min_words:
+                if is_multimodal_social:
+                    summary["skipped_video_social_count"] += 1
+                else:
+                    summary["skipped_short_text_count"] += 1
+                continue
 
             # 3 Lapis Saringan Penjaga (Sprint 4.1)
             if not passes_three_tier_relevance_guard(

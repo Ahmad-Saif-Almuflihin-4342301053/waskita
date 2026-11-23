@@ -56,22 +56,10 @@ COMMERCIAL_SPONSOR_KEYWORDS = {
     "roman ceramic",
     "onduline",
     "alustar",
-    "shopee",
-    "tokopedia",
-    "lazada",
-    "blibli",
-    "whatsapp",
-    "instagram",
-    "facebook",
-    "youtube",
-    "tiktok",
     "hubungi",
     "kontak",
     "promo",
     "diskon",
-    "harga",
-    "jual",
-    "beli",
     "distributor",
     "supplier",
 }
@@ -678,6 +666,19 @@ def generate_overview_and_remediation(
                 other_domains.append(d)
     other_domains_str = ", ".join(other_domains[:3]) if other_domains else "kompetitor teratas lainnya"
 
+    # Deteksi kehadiran platform sosial / UGC / multi-modal di lanskap kompetitor SERP (Sprint 4.6)
+    MULTIMODAL_UGC_DOMAINS = (
+        "tiktok.com", "instagram.com", "youtube.com", "youtu.be",
+        "linkedin.com", "quora.com", "medium.com", "reddit.com",
+        "x.com", "twitter.com", "pinterest.com", "kompasiana.com",
+    )
+    multimodal_competitor_domains: List[str] = []
+    if serp_competitors:
+        for c in serp_competitors:
+            d = (c.get("domain_name") or c.get("domain") or "").lower()
+            if any(m_dom in d for m_dom in MULTIMODAL_UGC_DOMAINS) and d not in multimodal_competitor_domains:
+                multimodal_competitor_domains.append(d)
+
     # 3. Hitung Plafon & Batasan Kata Ketat (Word Budget Enforcement - Sprint 4.4 Dynamic Budget)
     if word_budget_min and word_budget_max and word_budget_max > word_budget_min:
         min_target_words = word_budget_min
@@ -871,6 +872,13 @@ def generate_overview_and_remediation(
                 f"</instruksi_kurasi_4_pilar>"
                 f"{draft_delimiter_block}"
             )
+
+    if multimodal_competitor_domains:
+        mm_str = ", ".join(multimodal_competitor_domains[:3])
+        bullets.append(
+            f"Sinyal Lanskap Multi-Modal & UGC SERP: Kompetitor halaman pertama memuat platform sosial/komunitas ({mm_str}). "
+            "Perkuat narasi pengalaman praktis (first-hand experience) dan sertakan elemen visual/multimedia ([gambar: ...] atau [video: ...]) agar selaras dengan intensi pencarian pengguna."
+        )
 
     return {
         "overview_bullets": bullets,
