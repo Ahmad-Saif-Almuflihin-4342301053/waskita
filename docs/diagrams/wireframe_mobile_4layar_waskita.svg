@@ -92,60 +92,59 @@
   </g>
   <text x="230" y="828" text-anchor="middle" class="txt-cap">(a) Halaman Utama</text>
 
-  <!-- PHONE 2: DRAWER SIDEBAR NAVIGASI -->
+  <!-- PHONE 2: SIDEBAR NAVIGASI (FULL-SCREEN MOBILE) -->
   <g transform="translate(470, 20)" filter="url(#sketch)">
     <rect x="0" y="0" width="380" height="770" rx="38" class="device"/>
     <circle cx="145" cy="24" r="4.5" fill="#222"/>
     <rect x="165" y="20" width="60" height="8" rx="4" fill="#222"/>
-    <rect x="16" y="46" width="348" height="660" rx="6" fill="#e6e6e6" stroke="#222" stroke-width="1.8"/>
+    <rect x="16" y="46" width="348" height="660" rx="6" class="screen"/>
     <circle cx="190" cy="738" r="20" fill="#fff" stroke="#111" stroke-width="2.5"/>
     <circle cx="190" cy="738" r="14" fill="none" stroke="#555" stroke-width="1.2"/>
 
     <!-- Status Bar -->
-    <rect x="16" y="46" width="348" height="26" fill="#fff" stroke="#222" stroke-width="1.2"/>
     <text x="28" y="64" class="txt-m">9:41</text>
     <text x="352" y="64" text-anchor="end" class="txt-m">4G  100%</text>
+    <line x1="16" y1="72" x2="364" y2="72" class="line"/>
 
-    <!-- Slide-out Drawer Panel -->
-    <rect x="16" y="72" width="276" height="634" class="box"/>
+    <!-- Full-Screen Sidebar Header -->
     <text x="32" y="106" class="txt-logo">Waskita</text>
     <rect x="112" y="91" width="42" height="18" rx="4" class="pill"/>
     <text x="133" y="104" text-anchor="middle" class="txt-m">BETA</text>
-    <text x="272" y="106" text-anchor="end" class="txt-h1">X</text>
-    <line x1="16" y1="120" x2="292" y2="120" class="line"/>
+    <text x="312" y="106" text-anchor="end" class="txt-h1">Q</text>
+    <text x="346" y="106" text-anchor="end" class="txt-h1">X</text>
+    <line x1="16" y1="120" x2="364" y2="120" class="line"/>
 
     <!-- Analisis Baru Button -->
-    <rect x="30" y="136" width="248" height="38" rx="8" class="box-fill"/>
+    <rect x="30" y="136" width="320" height="38" rx="8" class="box-fill"/>
     <text x="46" y="160" class="txt-h2">[+] Analisis Baru</text>
 
-    <!-- Cari Sesi -->
-    <rect x="30" y="186" width="248" height="32" rx="8" class="box"/>
-    <text x="44" y="206" class="txt-m">Q  Cari riwayat sesi audit...</text>
-
     <!-- Riwayat Sesi Percakapan -->
-    <text x="32" y="246" class="txt-m">RIWAYAT SESI PERCAKAPAN</text>
-    <rect x="30" y="258" width="248" height="46" rx="8" class="box-fill"/>
-    <text x="42" y="278" class="txt-h2">Draf: resep kopi tubruk tradi...</text>
-    <text x="42" y="294" class="txt-m">Turn #1 • 49% Perlu Revisi</text>
+    <text x="32" y="206" class="txt-m">RIWAYAT SESI PERCAKAPAN</text>
+    <rect x="30" y="218" width="320" height="46" rx="8" class="box-fill"/>
+    <text x="42" y="238" class="txt-h2">Draf: resep kopi tubruk tradisional...</text>
+    <text x="42" y="254" class="txt-m">Turn #1 • 49% Perlu Revisi</text>
+    <text x="336" y="246" text-anchor="end" class="txt-h2">:</text>
 
-    <rect x="30" y="314" width="248" height="46" rx="8" class="box"/>
-    <text x="42" y="334" class="txt-b">Draf: robusta dampit presisi...</text>
-    <text x="42" y="350" class="txt-m">Turn #2 • 85% Layak Terbit</text>
+    <rect x="30" y="274" width="320" height="46" rx="8" class="box"/>
+    <text x="42" y="294" class="txt-b">Draf: robusta dampit presisi...</text>
+    <text x="42" y="310" class="txt-m">Turn #2 • 85% Layak Terbit</text>
+    <text x="336" y="302" text-anchor="end" class="txt-h2">:</text>
 
-    <rect x="30" y="370" width="248" height="46" rx="8" class="box"/>
-    <text x="42" y="390" class="txt-b">Draf: panduan seo teknis...</text>
-    <text x="42" y="406" class="txt-m">Turn #1 • 78% Layak Terbit</text>
+    <rect x="30" y="330" width="320" height="46" rx="8" class="box"/>
+    <text x="42" y="350" class="txt-b">Draf: panduan seo teknis...</text>
+    <text x="42" y="366" class="txt-m">Turn #1 • 78% Layak Terbit</text>
+    <text x="336" y="358" text-anchor="end" class="txt-h2">:</text>
 
-    <!-- Drawer Footer: Profile & Settings -->
-    <line x1="16" y1="636" x2="292" y2="636" class="line"/>
+    <!-- Sidebar Footer: Profile & Settings -->
+    <line x1="16" y1="636" x2="364" y2="636" class="line"/>
     <circle cx="48" cy="670" r="18" class="btn-dark"/>
     <text x="48" y="675" text-anchor="middle" class="txt-w">A</text>
     <text x="76" y="666" class="txt-h2">author_demo</text>
     <text x="76" y="682" class="txt-m">PERSONAL PLAN</text>
-    <rect x="242" y="654" width="34" height="32" rx="8" class="box-fill"/>
-    <text x="259" y="675" text-anchor="middle" class="txt-h2">[o]</text>
+    <rect x="314" y="654" width="34" height="32" rx="8" class="box-fill"/>
+    <text x="331" y="675" text-anchor="middle" class="txt-h2">[o]</text>
   </g>
-  <text x="660" y="828" text-anchor="middle" class="txt-cap">(b) Drawer Sidebar Navigasi</text>
+  <text x="660" y="828" text-anchor="middle" class="txt-cap">(b) Sidebar Navigasi (Layar Penuh)</text>
 
   <!-- PHONE 3: MODAL OPSI PARAMETER -->
   <g transform="translate(900, 20)" filter="url(#sketch)">
