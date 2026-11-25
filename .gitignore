@@ -82,3 +82,6 @@ frontend/playwright-report/
 .run-logs/
 backend/logs/
 
+
+# Large audio recordings
+*.wav

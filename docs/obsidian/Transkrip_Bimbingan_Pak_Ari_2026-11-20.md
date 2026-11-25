@@ -1,0 +1,843 @@
+# 🎙️ Transkrip Sesi Bimbingan Tugas Akhir — Pak Ari Wibowo
+
+> **Tanggal:** Friday, 20 November 2026 (15:30 WIB)  
+> **Dosen Pembimbing:** Pak Ari Wibowo  
+> **Mahasiswa:** Ahmad Saif Almuflihin (NIM: 4342301053)  
+> **Topik Pembahasan:** Validasi Alur WASKITA v2, Evaluasi Bab 4 (System-Centric 60 Naskah), & Sistematika Laporan Bab 4 vs Bab 5  
+> **Aset Rekaman Suara:** [[assets/rekaman_bimbingan_2026-11-20_1507.wav]]  
+> **Durasi Rekaman:** 63:16  
+> **Mesin Transkrip:** faster-whisper (model: *small-int8* offline)
+
+---
+
+## 💡 Rangkuman Eksekutif & Poin Arahan Pak Ari Wibowo (Hasil Bimbingan 20 Nov 2026)
+
+Bimbingan berlangsung selama **±63 menit** (terbagi 2 sesi Zoom karena sempat *reconnect*). Saif mendemokan langsung aplikasi WASKITA di *localhost* dan memaparkan alur sistem serta rencana pengujian.
+
+Berikut adalah **6 Butir Keputusan & Arahan Kunci Pak Ari Wibowo**:
+
+### 1. Judul & Formulasi Masalah Skripsi
+- **Judul Standar Akademik:** Pak Ari menyarankan judul tidak perlu terlalu puitis/rumit (merespons judul lama pasca-sempro). Gunakan pola baku TRPL:  
+  *`"Rancang Bangun Perangkat Lunak Kurasi Konten Pra-Publikasi Menggunakan Pendekatan Information Gain dan Vector Space Model"`*.
+- **Klarifikasi Status Software:** Pak Ari sempat bertanya apakah Waskita ini produk yang sudah jadi di tempat magang. Saif telah mengklarifikasi bahwa ini adalah perangkat lunak riset tugas akhir yang **dibangun dari awal (*from scratch*)**.
+- **Piramida Masalah:** Latar belakang harus memperjelas fenomena masalah di lapangan (*Crawled - Not Indexed* & artikel duplikat), lalu dirumuskan ke dalam **3 atau 4 poin rumusan masalah** yang selaras 1:1 dengan tujuan penelitian.
+
+### 2. Standar Notasi Diagram Software Engineering (Bab 3)
+Pak Ari mengkritik diagram bawaan fitur AI Draw.io yang tidak standar:
+- **Use Case Diagram:** Aktor wajib digambarkan dengan simbol orang (*stickman*) standar UML dan use case digambarkan dengan oval (*ellipse*), bukan kotak.
+- **Sequence Diagram:** Wajib ditambahkan di Bab 3 untuk menggambarkan interaksi sekuensial antara antarmuka pengguna, API backend FastAPI, modul NLP, kalkulator metrik, dan basis data.
+- **Entity Relationship Diagram (ERD):** Hubungan kardinalitas antar 6 entitas, *Primary Key* (PK), dan *Foreign Key* (FK) harus ditampilkan sesuai notasi baku basis data relasional.
+
+### 3. Demo Sistem Langsung di Localhost (Berhasil & Diakui)
+- Saif mendemokan pengujian artikel berita Polri/Bogor dari *Kumparan/Sindonews*.
+- Sistem WASKITA berhasil mengeksekusi *web scraping* kompetitor SERP dan mendeteksi bahwa draf tersebut **ditolak karena tidak memiliki Information Gain (hanya duplikat dari portal yang sudah terbit)**. Pak Ari melihat langsung bahwa mesin WASKITA sudah bekerja secara fungsional.
+
+### 4. Lampu Hijau Pengujian: "Boleh Salah Satu (System-Centric Diizinkan!)"
+- Ketika Saif menanyakan keharusan kuesioner kualitatif (SUS) vs pengujian sistem:
+  - Pak Ari menjelaskan bahwa ada opsi pengujian pengguna (SUS / *User Acceptance Testing* - UAT).
+  - Namun ketika Saif meminta konfirmasi apakah boleh berfokus pada **pengujian performa sistem (kecepatan eksekusi, akurasi klasifikasi, latensi komputasi)**, Pak Ari menegaskan:  
+    > **"Bisa! Kecepatan generate / performa sistem... boleh salah satu!"**
+  - **Kesimpulan:** WASKITA resmi diizinkan menggunakan evaluasi **System-Centric** (Confusion Matrix 60 teks uji + log latensi komputasi server JSONL), dengan opsi UAT ringkas jika ingin melengkapi.
+
+### 5. Sistematika Dokumen Laporan Skripsi
+- Laporan tugas akhir di Polibatam **tetap menggunakan 5 Bab utuh**:
+  - **Bab 1:** Pendahuluan (Latar Belakang, 3–4 Rumusan Masalah, Batasan Masalah, Tujuan).
+  - **Bab 2:** Tinjauan Pustaka & Landasan Teori (SEO E-E-A-T, NLP, VSM-BM25, Information Gain, Stilometri).
+  - **Bab 3:** Analisis dan Perancangan Sistem (Use Case UML baku, Sequence Diagram, ERD, Arsitektur, Wireframe).
+  - **Bab 4:** Implementasi dan Pengujian Sistem (Hasil evaluasi Confusion Matrix 60 teks + telemetri latensi).
+  - **Bab 5:** Kesimpulan dan Saran (Menjawab tujuan penelitian & rekomendasi fitur non-artikel).
+
+### 6. Kebijakan Sidang TA2 di Kampus
+- Pak Ari mengonfirmasi bahwa **pelaksanaan Sidang TA2 (Sidang Meja Hijau / Akhir) di semester 8 akan dilaksanakan secara OFFLINE (Tatap Muka di Kampus Polibatam)**.
+
+---
+
+---
+
+## 📝 Transkrip Lengkap Percakapan (Verbatim Berbasis Waktu)
+
+- **[00:00 -> 00:07]**: Waduh belum ada nih
+- **[00:30 -> 00:37]**: Waduh belum ada nih
+- **[01:00 -> 01:10]**: Waduh belum ada nih
+- **[01:30 -> 01:40]**: Waduh belum ada nih
+- **[01:40 -> 01:50]**: Waduh belum ada nih
+- **[01:50 -> 01:59]**: Waduh belum ada nih
+- **[02:00 -> 02:10]**: Waduh belum ada nih
+- **[02:10 -> 02:20]**: Waduh belum ada nih
+- **[02:20 -> 02:28]**: Waduh belum ada nih
+- **[02:28 -> 02:38]**: Waduh belum ada nih
+- **[02:38 -> 02:48]**: Waduh belum ada nih
+- **[02:48 -> 02:56]**: Waduh belum ada nih
+- **[02:56 -> 03:06]**: Waduh belum ada nih
+- **[03:06 -> 03:16]**: Waduh belum ada nih
+- **[03:16 -> 03:26]**: Waduh belum ada nih
+- **[03:26 -> 03:36]**: Waduh belum ada nih
+- **[03:36 -> 03:46]**: Waduh belum ada nih
+- **[03:46 -> 03:56]**: Waduh belum ada nih
+- **[03:56 -> 04:04]**: Waduh belum ada nih
+- **[04:04 -> 04:14]**: Waduh belum ada nih
+- **[04:14 -> 04:24]**: Waduh belum ada nih
+- **[04:24 -> 04:32]**: Waduh belum ada nih
+- **[04:32 -> 04:42]**: Waduh belum ada nih
+- **[04:42 -> 04:52]**: Waduh belum ada nih
+- **[04:52 -> 05:02]**: Waduh belum ada nih
+- **[05:02 -> 05:12]**: Waduh belum ada nih
+- **[05:12 -> 05:22]**: Waduh belum ada nih
+- **[05:22 -> 05:32]**: Waduh belum ada nih
+- **[05:32 -> 05:40]**: Waduh belum ada nih
+- **[05:40 -> 05:50]**: Waduh belum ada nih
+- **[05:50 -> 06:00]**: Waduh belum ada nih
+- **[06:00 -> 06:08]**: Waduh belum ada nih
+- **[06:08 -> 06:18]**: Waduh belum ada nih
+- **[06:18 -> 06:28]**: Waduh belum ada nih
+- **[06:28 -> 06:36]**: Waduh belum ada nih
+- **[06:36 -> 06:46]**: Waduh belum ada nih
+- **[06:46 -> 06:56]**: Waduh belum ada nih
+- **[06:56 -> 07:04]**: Waduh belum ada nih
+- **[07:04 -> 07:14]**: Waduh belum ada nih
+- **[07:14 -> 07:24]**: Waduh belum ada nih
+- **[07:24 -> 07:32]**: Waduh belum ada nih
+- **[07:32 -> 07:42]**: Waduh belum ada nih
+- **[07:42 -> 07:52]**: Waduh belum ada nih
+- **[07:52 -> 08:00]**: Waduh belum ada nih
+- **[08:00 -> 08:10]**: Waduh belum ada nih
+- **[08:10 -> 08:20]**: Waduh belum ada nih
+- **[08:20 -> 08:28]**: Waduh belum ada nih
+- **[08:28 -> 08:38]**: Waduh belum ada nih
+- **[08:38 -> 08:48]**: Waduh belum ada nih
+- **[08:48 -> 08:56]**: Waduh belum ada nih
+- **[08:56 -> 09:06]**: Waduh belum ada nih
+- **[09:06 -> 09:16]**: Waduh belum ada nih
+- **[09:16 -> 09:24]**: Waduh belum ada nih
+- **[09:24 -> 09:34]**: Waduh belum ada nih
+- **[09:34 -> 09:44]**: Waduh belum ada nih
+- **[09:44 -> 09:52]**: Waduh belum ada nih
+- **[09:52 -> 10:02]**: Waduh belum ada nih
+- **[10:02 -> 10:12]**: Waduh belum ada nih
+- **[10:12 -> 10:20]**: Waduh belum ada nih
+- **[10:20 -> 10:30]**: Waduh belum ada nih
+- **[10:30 -> 10:40]**: Waduh belum ada nih
+- **[10:40 -> 10:48]**: Waduh belum ada nih
+- **[10:48 -> 10:58]**: Waduh belum ada nih
+- **[10:58 -> 11:08]**: Waduh belum ada nih
+- **[11:08 -> 11:16]**: Waduh belum ada nih
+- **[11:16 -> 11:26]**: Waduh belum ada nih
+- **[11:26 -> 11:36]**: Waduh belum ada nih
+- **[11:36 -> 11:44]**: Waduh belum ada nih
+- **[11:44 -> 11:54]**: Waduh belum ada nih
+- **[11:54 -> 12:04]**: Waduh belum ada nih
+- **[12:04 -> 12:12]**: Waduh belum ada nih
+- **[12:12 -> 12:22]**: Waduh belum ada nih
+- **[12:22 -> 12:32]**: Waduh belum ada nih
+- **[12:32 -> 12:40]**: Waduh belum ada nih
+- **[12:40 -> 12:50]**: Waduh belum ada nih
+- **[12:50 -> 13:00]**: Waduh belum ada nih
+- **[13:00 -> 13:08]**: Waduh belum ada nih
+- **[13:08 -> 13:18]**: Waduh belum ada nih
+- **[13:18 -> 13:28]**: Waduh belum ada nih
+- **[13:28 -> 13:36]**: Waduh belum ada nih
+- **[13:36 -> 13:46]**: Waduh belum ada nih
+- **[13:46 -> 13:56]**: Waduh belum ada nih
+- **[13:56 -> 14:04]**: Waduh belum ada nih
+- **[14:04 -> 14:14]**: Waduh belum ada nih
+- **[14:14 -> 14:24]**: Waduh belum ada nih
+- **[14:24 -> 14:32]**: Waduh belum ada nih
+- **[14:32 -> 14:42]**: Waduh belum ada nih
+- **[14:42 -> 14:52]**: Waduh belum ada nih
+- **[14:52 -> 15:00]**: Waduh belum ada nih
+- **[15:00 -> 15:10]**: Waduh belum ada nih
+- **[15:10 -> 15:20]**: Waduh belum ada nih
+- **[15:20 -> 15:28]**: Waduh belum ada nih
+- **[15:28 -> 15:38]**: Waduh belum ada nih
+- **[15:38 -> 15:48]**: Waduh belum ada nih
+- **[15:48 -> 16:16]**: Nah, bagaimana prosesnya? Prosesnya adalah, prosesnya adalah, kita melakukan proses NLP, Natural Language Processing dengan kamus kumparan yang ada 778 ribu, 778 ribu elema ditambah dengan sastrawi NLP-nya sudah banyak, kita pakai itu alatnya
+- **[16:16 -> 16:26]**: Nah, setelah draft tadi di proses, nanti akan dinile lagi, lewat 4 tahapan lagi, lewat 4 tahapan
+- **[16:26 -> 16:40]**: Yang pertama pakai Base Match 25, Base Match 25 ini juga alat untuk memisahkan dan juga Vector Space Machine
+- **[16:40 -> 16:56]**: Vector Space Machine dan Base Match 25 ini kegunaannya adalah untuk melanalisa, melanalisa informasinya, informasinya dapat berapa
+- **[16:56 -> 17:00]**: Nah, setelah
+- **[17:10 -> 17:20]**: Waduh belum ada nih
+- **[17:20 -> 17:30]**: Waduh belum ada ini
+- **[17:30 -> 17:40]**: Waduh belum ada ini
+- **[17:40 -> 17:50]**: Waduh belum ada ini
+- **[17:50 -> 17:58]**: Waduh belum ada ini
+- **[17:58 -> 18:08]**: Waduh belum ada ini
+- **[18:08 -> 18:18]**: Waduh belum ada ini
+- **[18:18 -> 18:28]**: Waduh belum ada ini
+- **[18:28 -> 18:38]**: Waduh belum ada ini
+- **[18:38 -> 18:46]**: Waduh belum ada ini
+- **[18:46 -> 18:56]**: Waduh belum ada ini
+- **[18:56 -> 19:06]**: Waduh belum ada ini
+- **[19:06 -> 19:14]**: Waduh belum ada ini
+- **[19:14 -> 19:22]**: Waduh, terima kasih Pak, sebelumnya waktunya sudah menyampaikan untuk bimbingan pada kali ini
+- **[19:22 -> 19:34]**: Jadi sebelumnya saya ingin menyampaikan sudah saya sudah melewati tahapkan di Seminar Prokosal dan sudah jenalikan ulos
+- **[19:34 -> 19:46]**: Jadi, saya pertanyaan kali ini tujuan saya untuk memamparkan bagaimana sih proses yang ingin saya laukkan untuk ke depannya
+- **[19:46 -> 20:00]**: agar penyitian ini berjalan lancar dan sesuai dengan artifak atau sesuai dengan sistem yang ada, sesuai dengan sistem yang ada untuk sistem tugas akhir ini
+- **[20:00 -> 20:13]**: Jadi Pak, sebelumnya kehadiran proyek saya ini itu berdasarkan peraturan terbaru dari Google
+- **[20:13 -> 20:23]**: dari Google, ya ini tentang privasi tentang fair use dalam penggunaan AI
+- **[20:24 -> 20:35]**: Jadi, peraturan terbarunya adalah EAT, anak EAT ini baru dirilis beberapa bulan yang lalu mungkin sekitar bulan Desember 2025
+- **[20:35 -> 20:47]**: Nah itu, peraturannya adalah konten website yang isinya hanya dublikat dari konten-konten sebelumnya
+- **[20:47 -> 20:56]**: alias sekedar upload, sekedar bikin artikel, sekedar bikin cerita, tetap, baik Pak
+- **[21:06 -> 21:22]**: Jadi sekedar bikin artikel saja, tetapi tidak ada informasi tambahnya, itu pasti akan di deindeksasi oleh Google
+- **[21:22 -> 21:33]**: Jadi tidak akan masuk pada perengkingan SIRP Google, sehingga artikel atau websitenya tidak akan masuk di peringkat pertama pada Google
+- **[21:34 -> 21:41]**: Nah ini awal mulanya adalah karena peraturan terbaru dari Google
+- **[21:41 -> 21:54]**: Nah, untuk saat ini sebenarnya sudah ada alat untuk bagaimana sih website ini bisa mematuhi EAT ini namun
+- **[21:54 -> 22:04]**: Keterbatasannya, seperti Yoast, plugin SEO yang sudah lama Yoast, itu masih algoritmania itu masih dankal
+- **[22:04 -> 22:12]**: Alias hanya mengecek apakah sudah hading keyword overlapnya sudah ada, itu hanya sebetas itu
+- **[22:12 -> 22:23]**: Kemudian seringkali seperti SEO optimization yang lain, itu seperti, itu masih black box belum benar-benar
+- **[22:23 -> 22:32]**: White box alias belum benar-benar, bagaimana sih proses di baliknya itu dipaparkan oleh sistem itu
+- **[22:32 -> 22:36]**: Jadi pengguna tahu benar-benar tahu itu belum ada sistem seperti itu
+- **[22:36 -> 22:43]**: Nah, keputusan salah satu yang menjadi keunggulan di kami, di website saya itu adalah
+- **[22:44 -> 22:52]**: Kita di website itu tidak hanya mengharang, alias tidak hanya mengharang
+- **[22:52 -> 23:00]**: Apakah ini sudah masuk EAT atau belum, tidak mengharang tapi berdasarkan keyword yang ada
+- **[23:00 -> 23:10]**: Misalkan kita mencari cara memasak kopi, nah itu nanti akan muncul list 4 artikel teratas
+- **[23:10 -> 23:18]**: List 4 page teratas yang memuat topik tersebut, jadi dibandingkan dari beberapa artikel yang ada
+- **[23:18 -> 23:26]**: Itu kepunyaan kita itu memiliki information gain berapa gitu, memiliki information gain berapa
+- **[23:26 -> 23:30]**: Devisitnya itu berapa yang kita cari sebenarnya
+- **[23:31 -> 23:41]**: Nah kemudian yang selanjutnya adalah, jadi memang pada EAT itu memang sangat luas sekali
+- **[23:41 -> 23:48]**: Jadi ada kalanya website itu bisa terindeks itu karena dia memiliki keunikkan sendiri
+- **[23:48 -> 23:56]**: Bukan hanya artikel misalkan, dia bergerak di bidang kalkulator body mass index
+- **[23:56 -> 24:06]**: Jadi akan terindeks karena unik gitu kan, sehingga ruang lingkupnya pada penilitan saya itu saya batasi
+- **[24:06 -> 24:13]**: Hanya untuk on page artikel text, jadi hanya pada artikel text saja yang akan dikurasi
+- **[24:13 -> 24:17]**: Yang dikurasi itu hanya fokus pada artikel text saja
+- **[24:17 -> 24:28]**: Jadi setelah kita bikin artikel, kemudian akan dikurasi dengan beberapa draft yang sudah public di Google
+- **[24:28 -> 24:38]**: Nah akan dibandingkan ada apa sih misalkan yang lainnya sudah membahas tentang suhu pada kopi
+- **[24:38 -> 24:46]**: Nah kita membahas yang lain, kita lebih detaikan lagi, nah seperti itu akan terlihat nanti detaiknya akan terlihat
+- **[24:47 -> 25:05]**: Nah setelah sempur kemarin itu beberapa yang disarankan oleh dosen seperti Bu Alina itu beliau menyatakan bahwa harus diperjelas lagi
+- **[25:05 -> 25:13]**: Alat-alatnya harus diperjelas lagi, jadi alat saya ini penyitian gak, pentingan saya ini menggunakan NLP
+- **[25:13 -> 25:31]**: Natural Language Processing, berupa NLP dari kumparan, kumparan ini ada program residen, ada open source untuk NLP untuk 778.778 LLM
+- **[25:31 -> 25:37]**: Nah sudah ada tradingnya, jadi kita pakai NLP dari kumparan ditambah dengan Sastrawi
+- **[25:37 -> 25:52]**: Nah setelah artikelnya setelah di proses NLP, selanjutnya akan dipisahkan lagi menggunakan BM25, Bsmatch 25 dan Vector Space Model
+- **[25:52 -> 26:03]**: Nah kegunaannya Pak agar memisahkan kata-kata seperti dikel, dimana seperti itu akan dipisahkan secara otomatis menggunakan alat ini
+- **[26:04 -> 26:10]**: Sehingga yang ada itu hanya kalimat bersih saja, kata yang bersih saja
+- **[26:12 -> 26:29]**: Nah kemudian selanjutnya setelah itu akan ada Stilometry, Stilometry untuk mengetahui variasi kosakatanya
+- **[26:29 -> 26:44]**: Oh ini gak ada kata-kata ini akan bisa terdeteksi dari MATTRnya, kemudian dari HKO nya, Heading Key, Heading Key Overlap
+- **[26:44 -> 26:57]**: Nah setelah melalui beberapa tapan lagi akan menghasilkan, oh ini ada pelagiasi
+- **[26:58 -> 27:10]**: Oh ini ada residueb, maksudnya residueb itu ada kata yang perlu ditambahkan, Get Keeper juga
+- **[27:10 -> 27:16]**: Jadi oh ini perlu direvisi karena artikelnya mirip dengan artikel yang lain
+- **[27:16 -> 27:24]**: Oh artikel ini sudah sesuai karena sudah memiliki kebaruan informasi yang sesuai
+- **[27:24 -> 27:43]**: Nah kemudian pak, ini yang menjadi utamanya, ya ini BM25 adalah untuk, oh ini yang seperti tadi sih pak
+- **[27:43 -> 27:51]**: Ini penjelasan yang tadi juga, 4 pilarnya tadi BM25, kemudian ada information gain, ada Stilometry,
+- **[27:51 -> 27:55]**: Kan tadi nih, Get Keeper fitunya
+- **[27:55 -> 28:08]**: Nah ini pak yang ingin saya jelaskan juga, ya ini untuk pengujiannya itu bukan pakai SOS yang mengandalkan manusia
+- **[28:08 -> 28:15]**: Untuk mereview, oh ini sudah bagus atau belum tapi kita, tapi saya ingin pengujiannya itu menggunakan
+- **[28:16 -> 28:26]**: Pengujian Matrix, pengujian Kohen Kappa, jadi Confusion Matrix prosesinya itu seperti apa gitu
+- **[28:26 -> 28:38]**: Jadi saya ingin itu menguji misalkan ada 60 artikel dengan topik yang berbeda, dengan cara yang berbeda
+- **[28:38 -> 28:47]**: Misalkan yang satunya, copy pasta saja dari kumparan, misalkan dari website kumparan akan di tes dari aplikasi
+- **[28:47 -> 28:57]**: Apakah ini bener-bener memiliki, apa penjelasannya itu bener pas, misalkan kalau kita copy dari kumparan kan pasti
+- **[28:57 -> 29:07]**: Information gain kan yang tidak ada, berarti pasti akan tertolak karena, wah ini, ini teks, teksnya itu mirip sekali dengan
+- **[29:07 -> 29:14]**: Website kumparan itu akan bisa diterlihat dari algoritma ini, dari algoritma wasi kita akan terlihat
+- **[29:14 -> 29:24]**: Oh ini cuma kopas doang nih, belum ada kebaruan informasi sama sekali, nah itu yang saya uji di perayakan wasi kita ini
+- **[29:26 -> 29:34]**: Nah ini akan seperti ini, saya ingin mengujinya seperti ini, jadi ada teks yang normal, yang bener-bener teks layak
+- **[29:34 -> 29:47]**: Kita buat artikel sendiri, kemudian ada yang positif out of the box, jadi beberapa artikel yang pendek itu banyak variasinya lah
+- **[29:47 -> 29:58]**: Kemudian ada yang negatif out of the box, jadi biasanya kan ada yang cuma kopas aja, kontrol A, nah itu bagaimana wasi kita menanggapi artikel yang seperti itu
+- **[29:58 -> 30:08]**: Bagaimana kalau misalkan ada yang melawakan pengujian seperti itu, nanti hasilnya akan saya perlihatkan, saya akan uji
+- **[30:09 -> 30:23]**: Nah ini Pak, jadi beberapa hal yang saya paparkan mengenai sistem saya ini, saya ingin mengerti bagaimana tanggapan Pak Ari bawa seperti alurnya tadi bagaimana itu
+- **[30:23 -> 30:34]**: Apakah alur dari pengujian saya di wasi kita ini fokus pada artikel, dan itu sudah sesuai untuk dijalankan di Bap 4 itu Pak
+- **[30:34 -> 30:47]**: Kemudian untuk laporan berikutnya kan Bap 4 itu kan hasil dan evaluasi atau gimana itu Pak, Bap 5 kesimpulan dan serang atau sampai Bap 5 itu sangat bingung
+- **[30:47 -> 30:54]**: Soalnya di tempatnya itu cuma Bap 4 aja tapi bingungnya itu ada Bap 5 atau nggak itu yang masih bingung saya Pak
+- **[31:02 -> 31:09]**: Ini judulnya atau topiknya apa berubah dari yang diajukan pertama ya saya biar
+- **[31:09 -> 31:11]**: Oh iya Pak
+- **[31:12 -> 31:15]**: Nah ini terus terang saya kan
+- **[31:15 -> 31:16]**: Oh iya Pak
+- **[31:16 -> 31:22]**: Ini baru ini kan saya baru tahu ini topik ini
+- **[31:22 -> 31:24]**: Oh iya Pak, iya Pak
+- **[31:26 -> 31:35]**: Kok beda dengan yang sudah disekusikan beberapa kali dulu itu saya nggak nyambung juga ini
+- **[31:35 -> 31:38]**: Oh iya itu sih Pak, iya Pak, iya maaf Pak
+- **[31:38 -> 31:52]**: Karena itu memasak saya mungkin maaf, maaf sekali lagi maaf kalau komunikasi kurang karena memang waktu kemarin itu karena memang kondisinya itu
+- **[31:52 -> 32:01]**: Masih ini ya Pak, masih bingung di apa ada permasalahan pribadi di rumah Pak, makanya agak bingung
+- **[32:01 -> 32:06]**: Saya sampai lupa belum mengkonfirmasi ke Pak Ariwi bahwa maaf Pak sebelumnya
+- **[32:09 -> 32:17]**: Ini berarti kamu makan di Waskita itu ya Saeb ya
+- **[32:17 -> 32:22]**: Oh iya Pak, saya makanya sebenarnya di Soverehouse ya Pak
+- **[32:22 -> 32:24]**: Waskita ini namanya?
+- **[32:24 -> 32:31]**: Nah Waskita ini aplikasi yang sudah dibuat gitu Pak, aplikasi dibuat disana
+- **[32:31 -> 32:33]**: Oh disana sudah ada?
+- **[32:33 -> 32:35]**: Iya Pak
+- **[32:36 -> 32:40]**: Oh kalau sudah dibuat berarti jangan rancang banget lah
+- **[32:40 -> 32:49]**: Oh bukan Pak, jadi ini sebenarnya itu dari klienya disini itu memang baru mau buat Pak, baru mau buat
+- **[32:49 -> 32:51]**: Oh baru mau buat
+- **[32:51 -> 32:56]**: Oke, ini sudah ada kalau sudah ada pengembangan
+- **[32:56 -> 33:00]**: Belum, belum, emang bener-bener buat dari awal gitu Pak
+- **[33:01 -> 33:05]**: Rancang banget perangkat guna konten
+- **[33:05 -> 33:10]**: Ini untuk publikasi apa ya, perapubilasi apa ya
+- **[33:10 -> 33:15]**: Publikasi ini Pak, publikasi artikel
+- **[33:16 -> 33:20]**: Publikasi artikel? Artikel journal gitu?
+- **[33:20 -> 33:21]**: Artikel apa ya?
+- **[33:21 -> 33:25]**: Artikel juga, set aja Pak, yang misalkan kumparan
+- **[33:25 -> 33:29]**: Ya, kaya kumparan, seperti itu
+- **[33:38 -> 33:42]**: Oh ini artikel yang itu ya, yang di online ya?
+- **[33:42 -> 33:45]**: Yang di online Pak, yang di online
+- **[33:45 -> 33:50]**: Nah itu kan, sebenarnya ya
+- **[33:55 -> 33:58]**: Perapat asoan terfenomenan masalah dilapang
+- **[34:05 -> 34:08]**: Kalau dilatar belakang ini berarti
+- **[34:18 -> 34:22]**: Itu jodolnya yang benar, yang mana sih kalau tadi beda sama didokumen
+- **[34:23 -> 34:25]**: Ini sama yang di selet Pak Bidah
+- **[34:25 -> 34:30]**: Soalnya yang di selet itu kemarin di ini ya Pak
+- **[34:30 -> 34:35]**: Sama Bu Aledah itu di suruh ganti ya Pak
+- **[34:38 -> 34:41]**: Maksudnya gini Pak, itu kan ada, sebenarnya kan
+- **[34:41 -> 34:47]**: Referensi dari jodolnya, itu kan dari artikel dari
+- **[34:47 -> 34:50]**: Journal dan artikel luar negeri kan Pak
+- **[34:50 -> 34:52]**: Nah, di luar negeri itu jodolnya itu
+- **[34:52 -> 34:55]**: Is Google getting worse
+- **[34:55 -> 34:58]**: Is Google getting worse
+- **[34:58 -> 35:03]**: Create, ya sama rancang bangun aplikasi apa gitu
+- **[35:03 -> 35:06]**: Saya lupa Pak, jadi awalnya dari situ
+- **[35:06 -> 35:10]**: Nah, kemudian dari Pak Alina sama Busartika waktu sempurna kemarin
+- **[35:10 -> 35:14]**: Mas kok, kok gak umum gitu
+- **[35:20 -> 35:22]**: Pak Bidah
+- **[35:50 -> 35:52]**: Pak Bidah
+- **[36:20 -> 36:22]**: Pak Bidah
+- **[36:50 -> 36:52]**: Pak Bidah
+- **[37:21 -> 37:23]**: Recording in progress
+- **[37:26 -> 37:28]**: Bebapak izin Pak
+- **[37:33 -> 37:39]**: Ya kalau jodol itu gak usah pakai ini, kita jodolnya yang macer-macer saja
+- **[37:39 -> 37:41]**: Iya Pak, iya Pak
+- **[37:41 -> 37:43]**: Rancang bangun, blablabla-blabla gitu saya
+- **[37:43 -> 37:45]**: Iya Pak
+- **[37:45 -> 37:48]**: Rancang bangun, perangkat bumbang
+- **[37:49 -> 37:52]**: Menggunakan metode apa, gitu bisa
+- **[37:52 -> 37:54]**: Iya Pak
+- **[38:03 -> 38:07]**: Yang menjadi keadaan sahabat, gitu ya
+- **[38:07 -> 38:09]**: Iya Pak
+- **[38:09 -> 38:12]**: Permasalah yang dihadapi
+- **[38:12 -> 38:17]**: Sehingga perlu diperangkat bumbang ini apa
+- **[38:17 -> 38:20]**: Gitu yang nanti di, ini saja di
+- **[38:20 -> 38:22]**: Dibuaskan saja
+- **[38:22 -> 38:24]**: Bagaimana yang dihadapi di rapat
+- **[38:24 -> 38:26]**: Oh iya Pak
+- **[38:26 -> 38:28]**: Yang jadi
+- **[38:29 -> 38:32]**: Terbelah-belah lagi nanti dibuaskan
+- **[38:32 -> 38:35]**: Terkait permasalahan yang dihadapi
+- **[38:35 -> 38:37]**: Lain-lain baru di
+- **[38:37 -> 38:39]**: Ini kita bujel
+- **[38:39 -> 38:41]**: Bumusa masalahan ya
+- **[38:41 -> 38:43]**: Bumusa masalah rambut
+- **[38:43 -> 38:45]**: Bumusa masalahnya bisa banyak-banyak
+- **[38:45 -> 38:47]**: Tiga atau empat poin, saja sudah cukup
+- **[38:47 -> 38:49]**: Iya Pak
+- **[38:49 -> 38:51]**: Ya, ada tiga
+- **[38:51 -> 38:53]**: Ya
+- **[38:53 -> 38:56]**: Dari itu masalah salah, itu nanti ada tujuan
+- **[38:56 -> 38:58]**: Tidak tujuan
+- **[38:58 -> 39:01]**: Tidak ada tujuan penemuan
+- **[39:01 -> 39:04]**: Harusnya tujuan penemuan itu, ada yang selarus dengan
+- **[39:04 -> 39:06]**: Bumusa masalah tadi
+- **[39:06 -> 39:09]**: Ya, Bumusa masalah yang tadi kan
+- **[39:09 -> 39:11]**: Tidak ada tujuan
+- **[39:12 -> 39:13]**: Tidak ada
+- **[39:34 -> 39:35]**: Iya, Pak
+- **[39:35 -> 39:37]**: ada implementasi lagal, ya nanti yang
+- **[39:38 -> 39:39]**: kaya
+- **[39:40 -> 39:43]**: haed yang diambilkan itu harus ada
+- **[39:43 -> 39:44]**: analisisnya
+- **[39:46 -> 39:47]**: jadi ada analisisnya
+- **[39:47 -> 39:49]**: jadi memang tiga-tiga
+- **[39:49 -> 39:50]**: implementasi
+- **[39:51 -> 39:53]**: dan kemudian kemudian tiga-tiga
+- **[39:54 -> 39:55]**: kalau yang saed
+- **[39:56 -> 39:58]**: tiga-tiga harus diambilkan
+- **[39:59 -> 40:00]**: ada
+- **[40:01 -> 40:02]**: permasalahan
+- **[40:03 -> 40:04]**: ada
+- **[40:05 -> 40:07]**: yang dibawah kemudian metodinya
+- **[40:08 -> 40:10]**: kemudian dianalisiskan apa pake metode itu
+- **[40:10 -> 40:11]**: oh iya Pak
+- **[40:14 -> 40:15]**: terus nanti analisisnya
+- **[40:16 -> 40:18]**: analisisnya seramnya
+- **[40:20 -> 40:22]**: nanti untuk
+- **[40:23 -> 40:24]**: bagi
+- **[40:25 -> 40:26]**: biasa ini
+- **[40:26 -> 40:27]**: ini kan analisis
+- **[40:28 -> 40:29]**: implementasi dan
+- **[40:30 -> 40:31]**: analisiskan
+- **[40:32 -> 40:33]**: iya Pak
+- **[40:35 -> 40:37]**: atau bisa juga diketahui
+- **[40:37 -> 40:38]**: bagi partikan
+- **[40:40 -> 40:41]**: analisis dan
+- **[40:42 -> 40:43]**: implementasi
+- **[40:43 -> 40:44]**: perajang dan
+- **[40:45 -> 40:46]**: angin
+- **[40:46 -> 40:47]**: langsung bisa langsung ya
+- **[40:49 -> 40:51]**: langsung bisa langsung
+- **[40:51 -> 40:52]**: bisa
+- **[40:53 -> 40:54]**: ada dikali
+- **[40:56 -> 40:57]**: jadi Pak Berman
+- **[40:58 -> 40:59]**: kesimpanan besar
+- **[40:59 -> 41:00]**: iya Pak
+- **[41:00 -> 41:03]**: sudah menjadi sesuatu yang bagus gitu
+- **[41:03 -> 41:04]**: iya
+- **[41:04 -> 41:06]**: berarti untuk 4 dan 5 itu sebenarnya
+- **[41:07 -> 41:08]**: bisa di
+- **[41:09 -> 41:10]**: bisa dipecah Pak ya
+- **[41:11 -> 41:12]**: iya Pak
+- **[41:19 -> 41:20]**: iya Pak
+- **[41:27 -> 41:28]**: oh iya Pak
+- **[41:34 -> 41:35]**: iya Pak
+- **[41:48 -> 41:49]**: pikir apa?
+- **[41:51 -> 41:52]**: sudah ada sudah ada Pak
+- **[41:52 -> 41:53]**: sudah ada
+- **[41:54 -> 41:55]**: sudah ada
+- **[41:57 -> 41:58]**: oh bisa Pak sebentar
+- **[42:00 -> 42:02]**: bisa sebentar saya buka dulu Pak ya
+- **[42:04 -> 42:05]**: kalau
+- **[42:05 -> 42:06]**: urut-urutannya seperti apa gitu?
+- **[42:06 -> 42:07]**: oh iya Pak
+- **[42:08 -> 42:10]**: ini sebenarnya untuk
+- **[42:11 -> 42:15]**: websitenya di lokal itu sudah bisa di jalankan Pak
+- **[42:15 -> 42:17]**: bisa jalankan
+- **[42:18 -> 42:20]**: sebentar saya jalankan dulu Pak
+- **[42:21 -> 42:22]**: ini
+- **[42:23 -> 42:24]**: desktop
+- **[42:26 -> 42:27]**: ini kelihatan gak Pak
+- **[42:27 -> 42:29]**: apa untuk layarnya
+- **[42:30 -> 42:31]**: nah jadi ini
+- **[42:31 -> 42:34]**: bagaimana cara berjalan yang misalkan kita cari
+- **[42:34 -> 42:36]**: kumparan
+- **[42:37 -> 42:39]**: video apa kumparan
+- **[42:39 -> 42:43]**: ini kita misalkan ada berita apa ini
+- **[42:44 -> 42:45]**: nah ini kan
+- **[42:45 -> 42:48]**: misalkan ini kan kalau di upload
+- **[42:48 -> 42:51]**: di website kita sendiri misalkan kita cuma
+- **[42:51 -> 42:52]**: copy-paste saja
+- **[42:52 -> 42:55]**: misalkan di copy-paste saja seperti ini
+- **[42:56 -> 42:58]**: nah kalau di test
+- **[42:58 -> 42:59]**: harusnya akan
+- **[42:59 -> 43:01]**: akan ditolak karena memang
+- **[43:01 -> 43:03]**: secara kebaruan ini
+- **[43:03 -> 43:04]**: apa
+- **[43:04 -> 43:07]**: hanya copy-paste saja gak ada kebaruan informasi game
+- **[43:07 -> 43:08]**: nah ini coba saya
+- **[43:09 -> 43:10]**: jalankan
+- **[43:10 -> 43:12]**: analisis kita analisis
+- **[43:15 -> 43:17]**: nah ini kan
+- **[43:17 -> 43:18]**: topik
+- **[43:18 -> 43:19]**: topiknya ini
+- **[43:19 -> 43:22]**: banyak sekali tidak ada nih
+- **[43:22 -> 43:25]**: kenapa kok ditolak karena tidak ada informasi game
+- **[43:25 -> 43:27]**: tidak ada informasi game
+- **[43:27 -> 43:29]**: ini layar baru karena hanya copy-paste saja dari
+- **[43:29 -> 43:31]**: yang sudah ada
+- **[43:31 -> 43:33]**: nah kenapa kok
+- **[43:33 -> 43:34]**: kenapa kok
+- **[43:34 -> 43:35]**: ditolak
+- **[43:35 -> 43:37]**: karena memang peraturan terbaru dari
+- **[43:37 -> 43:40]**: google itu akan menolak
+- **[43:40 -> 43:41]**: artikel
+- **[43:41 -> 43:42]**: atau
+- **[43:42 -> 43:45]**: content website yang hanya copy-paste saja
+- **[43:45 -> 43:47]**: alias tidak ada
+- **[43:47 -> 43:49]**: alias generik hanya generik tidak ada
+- **[43:49 -> 43:51]**: informasi tambah itu pasti akan ditolak
+- **[43:51 -> 43:53]**: nah dari mana kok bisa tahu
+- **[43:53 -> 43:55]**: itu dari
+- **[43:55 -> 43:57]**: itu dari
+- **[43:57 -> 43:58]**: dari
+- **[43:58 -> 44:00]**: apa tidak ada informasi game
+- **[44:00 -> 44:01]**: nah itu dari sini pak
+- **[44:01 -> 44:02]**: nah ini kan
+- **[44:02 -> 44:04]**: nah ini kan diketahui
+- **[44:04 -> 44:05]**: oh diambil dari
+- **[44:05 -> 44:07]**: puskosdiskporly.co.id
+- **[44:07 -> 44:09]**: ada ini
+- **[44:09 -> 44:11]**: kemudian dari polresta kota pogor
+- **[44:11 -> 44:12]**: ini ada
+- **[44:12 -> 44:13]**: kemudian dari
+- **[44:13 -> 44:14]**: syndownews
+- **[44:15 -> 44:17]**: ternyata ada penambas tentang
+- **[44:17 -> 44:19]**: berita tadi sudah ada penambas
+- **[44:19 -> 44:21]**: ini bisa dilihat juga disini
+- **[44:21 -> 44:22]**: jadi
+- **[44:22 -> 44:23]**: nah
+- **[44:23 -> 44:25]**: setelah diketahui dari sini kan
+- **[44:25 -> 44:27]**: sudah ada top srp
+- **[44:27 -> 44:29]**: oh sudah ada ini ada beberapa nih ya kan
+- **[44:29 -> 44:31]**: nah itu nanti akan diketahui
+- **[44:31 -> 44:32]**: oh ini
+- **[44:32 -> 44:34]**: jadi ini harusnya
+- **[44:34 -> 44:35]**: harusnya disini
+- **[44:35 -> 44:36]**: nah ini seperti ini pak
+- **[44:36 -> 44:38]**: seperti ini misalkan
+- **[44:38 -> 44:39]**: tambilkan
+- **[44:39 -> 44:40]**: nah ini
+- **[44:40 -> 44:42]**: klausulnya misalkan
+- **[44:42 -> 44:44]**: di puskosdiskporly.co.id
+- **[44:44 -> 44:46]**: polresta kota pogor
+- **[44:46 -> 44:48]**: ini harusnya
+- **[44:48 -> 44:50]**: ada di draf gitu pak
+- **[44:50 -> 44:52]**: nah ini yang belum ada di draf
+- **[44:52 -> 44:53]**: ini belum dicakup
+- **[44:53 -> 44:55]**: di drafnya belum ada seperti ini
+- **[44:56 -> 44:58]**: nah kemudian ini
+- **[44:58 -> 45:00]**: apa untuk
+- **[45:00 -> 45:03]**: apa bisa dilihat juga
+- **[45:03 -> 45:05]**: generik
+- **[45:05 -> 45:06]**: ada
+- **[45:06 -> 45:08]**: ada hal yang generik
+- **[45:08 -> 45:09]**: itu
+- **[45:13 -> 45:14]**: nah
+- **[45:14 -> 45:16]**: berarti dari
+- **[45:16 -> 45:18]**: informasi ini
+- **[45:18 -> 45:20]**: si penulis itu harus
+- **[45:20 -> 45:22]**: merevisi lagi pak
+- **[45:22 -> 45:24]**: merevisi lagi artikelnya
+- **[45:24 -> 45:26]**: direvisi lagi
+- **[45:26 -> 45:27]**: biar
+- **[45:27 -> 45:29]**: memiliki kebaruan informasi
+- **[45:29 -> 45:30]**: nah seperti itu sih pak
+- **[45:30 -> 45:31]**: sebenernya seperti itu
+- **[45:33 -> 45:35]**: nah kemudian disini ada query nya
+- **[45:35 -> 45:36]**: oh polresta pogor
+- **[45:36 -> 45:37]**: bisa tambah lagi
+- **[45:37 -> 45:39]**: mungkin
+- **[45:44 -> 45:45]**: apa nih
+- **[45:46 -> 45:48]**: bayaran busia
+- **[45:49 -> 45:50]**: kriminal
+- **[45:50 -> 45:52]**: bisa tambah query lagi kriminal
+- **[45:52 -> 45:54]**: kriminal
+- **[45:54 -> 45:56]**: seperti itu
+- **[45:56 -> 45:57]**: ini
+- **[45:57 -> 45:59]**: maksudnya untuk SEO nya itu kan
+- **[45:59 -> 46:00]**: apa
+- **[46:00 -> 46:02]**: kata kuncinya pak bisa ditambahkan
+- **[46:02 -> 46:04]**: kata kuncinya lagi
+- **[46:04 -> 46:05]**: nah ini
+- **[46:05 -> 46:07]**: untuk
+- **[46:08 -> 46:10]**: algoritmanya
+- **[46:10 -> 46:11]**: VSM
+- **[46:11 -> 46:13]**: kualiti MATTR
+- **[46:13 -> 46:15]**: aku overlap nya
+- **[46:15 -> 46:16]**: itu
+- **[46:16 -> 46:17]**: untuk menambah
+- **[46:17 -> 46:18]**: ini aja sih pak
+- **[46:18 -> 46:20]**: menambah ambang patasnya aja sih
+- **[46:20 -> 46:22]**: seperti itu sih pak
+- **[46:30 -> 46:32]**: ya oke saya gini
+- **[46:32 -> 46:34]**: nanti
+- **[46:34 -> 46:36]**: yang peransangan layarnya
+- **[46:36 -> 46:38]**: ini maksud
+- **[46:38 -> 46:40]**: sisa itu yang ini
+- **[46:40 -> 46:42]**: iya pak peransangan layaran seperti ini pak
+- **[46:42 -> 46:44]**: oh wear frame nya pak
+- **[46:44 -> 46:46]**: oh wear frame nya
+- **[46:46 -> 46:48]**: disini
+- **[46:52 -> 46:54]**: sebentar pak
+- **[46:58 -> 47:00]**: sebentar ini
+- **[47:01 -> 47:03]**: playwork mana ya
+- **[47:09 -> 47:11]**: waduh pak
+- **[47:11 -> 47:13]**: sebentar
+- **[47:16 -> 47:18]**: oh enggak pak
+- **[47:24 -> 47:26]**: mana ya
+- **[47:30 -> 47:32]**: kemarin udah saya foto-foto nya
+- **[47:32 -> 47:33]**: lupa pak lupa
+- **[47:33 -> 47:35]**: lupa setelannya saya lupa di mana ya
+- **[47:35 -> 47:37]**: setelah
+- **[47:38 -> 47:40]**: piktur
+- **[47:40 -> 47:42]**: oh iya itu bukan sih
+- **[47:43 -> 47:45]**: di mana ya
+- **[48:08 -> 48:10]**: was kita
+- **[48:10 -> 48:12]**: enggak ada ya
+- **[48:25 -> 48:27]**: sebentar pak
+- **[48:27 -> 48:29]**: kok mana ya
+- **[48:33 -> 48:35]**: ini wear frame nya
+- **[48:35 -> 48:37]**: wear frame nya
+- **[48:37 -> 48:39]**: oh mana sih
+- **[49:36 -> 49:38]**: tuh
+- **[49:52 -> 49:54]**: lupa kok ilang ya
+- **[50:05 -> 50:07]**: lupa
+- **[50:16 -> 50:18]**: wear frame seperti ini pak ya
+- **[50:18 -> 50:19]**: disini pak
+- **[50:19 -> 50:21]**: yang ini pak ya
+- **[50:21 -> 50:23]**: peransangan
+- **[50:23 -> 50:25]**: peransangan antar muka
+- **[50:25 -> 50:27]**: ini pak ya
+- **[50:27 -> 50:29]**: yang desanya ini pak ya
+- **[50:29 -> 50:31]**: sebentar ini aja ya
+- **[50:31 -> 50:33]**: itu aja sih pak
+- **[50:34 -> 50:36]**: untuk input
+- **[50:36 -> 50:38]**: terus kemungkinan
+- **[50:38 -> 50:40]**: proses apa proses apa
+- **[50:40 -> 50:42]**: tarah saya buka lagi
+- **[50:42 -> 50:44]**: oh telegram desktop
+- **[50:44 -> 50:46]**: oh dogs
+- **[50:49 -> 50:51]**: dogs terus
+- **[50:54 -> 50:56]**: obsidian
+- **[50:56 -> 50:58]**: eh di mana
+- **[50:59 -> 51:01]**: figures
+- **[51:04 -> 51:06]**: oh ini
+- **[51:19 -> 51:21]**: nah ini pak
+- **[51:21 -> 51:23]**: untuk desainya ini seperti ini sebenernya
+- **[51:23 -> 51:25]**: udah
+- **[51:25 -> 51:27]**: udah seperti ini pak desainya
+- **[51:29 -> 51:31]**: ini
+- **[51:33 -> 51:35]**: maksudnya desain figma gitu pak ya
+- **[51:35 -> 51:37]**: atau gimana pak
+- **[51:37 -> 51:39]**: oh nggak pake figma pak
+- **[51:39 -> 51:40]**: langsung
+- **[51:40 -> 51:42]**: langsung html aja pak kemarin
+- **[51:42 -> 51:44]**: pake mochli
+- **[51:44 -> 51:46]**: nggak pake figma pak soalnya
+- **[51:48 -> 51:50]**: iya nggak pake figma pak
+- **[51:50 -> 51:52]**: pake mochli kemarin
+- **[51:52 -> 51:54]**: mochli tuh pake html pak
+- **[51:58 -> 52:00]**: jadi gimana pak harus
+- **[52:00 -> 52:02]**: harus ada figma nya pak ya
+- **[52:03 -> 52:04]**: oh ini ini
+- **[52:04 -> 52:06]**: urutan use case nya seperti ini
+- **[52:09 -> 52:11]**: sebentar
+- **[52:12 -> 52:15]**: eh ini pak untuk use case diagramnya
+- **[52:15 -> 52:17]**: tarah
+- **[52:19 -> 52:21]**: nah ini pak untuk
+- **[52:22 -> 52:24]**: use case nya seperti ini pak
+- **[52:24 -> 52:26]**: jadi yang pertama
+- **[52:26 -> 52:27]**: itu
+- **[52:27 -> 52:28]**: penulis
+- **[52:28 -> 52:30]**: atau konten atau
+- **[52:30 -> 52:32]**: penulis konten web editor nya
+- **[52:32 -> 52:34]**: itu
+- **[52:34 -> 52:36]**: yang pertama adalah
+- **[52:37 -> 52:39]**: artikel nya tadi
+- **[52:39 -> 52:41]**: di taruh di website kita kan
+- **[52:41 -> 52:43]**: nah ini memasukkan query
+- **[52:43 -> 52:45]**: text draft dimasukkan
+- **[52:45 -> 52:47]**: setelah dimasukkan query nya
+- **[52:47 -> 52:49]**: nanti sistemnya akan ini
+- **[52:49 -> 52:52]**: mengaksuk si audit mutu ternaspalan dengan cara
+- **[52:52 -> 52:54]**: mengambil top
+- **[52:54 -> 52:56]**: srp kompetitor
+- **[52:56 -> 52:57]**: kemudian di tinjau
+- **[52:57 -> 53:00]**: laporan dan book di diagnostiknya
+- **[53:00 -> 53:02]**: pake tadi pak
+- **[53:02 -> 53:04]**: makanya tadi setelah
+- **[53:04 -> 53:06]**: dimasukkan draft nya kan ada
+- **[53:06 -> 53:08]**: audit mutu nya
+- **[53:08 -> 53:09]**: jadi
+- **[53:09 -> 53:11]**: algorithm nya itu dalam meng
+- **[53:11 -> 53:13]**: eksekusi audit mutu nya dari
+- **[53:13 -> 53:15]**: top srp yang ada
+- **[53:15 -> 53:17]**: misalkan nanti ada
+- **[53:17 -> 53:19]**: polisi apa ada di kumparan
+- **[53:19 -> 53:21]**: ada banyak dan lain sebagainya kan ada
+- **[53:21 -> 53:23]**: nah itu yang dibandingkan gitu pak
+- **[53:23 -> 53:24]**: dibandingkan
+- **[53:24 -> 53:26]**: antara website satu dengan website lainnya
+- **[53:26 -> 53:28]**: itu informasi
+- **[53:28 -> 53:30]**: yang terbaru itu apa gitu
+- **[53:30 -> 53:31]**: kalau
+- **[53:31 -> 53:33]**: informasinya hanya kinerik
+- **[53:33 -> 53:35]**: alias kata-katanya itu gak ada yang berubah
+- **[53:35 -> 53:37]**: kemudian
+- **[53:37 -> 53:39]**: yang gak ada informasi tambahan itu
+- **[53:40 -> 53:42]**: tidak akan lolos gitu pak
+- **[53:42 -> 53:44]**: karena akan terdeindeksasi google gitu sih pak
+- **[53:45 -> 53:47]**: nah itu pak
+- **[53:47 -> 53:49]**: seperti ini
+- **[53:58 -> 54:00]**: oh
+- **[54:03 -> 54:05]**: iya sih pak soalnya
+- **[54:05 -> 54:06]**: iya pak
+- **[54:06 -> 54:08]**: aktor dikabarkan orang
+- **[54:10 -> 54:12]**: pas-pasnya dikabarkan dengan
+- **[54:13 -> 54:15]**: oval gitu
+- **[54:15 -> 54:17]**: oh iya pak iya pak
+- **[54:17 -> 54:19]**: mungkin nanti saya ubah saja sih pak
+- **[54:19 -> 54:21]**: jadi yang
+- **[54:21 -> 54:23]**: seperti biasa nya soalnya ini dari ini pak
+- **[54:23 -> 54:25]**: dari
+- **[54:25 -> 54:27]**: dari fiturnya drauio pak
+- **[54:27 -> 54:29]**: fiturnya drauio yang baru itu pak
+- **[54:29 -> 54:31]**: makanya itu pak saya
+- **[54:31 -> 54:33]**: pakai fiturnya terbaru itu
+- **[54:33 -> 54:35]**: makanya mungkin belum sesuai nanti saya
+- **[54:35 -> 54:37]**: sesuai kan ulang sih
+- **[54:37 -> 54:39]**: kalau itu
+- **[54:39 -> 54:41]**: segwen diagram ini gak ada
+- **[54:41 -> 54:43]**: oh gak ada pak segwen diagram gak ada pak
+- **[54:43 -> 54:45]**: tapi ada IR diagram
+- **[54:45 -> 54:47]**: sama
+- **[54:47 -> 54:49]**: alur
+- **[54:49 -> 54:51]**: ada diagram alurnya sih pak
+- **[54:51 -> 54:53]**: ini pak
+- **[54:53 -> 54:55]**: ini diagram alurnya pak
+- **[54:57 -> 54:59]**: ini juga pakai
+- **[54:59 -> 55:01]**: drauio yang ini pak
+- **[55:01 -> 55:03]**: fiturnya yang baru itu pak
+- **[55:03 -> 55:05]**: ini drauio itu yang
+- **[55:05 -> 55:07]**: baru itu ada ininya
+- **[55:07 -> 55:09]**: fiturnya AI nya pak
+- **[55:09 -> 55:11]**: saya pakai itu
+- **[55:11 -> 55:13]**: jadi hasilnya jadi gini sih
+- **[55:13 -> 55:15]**: mungkin kalau
+- **[55:15 -> 55:17]**: apa namanya manualan mungkin nya pak ya
+- **[55:21 -> 55:23]**: segwen diagramnya
+- **[55:23 -> 55:25]**: mana kan AI ya
+- **[55:25 -> 55:27]**: gak ada segwen diagram pak saya gak ada
+- **[55:27 -> 55:29]**: segwen diagram pak
+- **[55:29 -> 55:31]**: use case
+- **[55:31 -> 55:33]**: diagram alurnya sama IRD
+- **[55:33 -> 55:35]**: IR
+- **[55:35 -> 55:37]**: bentar sih ini IR diagramnya
+- **[55:37 -> 55:39]**: ini pak
+- **[55:39 -> 55:41]**: ini pak IR diagramnya
+- **[55:43 -> 55:45]**: ada berapa pak?
+- **[55:45 -> 55:47]**: ada 6
+- **[55:47 -> 55:49]**: satu user
+- **[55:49 -> 55:51]**: sesi audit
+- **[55:51 -> 55:53]**: kemudian metric
+- **[55:55 -> 55:57]**: itu ada entitas
+- **[55:57 -> 55:59]**: kemudian altribut-altributnya
+- **[55:59 -> 56:01]**: iya pak iya
+- **[56:01 -> 56:03]**: antara entitas itu sama entitas yang lainnya
+- **[56:03 -> 56:05]**: ada
+- **[56:05 -> 56:07]**: iya pak iya pak
+- **[56:07 -> 56:09]**: iya pak
+- **[56:09 -> 56:11]**: makanya ini
+- **[56:11 -> 56:13]**: karena memang saya minta
+- **[56:13 -> 56:15]**: drauio yang
+- **[56:15 -> 56:17]**: ada AI nya itu jadi
+- **[56:17 -> 56:19]**: hasilnya seperti ini ini memang udah ada entitas nya
+- **[56:19 -> 56:21]**: seperti ini avilate gaus ini kan entitas nya
+- **[56:21 -> 56:23]**: dari metric
+- **[56:23 -> 56:25]**: entitas nya ini foreign key nya
+- **[56:25 -> 56:27]**: ini primary key nya ini
+- **[56:27 -> 56:29]**: karena memang ini baru
+- **[56:29 -> 56:31]**: ya itu fitur drauio yang baru itu
+- **[56:31 -> 56:33]**: makanya mungkin gak sesuai dengan yang
+- **[56:33 -> 56:34]**: di
+- **[56:34 -> 56:36]**: ajar-jajibotet nanti mungkin saya
+- **[56:36 -> 56:38]**: ganti sih pak kalau itu
+- **[56:43 -> 56:45]**: iya pak
+- **[56:45 -> 56:47]**: iya pak
+- **[56:49 -> 56:51]**: oh iya pak untuk
+- **[56:51 -> 56:53]**: ground truth itu sebenernya gimana pak
+- **[56:53 -> 56:55]**: kalau di dm4 itu
+- **[56:55 -> 56:57]**: ground truth nya
+- **[57:01 -> 57:03]**: oh gak perlu pak ya
+- **[57:05 -> 57:07]**: soalnya kemarin ditanyakan
+- **[57:07 -> 57:09]**: sama
+- **[57:09 -> 57:11]**: waktu sempurna itu ternyaka
+- **[57:11 -> 57:13]**: kamu mau ini tak
+- **[57:13 -> 57:15]**: ground truth nya gimana
+- **[57:15 -> 57:17]**: kaya mau cari ahli
+- **[57:17 -> 57:19]**: atau
+- **[57:19 -> 57:21]**: kuisiner atau apa gitu ya itu sih pak
+- **[57:21 -> 57:23]**: yang gak bingung itu sih pak
+- **[57:23 -> 57:25]**: kemarin itu danyanya itu
+- **[57:25 -> 57:27]**: kita gak pakai ground truth
+- **[57:27 -> 57:29]**: ground truth itu
+- **[57:29 -> 57:31]**: isilannya kalau kita
+- **[57:31 -> 57:33]**: gunakan AI itu
+- **[57:33 -> 57:35]**: ini apa
+- **[57:35 -> 57:37]**: nilai benarnya gitu loh nilai idealnya
+- **[57:39 -> 57:41]**: yang menjadi dasar
+- **[57:41 -> 57:43]**: jadi kalau nanti kita
+- **[57:45 -> 57:47]**: mendapatkan
+- **[57:47 -> 57:49]**: yang baru itu nanti kalau kita
+- **[57:49 -> 57:51]**: dengan ground truth itu ada
+- **[57:51 -> 57:53]**: inilah
+- **[57:53 -> 57:55]**: ada perbedaan
+- **[57:55 -> 57:57]**: ground truth itu untuk menghitung
+- **[57:57 -> 57:59]**: persenpah saya kepinangkan
+- **[57:59 -> 58:01]**: dengan pengakurasi gitu
+- **[58:01 -> 58:03]**: itu pak saya yang
+- **[58:03 -> 58:05]**: pengen bertanya juga seperti
+- **[58:05 -> 58:07]**: ini kan
+- **[58:07 -> 58:09]**: pengujiannya saya pengennya itu
+- **[58:09 -> 58:11]**: pengujiannya itu saya
+- **[58:11 -> 58:13]**: pengen nguji dengan
+- **[58:13 -> 58:15]**: 60 artikel kan pak
+- **[58:15 -> 58:17]**: nah itu bisa dimasukkan gak pak
+- **[58:17 -> 58:19]**: jadi pengujian itu seperti itu kan
+- **[58:19 -> 58:21]**: soalnya kalau saya tanya-tanya karting yang
+- **[58:21 -> 58:23]**: di
+- **[58:23 -> 58:25]**: management business itu katanya harus ada
+- **[58:25 -> 58:27]**: kualitatif-kualitatif gitu kan
+- **[58:27 -> 58:29]**: saya agak bingung juga nih yang
+- **[58:29 -> 58:31]**: di technique itu katanya
+- **[58:31 -> 58:33]**: pak
+- **[58:33 -> 58:35]**: karting yang lain itu katanya
+- **[58:35 -> 58:37]**: bukan pakai kualitatif-kualitatif itu
+- **[58:37 -> 58:39]**: agak bingung gitu itu sih yang
+- **[58:39 -> 58:41]**: bingung pak itu
+- **[58:41 -> 58:43]**: ya kalau pengujian yang ada
+- **[58:43 -> 58:45]**: ada dua itu
+- **[58:45 -> 58:47]**: metode kualitatif sama kualitatif
+- **[58:47 -> 58:49]**: tapi kalau untuk pengujian user
+- **[58:49 -> 58:51]**: itu nanti bisa pakai
+- **[58:51 -> 58:53]**: metode
+- **[58:53 -> 58:55]**: itu yang
+- **[58:55 -> 58:57]**: apa ya
+- **[58:57 -> 58:59]**: SUS
+- **[58:59 -> 59:01]**: SUS
+- **[59:01 -> 59:03]**: ya pak
+- **[59:03 -> 59:05]**: SUF atau
+- **[59:05 -> 59:07]**: gunakan
+- **[59:07 -> 59:09]**: blackboard atau menggunakan
+- **[59:09 -> 59:11]**: seder-berapa
+- **[59:11 -> 59:13]**: ini kan
+- **[59:13 -> 59:15]**: tapi yang penting mungkin ini lebih
+- **[59:15 -> 59:17]**: ke user certain
+- **[59:17 -> 59:19]**: testing
+- **[59:19 -> 59:21]**: coba di test ke
+- **[59:21 -> 59:23]**: pengguna si cacoknya
+- **[59:23 -> 59:25]**: UATnya
+- **[59:25 -> 59:27]**: seperti apa nanti kan
+- **[59:27 -> 59:29]**: harus di ujikan ke beberapa orang itu
+- **[59:29 -> 59:31]**: oh iya pak
+- **[59:31 -> 59:33]**: iya pak
+- **[59:33 -> 59:35]**: jadi ada
+- **[59:35 -> 59:37]**: pengujian
+- **[59:37 -> 59:39]**: UAT ya user certain
+- **[59:39 -> 59:41]**: testing
+- **[59:41 -> 59:43]**: berarti mungkin saya mencari
+- **[59:43 -> 59:45]**: penulis gitu pak ya
+- **[59:45 -> 59:47]**: atau penulis gitu pak ya
+- **[59:47 -> 59:49]**: ya
+- **[59:49 -> 59:51]**: tapi misalkan kalau yang berbahasi
+- **[59:51 -> 59:53]**: sistem pak maksudnya yang
+- **[59:53 -> 59:55]**: di uji sistemnya aja seperti kecepatannya
+- **[59:55 -> 59:57]**: atau apa itu bisa gak pak
+- **[59:57 -> 59:59]**: misalkan di uji
+- **[59:59 -> 60:01]**: bisa
+- **[60:01 -> 60:03]**: oh itu boleh pak
+- **[60:03 -> 60:05]**: kecepatan
+- **[60:05 -> 60:07]**: kecepatan generate
+- **[60:07 -> 60:09]**: kecepatan generate
+- **[60:11 -> 60:13]**: berarti pilih salah satu
+- **[60:13 -> 60:15]**: pilih salah satu pak ya
+- **[60:15 -> 60:17]**: boleh salah satu
+- **[60:17 -> 60:19]**: oh iya pak
+- **[60:19 -> 60:21]**: baik pak
+- **[60:25 -> 60:27]**: oh iya pak saya ingin
+- **[60:27 -> 60:29]**: bertanya untuk ini pak
+- **[60:29 -> 60:31]**: apa namanya
+- **[60:31 -> 60:33]**: di TRPL ini
+- **[60:33 -> 60:35]**: waktu
+- **[60:35 -> 60:37]**: apa
+- **[60:37 -> 60:39]**: TAA2
+- **[60:39 -> 60:41]**: itu nanti offline pak
+- **[60:41 -> 60:43]**: TAA2 nya nanti
+- **[60:43 -> 60:45]**: TAA2 nya offline
+- **[60:45 -> 60:47]**: TAA2 nya offline
+- **[60:47 -> 60:49]**: iya pak
+- **[60:49 -> 60:51]**: jadi mungkin itu dulu sih pak
+- **[60:51 -> 60:53]**: saya nanti coba
+- **[60:53 -> 60:55]**: perbaiki lagi yang
+- **[60:55 -> 60:57]**: kurang kemudian masukkan
+- **[60:57 -> 60:59]**: saya
+- **[60:59 -> 61:01]**: implementasikan segera
+- **[61:01 -> 61:03]**: nanti setelah
+- **[61:03 -> 61:05]**: sudah lebih baik lagi
+- **[61:05 -> 61:07]**: nanti mungkin saya
+- **[61:07 -> 61:09]**: mengundang bapak untuk bimbingan lagi pak ya
+- **[61:09 -> 61:11]**: baik pak
+- **[61:11 -> 61:13]**: terima kasih pak atas waktunya
+- **[61:13 -> 61:15]**: terima kasih sama-sama
+- **[61:15 -> 61:17]**: semoga
+- **[61:17 -> 61:19]**: sore ini menjadi sore yang berkah pak
+- **[61:19 -> 61:21]**: amin namanya rebel alamin
+- **[61:21 -> 61:23]**: terima kasih atas waktunya pak
+- **[61:23 -> 61:25]**: salamualaikum warahmatullahi wabarakatuh
+- **[61:33 -> 61:35]**: terima kasih
+- **[62:03 -> 62:05]**: terima kasih
+- **[62:33 -> 62:35]**: terima kasih
+
+---
+*Dihasilkan otomatis oleh modul Audio Pipeline WASKITA & faster-whisper.*
