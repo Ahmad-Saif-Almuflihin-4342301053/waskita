@@ -1,0 +1,118 @@
+<mxfile host="app.diagrams.net" modified="2026-11-23T17:02:00.000Z" agent="Antigravity" version="21.0.0" type="device">
+  <diagram id="waskita-sequence" name="Sequence Diagram WASKITA">
+    <mxGraphModel dx="2400" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1450" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Header -->
+        <mxCell id="title" value="&lt;b&gt;SEQUENCE DIAGRAM — PROSES AUDIT MUTU KONTEN WASKITA&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="720" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Interaksi Antar-Komponen Perangkat Lunak saat Eksekusi Audit Naskah Pra-Publikasi (Standar UML OMG)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="65" width="750" height="24" as="geometry"/>
+        </mxCell>
+
+        <!-- Lifelines -->
+        <mxCell id="ll_user" value="&lt;b&gt;Penulis&lt;/b&gt;" style="shape=umlLifeline;participant=umlActor;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=36;outlineConnect=0;size=60;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="130" y="120" width="40" height="1160" as="geometry"/>
+        </mxCell>
+        <mxCell id="ll_ui" value="&lt;b&gt;:Frontend (React UI)&lt;/b&gt;&lt;br&gt;&lt;small&gt;Browser Client&lt;/small&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="360" y="175" width="200" height="1105" as="geometry"/>
+        </mxCell>
+        <mxCell id="ll_api" value="&lt;b&gt;:API Gateway (FastAPI)&lt;/b&gt;&lt;br&gt;&lt;small&gt;Controller Layer&lt;/small&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="710" y="175" width="220" height="1105" as="geometry"/>
+        </mxCell>
+        <mxCell id="ll_harv" value="&lt;b&gt;:SERP Harvester&lt;/b&gt;&lt;br&gt;&lt;small&gt;Scraper &amp;amp; SearXNG&lt;/small&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="175" width="200" height="1105" as="geometry"/>
+        </mxCell>
+        <mxCell id="ll_nlp" value="&lt;b&gt;:IR &amp;amp; NLP Engine&lt;/b&gt;&lt;br&gt;&lt;small&gt;VSM, IG &amp;amp; Gatekeeper&lt;/small&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="1435" y="175" width="210" height="1105" as="geometry"/>
+        </mxCell>
+        <mxCell id="ll_db" value="&lt;b&gt;:Basis Data (SQLite)&lt;/b&gt;&lt;br&gt;&lt;small&gt;WAL Persistence&lt;/small&gt;" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="1780" y="175" width="200" height="1105" as="geometry"/>
+        </mxCell>
+
+        <!-- Messages -->
+        <mxCell id="m1" value="1: Input draf naskah, kueri target, &amp; klik 'Mulai Audit'" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="150" y="285" as="sourcePoint"/>
+            <mxPoint x="460" y="285" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2: POST /api/v1/audit/execute (target_query, draft_title, draft_content)" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="460" y="345" as="sourcePoint"/>
+            <mxPoint x="820" y="345" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="3: search_and_scrape_competitors(target_query)" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="820" y="410" as="sourcePoint"/>
+            <mxPoint x="1180" y="410" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="4: Unduh &amp; ekstrak teks bersih Top-3 SERP (Trafilatura XML)" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="1180" y="465" as="sourcePoint"/>
+            <mxPoint x="1180" y="465" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="5: return competitor_docs (List[dict]: clean_text, title, url)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="1180" y="545" as="sourcePoint"/>
+            <mxPoint x="820" y="545" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="6: preprocess_and_compute_vsm(draft, competitor_docs)" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="820" y="635" as="sourcePoint"/>
+            <mxPoint x="1540" y="635" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="7: calculate_information_gain &amp; stylometrics (TTR, MATTR, HKO)" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="820" y="715" as="sourcePoint"/>
+            <mxPoint x="1540" y="715" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="8: calculate_composite_cds &amp; generate_annotated_spans" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="820" y="795" as="sourcePoint"/>
+            <mxPoint x="1540" y="795" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="9: return cds_decision, entity_gaps, stylometrics, spans" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="1540" y="865" as="sourcePoint"/>
+            <mxPoint x="820" y="865" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="10: db.add(AuditSession, MetricResult, Snapshot, Gaps)" style="html=1;verticalAlign=bottom;endArrow=block;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="820" y="955" as="sourcePoint"/>
+            <mxPoint x="1880" y="955" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m11" value="11: db.commit() - Transaksi Sukses (UUID session_id)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="1880" y="1025" as="sourcePoint"/>
+            <mxPoint x="820" y="1025" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m12" value="12: HTTP 200 OK (AuditExecuteResponse JSON)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="820" y="1105" as="sourcePoint"/>
+            <mxPoint x="460" y="1105" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m13" value="13: Render Dasbor White-Box, Rekomendasi Remedi, &amp; Highlight Teks" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;background=none;" edge="1" parent="1">
+          <mxGeometry x="0.1" relative="1" as="geometry">
+            <mxPoint x="460" y="1185" as="sourcePoint"/>
+            <mxPoint x="150" y="1185" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

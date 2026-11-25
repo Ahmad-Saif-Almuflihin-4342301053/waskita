@@ -1,0 +1,259 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1860" height="1140" viewBox="0 0 1860 1140">
+<defs>
+  <style>
+    .title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 26px; font-weight: 700; fill: #0f172a; }
+    .subtitle { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 15px; fill: #475569; }
+    .tbl-bg { fill: #ffffff; stroke: #1e293b; stroke-width: 2.2; rx: 6; }
+    .tbl-hdr { fill: #1e3a8a; stroke: #1e293b; stroke-width: 2.2; }
+    .tbl-title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #ffffff; text-anchor: middle; dominant-baseline: central; }
+    .col-name { font-family: "DejaVu Sans Mono", monospace; font-size: 12.5px; fill: #0f172a; dominant-baseline: central; }
+    .col-type { font-family: "DejaVu Sans Mono", monospace; font-size: 11.5px; fill: #64748b; text-anchor: end; dominant-baseline: central; }
+    .badge-pk { fill: #fef2f2; stroke: #dc2626; stroke-width: 1.2; rx: 3; }
+    .badge-fk { fill: #eff6ff; stroke: #2563eb; stroke-width: 1.2; rx: 3; }
+    .badge-txt-pk { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10px; font-weight: 700; fill: #b91c1c; text-anchor: middle; dominant-baseline: central; }
+    .badge-txt-fk { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 10px; font-weight: 700; fill: #1d4ed8; text-anchor: middle; dominant-baseline: central; }
+    .row-sep { stroke: #e2e8f0; stroke-width: 1; }
+    .rel-line { stroke: #334155; stroke-width: 2.2; fill: none; }
+    .rel-lbl { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 12px; font-weight: 700; fill: #334155; text-anchor: middle; }
+  </style>
+</defs>
+<rect width="1860" height="1140" fill="#ffffff"/>
+<text x="48" y="48" class="title">Physical ERD / Skema Relasional — Notasi Crow's Foot (Standar Implementasi Basis Data)</text>
+<text x="48" y="74" class="subtitle">Skema Fisik 6 Tabel SQLite (SQLAlchemy ORM — backend/app/models/entities.py)</text>
+<line x1="440" y1="188" x2="620" y2="188" class="rel-line"/>
+<line x1="448" y1="179" x2="448" y2="197" class="rel-line"/><line x1="454" y1="179" x2="454" y2="197" class="rel-line"/>
+<line x1="606" y1="188" x2="620" y2="178" class="rel-line"/><line x1="606" y1="188" x2="620" y2="198" class="rel-line"/><circle cx="602" cy="188" r="4.5" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+<text x="530" y="176" class="rel-lbl">1 : N (melakukan)</text>
+<line x1="1100" y1="188" x2="1300" y2="188" class="rel-line"/>
+<line x1="1108" y1="179" x2="1108" y2="197" class="rel-line"/><line x1="1114" y1="179" x2="1114" y2="197" class="rel-line"/>
+<line x1="1292" y1="179" x2="1292" y2="197" class="rel-line"/><line x1="1286" y1="179" x2="1286" y2="197" class="rel-line"/>
+<text x="1200" y="176" class="rel-lbl">1 : 1 (mengambil)</text>
+<polyline points="1100,240 1148,240 1148,290 1100,290" class="rel-line"/>
+<text x="1208" y="270" class="rel-lbl">1:N (revisi)</text>
+<polyline points="710,494 710,565 290,565 290,620" class="rel-line"/>
+<line x1="701" y1="502" x2="719" y2="502" class="rel-line"/><line x1="701" y1="508" x2="719" y2="508" class="rel-line"/>
+<line x1="281" y1="612" x2="299" y2="612" class="rel-line"/><line x1="281" y1="606" x2="299" y2="606" class="rel-line"/>
+<text x="480" y="553" class="rel-lbl">1 : 1 (menghasilkan)</text>
+<line x1="865" y1="494" x2="865" y2="680" class="rel-line"/>
+<line x1="856" y1="502" x2="874" y2="502" class="rel-line"/><line x1="856" y1="508" x2="874" y2="508" class="rel-line"/>
+<line x1="865" y1="666" x2="855" y2="680" class="rel-line"/><line x1="865" y1="666" x2="875" y2="680" class="rel-line"/><circle cx="865" cy="662" r="4.5" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+<text x="937" y="590" class="rel-lbl">1 : N (memiliki)</text>
+<line x1="1540" y1="348" x2="1540" y2="560" class="rel-line"/>
+<line x1="1531" y1="356" x2="1549" y2="356" class="rel-line"/><line x1="1531" y1="362" x2="1549" y2="362" class="rel-line"/>
+<line x1="1540" y1="546" x2="1530" y2="560" class="rel-line"/><line x1="1540" y1="546" x2="1550" y2="560" class="rel-line"/><circle cx="1540" cy="542" r="4.5" fill="#ffffff" stroke="#334155" stroke-width="2"/>
+<text x="1612" y="455" class="rel-lbl">1 : N (memuat)</text>
+<rect x="60" y="120" width="380" height="228" class="tbl-bg"/>
+<rect x="60" y="120" width="380" height="36" class="tbl-hdr"/>
+<text x="250.0" y="138.0" class="tbl-title">USERS</text>
+<rect x="70" y="163" width="26" height="18" class="badge-pk"/>
+<text x="83" y="172" class="badge-txt-pk">PK</text>
+<text x="104" y="172" class="col-name">user_id</text>
+<text x="428" y="172" class="col-type">INT</text>
+<line x1="68" y1="185.0" x2="432" y2="185.0" class="row-sep"/>
+<text x="74" y="198" class="col-name">username</text>
+<text x="428" y="198" class="col-type">VARCHAR(64)</text>
+<line x1="68" y1="211.0" x2="432" y2="211.0" class="row-sep"/>
+<text x="74" y="224" class="col-name">email</text>
+<text x="428" y="224" class="col-type">VARCHAR(120)</text>
+<line x1="68" y1="237.0" x2="432" y2="237.0" class="row-sep"/>
+<text x="74" y="250" class="col-name">password_hash</text>
+<text x="428" y="250" class="col-type">VARCHAR(255)</text>
+<line x1="68" y1="263.0" x2="432" y2="263.0" class="row-sep"/>
+<text x="74" y="276" class="col-name">role</text>
+<text x="428" y="276" class="col-type">VARCHAR(20)</text>
+<line x1="68" y1="289.0" x2="432" y2="289.0" class="row-sep"/>
+<text x="74" y="302" class="col-name">plan_tier</text>
+<text x="428" y="302" class="col-type">VARCHAR(30)</text>
+<line x1="68" y1="315.0" x2="432" y2="315.0" class="row-sep"/>
+<text x="74" y="328" class="col-name">created_at</text>
+<text x="428" y="328" class="col-type">DATETIME</text>
+<rect x="620" y="110" width="480" height="384" class="tbl-bg"/>
+<rect x="620" y="110" width="480" height="36" class="tbl-hdr"/>
+<text x="860.0" y="128.0" class="tbl-title">AUDIT_SESSIONS</text>
+<rect x="630" y="153" width="26" height="18" class="badge-pk"/>
+<text x="643" y="162" class="badge-txt-pk">PK</text>
+<text x="664" y="162" class="col-name">session_id</text>
+<text x="1088" y="162" class="col-type">VARCHAR(36)</text>
+<line x1="628" y1="175.0" x2="1092" y2="175.0" class="row-sep"/>
+<rect x="630" y="179" width="26" height="18" class="badge-fk"/>
+<text x="643" y="188" class="badge-txt-fk">FK</text>
+<text x="664" y="188" class="col-name">user_id</text>
+<text x="1088" y="188" class="col-type">INT (NULL)</text>
+<line x1="628" y1="201.0" x2="1092" y2="201.0" class="row-sep"/>
+<rect x="630" y="205" width="26" height="18" class="badge-fk"/>
+<text x="643" y="214" class="badge-txt-fk">FK</text>
+<text x="664" y="214" class="col-name">parent_session_id</text>
+<text x="1088" y="214" class="col-type">VARCHAR(36)</text>
+<line x1="628" y1="227.0" x2="1092" y2="227.0" class="row-sep"/>
+<text x="634" y="240" class="col-name">turn_number</text>
+<text x="1088" y="240" class="col-type">INT</text>
+<line x1="628" y1="253.0" x2="1092" y2="253.0" class="row-sep"/>
+<text x="634" y="266" class="col-name">target_query</text>
+<text x="1088" y="266" class="col-type">VARCHAR(255)</text>
+<line x1="628" y1="279.0" x2="1092" y2="279.0" class="row-sep"/>
+<text x="634" y="292" class="col-name">draft_title</text>
+<text x="1088" y="292" class="col-type">VARCHAR(255)</text>
+<line x1="628" y1="305.0" x2="1092" y2="305.0" class="row-sep"/>
+<text x="634" y="318" class="col-name">draft_content</text>
+<text x="1088" y="318" class="col-type">TEXT</text>
+<line x1="628" y1="331.0" x2="1092" y2="331.0" class="row-sep"/>
+<text x="634" y="344" class="col-name">draft_word_count</text>
+<text x="1088" y="344" class="col-type">INT</text>
+<line x1="628" y1="357.0" x2="1092" y2="357.0" class="row-sep"/>
+<text x="634" y="370" class="col-name">audit_timestamp</text>
+<text x="1088" y="370" class="col-type">DATETIME</text>
+<line x1="628" y1="383.0" x2="1092" y2="383.0" class="row-sep"/>
+<text x="634" y="396" class="col-name">verdict_status</text>
+<text x="1088" y="396" class="col-type">VARCHAR(32)</text>
+<line x1="628" y1="409.0" x2="1092" y2="409.0" class="row-sep"/>
+<text x="634" y="422" class="col-name">is_pinned</text>
+<text x="1088" y="422" class="col-type">BOOLEAN</text>
+<line x1="628" y1="435.0" x2="1092" y2="435.0" class="row-sep"/>
+<text x="634" y="448" class="col-name">annotated_spans_json</text>
+<text x="1088" y="448" class="col-type">TEXT</text>
+<line x1="628" y1="461.0" x2="1092" y2="461.0" class="row-sep"/>
+<text x="634" y="474" class="col-name">remediation_prompt</text>
+<text x="1088" y="474" class="col-type">TEXT</text>
+<rect x="1300" y="120" width="480" height="228" class="tbl-bg"/>
+<rect x="1300" y="120" width="480" height="36" class="tbl-hdr"/>
+<text x="1540.0" y="138.0" class="tbl-title">COMPETITOR_SNAPSHOTS</text>
+<rect x="1310" y="163" width="26" height="18" class="badge-pk"/>
+<text x="1323" y="172" class="badge-txt-pk">PK</text>
+<text x="1344" y="172" class="col-name">snapshot_id</text>
+<text x="1768" y="172" class="col-type">INT</text>
+<line x1="1308" y1="185.0" x2="1772" y2="185.0" class="row-sep"/>
+<rect x="1310" y="189" width="26" height="18" class="badge-fk"/>
+<text x="1323" y="198" class="badge-txt-fk">FK</text>
+<text x="1344" y="198" class="col-name">session_id</text>
+<text x="1768" y="198" class="col-type">VARCHAR(36)</text>
+<line x1="1308" y1="211.0" x2="1772" y2="211.0" class="row-sep"/>
+<text x="1314" y="224" class="col-name">query_hash</text>
+<text x="1768" y="224" class="col-type">VARCHAR(64)</text>
+<line x1="1308" y1="237.0" x2="1772" y2="237.0" class="row-sep"/>
+<text x="1314" y="250" class="col-name">search_engine</text>
+<text x="1768" y="250" class="col-type">VARCHAR(50)</text>
+<line x1="1308" y1="263.0" x2="1772" y2="263.0" class="row-sep"/>
+<text x="1314" y="276" class="col-name">serp_locale</text>
+<text x="1768" y="276" class="col-type">VARCHAR(16)</text>
+<line x1="1308" y1="289.0" x2="1772" y2="289.0" class="row-sep"/>
+<text x="1314" y="302" class="col-name">total_retrieved</text>
+<text x="1768" y="302" class="col-type">INT</text>
+<line x1="1308" y1="315.0" x2="1772" y2="315.0" class="row-sep"/>
+<text x="1314" y="328" class="col-name">snapshot_time</text>
+<text x="1768" y="328" class="col-type">DATETIME</text>
+<rect x="60" y="620" width="460" height="332" class="tbl-bg"/>
+<rect x="60" y="620" width="460" height="36" class="tbl-hdr"/>
+<text x="290.0" y="638.0" class="tbl-title">METRIC_RESULTS</text>
+<rect x="70" y="663" width="26" height="18" class="badge-pk"/>
+<text x="83" y="672" class="badge-txt-pk">PK</text>
+<text x="104" y="672" class="col-name">metric_id</text>
+<text x="508" y="672" class="col-type">INT</text>
+<line x1="68" y1="685.0" x2="512" y2="685.0" class="row-sep"/>
+<rect x="70" y="689" width="40" height="18" class="badge-fk"/>
+<text x="90" y="698" class="badge-txt-fk">FK,UK</text>
+<text x="118" y="698" class="col-name">session_id</text>
+<text x="508" y="698" class="col-type">VARCHAR(36)</text>
+<line x1="68" y1="711.0" x2="512" y2="711.0" class="row-sep"/>
+<text x="74" y="724" class="col-name">avg_cosine_similarity</text>
+<text x="508" y="724" class="col-type">FLOAT</text>
+<line x1="68" y1="737.0" x2="512" y2="737.0" class="row-sep"/>
+<text x="74" y="750" class="col-name">max_cosine_similarity</text>
+<text x="508" y="750" class="col-type">FLOAT</text>
+<line x1="68" y1="763.0" x2="512" y2="763.0" class="row-sep"/>
+<text x="74" y="776" class="col-name">euclidean_distance</text>
+<text x="508" y="776" class="col-type">FLOAT</text>
+<line x1="68" y1="789.0" x2="512" y2="789.0" class="row-sep"/>
+<text x="74" y="802" class="col-name">ttr_score</text>
+<text x="508" y="802" class="col-type">FLOAT</text>
+<line x1="68" y1="815.0" x2="512" y2="815.0" class="row-sep"/>
+<text x="74" y="828" class="col-name">mattr_score</text>
+<text x="508" y="828" class="col-type">FLOAT</text>
+<line x1="68" y1="841.0" x2="512" y2="841.0" class="row-sep"/>
+<text x="74" y="854" class="col-name">hko_percentage</text>
+<text x="508" y="854" class="col-type">FLOAT</text>
+<line x1="68" y1="867.0" x2="512" y2="867.0" class="row-sep"/>
+<text x="74" y="880" class="col-name">content_differentiation_score</text>
+<text x="508" y="880" class="col-type">FLOAT</text>
+<line x1="68" y1="893.0" x2="512" y2="893.0" class="row-sep"/>
+<text x="74" y="906" class="col-name">is_redundant</text>
+<text x="508" y="906" class="col-type">BOOLEAN</text>
+<line x1="68" y1="919.0" x2="512" y2="919.0" class="row-sep"/>
+<text x="74" y="932" class="col-name">is_keyword_stuffed</text>
+<text x="508" y="932" class="col-type">BOOLEAN</text>
+<rect x="640" y="680" width="450" height="228" class="tbl-bg"/>
+<rect x="640" y="680" width="450" height="36" class="tbl-hdr"/>
+<text x="865.0" y="698.0" class="tbl-title">ENTITY_GAPS</text>
+<rect x="650" y="723" width="26" height="18" class="badge-pk"/>
+<text x="663" y="732" class="badge-txt-pk">PK</text>
+<text x="684" y="732" class="col-name">gap_id</text>
+<text x="1078" y="732" class="col-type">INT</text>
+<line x1="648" y1="745.0" x2="1082" y2="745.0" class="row-sep"/>
+<rect x="650" y="749" width="26" height="18" class="badge-fk"/>
+<text x="663" y="758" class="badge-txt-fk">FK</text>
+<text x="684" y="758" class="col-name">session_id</text>
+<text x="1078" y="758" class="col-type">VARCHAR(36)</text>
+<line x1="648" y1="771.0" x2="1082" y2="771.0" class="row-sep"/>
+<text x="654" y="784" class="col-name">entity_type</text>
+<text x="1078" y="784" class="col-type">VARCHAR(16)</text>
+<line x1="648" y1="797.0" x2="1082" y2="797.0" class="row-sep"/>
+<text x="654" y="810" class="col-name">term_string</text>
+<text x="1078" y="810" class="col-type">VARCHAR(120)</text>
+<line x1="648" y1="823.0" x2="1082" y2="823.0" class="row-sep"/>
+<text x="654" y="836" class="col-name">term_surface_form</text>
+<text x="1078" y="836" class="col-type">VARCHAR(120)</text>
+<line x1="648" y1="849.0" x2="1082" y2="849.0" class="row-sep"/>
+<text x="654" y="862" class="col-name">tfidf_weight</text>
+<text x="1078" y="862" class="col-type">FLOAT</text>
+<line x1="648" y1="875.0" x2="1082" y2="875.0" class="row-sep"/>
+<text x="654" y="888" class="col-name">competitor_consensus_count</text>
+<text x="1078" y="888" class="col-type">INT</text>
+<rect x="1280" y="560" width="500" height="410" class="tbl-bg"/>
+<rect x="1280" y="560" width="500" height="36" class="tbl-hdr"/>
+<text x="1530.0" y="578.0" class="tbl-title">COMPETITOR_DOCUMENTS</text>
+<rect x="1290" y="603" width="26" height="18" class="badge-pk"/>
+<text x="1303" y="612" class="badge-txt-pk">PK</text>
+<text x="1324" y="612" class="col-name">document_id</text>
+<text x="1768" y="612" class="col-type">INT</text>
+<line x1="1288" y1="625.0" x2="1772" y2="625.0" class="row-sep"/>
+<rect x="1290" y="629" width="26" height="18" class="badge-fk"/>
+<text x="1303" y="638" class="badge-txt-fk">FK</text>
+<text x="1324" y="638" class="col-name">snapshot_id</text>
+<text x="1768" y="638" class="col-type">INT</text>
+<line x1="1288" y1="651.0" x2="1772" y2="651.0" class="row-sep"/>
+<text x="1294" y="664" class="col-name">rank_position</text>
+<text x="1768" y="664" class="col-type">INT</text>
+<line x1="1288" y1="677.0" x2="1772" y2="677.0" class="row-sep"/>
+<text x="1294" y="690" class="col-name">source_url</text>
+<text x="1768" y="690" class="col-type">TEXT</text>
+<line x1="1288" y1="703.0" x2="1772" y2="703.0" class="row-sep"/>
+<text x="1294" y="716" class="col-name">domain_name</text>
+<text x="1768" y="716" class="col-type">VARCHAR(120)</text>
+<line x1="1288" y1="729.0" x2="1772" y2="729.0" class="row-sep"/>
+<text x="1294" y="742" class="col-name">page_title</text>
+<text x="1768" y="742" class="col-type">VARCHAR(500)</text>
+<line x1="1288" y1="755.0" x2="1772" y2="755.0" class="row-sep"/>
+<text x="1294" y="768" class="col-name">snippet_text</text>
+<text x="1768" y="768" class="col-type">TEXT</text>
+<line x1="1288" y1="781.0" x2="1772" y2="781.0" class="row-sep"/>
+<text x="1294" y="794" class="col-name">clean_text</text>
+<text x="1768" y="794" class="col-type">TEXT</text>
+<line x1="1288" y1="807.0" x2="1772" y2="807.0" class="row-sep"/>
+<text x="1294" y="820" class="col-name">word_count</text>
+<text x="1768" y="820" class="col-type">INT</text>
+<line x1="1288" y1="833.0" x2="1772" y2="833.0" class="row-sep"/>
+<text x="1294" y="846" class="col-name">cosine_similarity</text>
+<text x="1768" y="846" class="col-type">FLOAT</text>
+<line x1="1288" y1="859.0" x2="1772" y2="859.0" class="row-sep"/>
+<text x="1294" y="872" class="col-name">main_text_hash</text>
+<text x="1768" y="872" class="col-type">VARCHAR(64)</text>
+<line x1="1288" y1="885.0" x2="1772" y2="885.0" class="row-sep"/>
+<text x="1294" y="898" class="col-name">heading_structure</text>
+<text x="1768" y="898" class="col-type">TEXT</text>
+<line x1="1288" y1="911.0" x2="1772" y2="911.0" class="row-sep"/>
+<text x="1294" y="924" class="col-name">fetch_status</text>
+<text x="1768" y="924" class="col-type">VARCHAR(32)</text>
+<line x1="1288" y1="937.0" x2="1772" y2="937.0" class="row-sep"/>
+<text x="1294" y="950" class="col-name">http_status_code</text>
+<text x="1768" y="950" class="col-type">INT</text>
+<text x="48" y="1095" class="subtitle">Catatan: PK = Primary Key, FK = Foreign Key, UK = Unique Key (Relasi 1:1). Seluruh tipe kolom sesuai implementasi SQLAlchemy di backend/app/models/entities.py.</text>
+</svg>

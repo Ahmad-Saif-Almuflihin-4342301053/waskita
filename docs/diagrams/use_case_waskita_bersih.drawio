@@ -1,0 +1,60 @@
+<mxfile host="app.diagrams.net" modified="2026-11-23T16:42:00.000Z" agent="Antigravity" version="21.0.0" type="device">
+  <diagram id="waskita-use-case" name="Use Case WASKITA">
+    <mxGraphModel dx="1600" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Header -->
+        <mxCell id="title" value="&lt;b&gt;USE CASE DIAGRAM — SISTEM WASKITA&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Fungsionalitas Inti Sistem Kurasi Konten Pra-Publikasi (Standar UML OMG — Versi Bersih)" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="65" width="620" height="24" as="geometry"/>
+        </mxCell>
+
+        <!-- System Boundary -->
+        <mxCell id="system_boundary" value="&lt;b&gt;Sistem Kurasi Konten WASKITA&lt;/b&gt;" style="swimlane;startSize=36;horizontal=1;strokeColor=#000000;strokeWidth=2.2;fillColor=#ffffff;fontColor=#000000;fontSize=15;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="480" y="150" width="940" height="740" as="geometry"/>
+        </mxCell>
+
+        <!-- Actor (Stickman) -->
+        <mxCell id="actor_user" value="&lt;b&gt;Penulis / Editor Konten Web&lt;/b&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#000000;strokeWidth=2.4;fillColor=#ffffff;fontColor=#000000;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="180" y="420" width="80" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Use Cases & Association Lines -->
+        <mxCell id="uc_input" value="&lt;b&gt;Memasukkan Draf Naskah &amp;amp; Kueri Target&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="218" width="420" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="assoc_uc_input" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_input">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_audit" value="&lt;b&gt;Menjalankan Audit Mutu Konten&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="348" width="420" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="assoc_uc_audit" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_audit">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_report" value="&lt;b&gt;Melihat Laporan Diagnostik &amp;amp; Skor CDS&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="478" width="420" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="assoc_uc_report" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_report">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_revise" value="&lt;b&gt;Melakukan Perbaikan Draf (Turn Revisi)&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="608" width="420" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="assoc_uc_revise" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_revise">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_export" value="&lt;b&gt;Mengekspor Laporan Hasil Audit&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="740" y="738" width="420" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="assoc_uc_export" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_export">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

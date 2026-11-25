@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2050" height="1340" viewBox="0 0 2050 1340">
+<defs>
+  <style>
+    .title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #000000; text-anchor: start; }
+    .subtitle { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; fill: #444444; text-anchor: start; }
+    .head-box { fill: #ffffff; stroke: #000000; stroke-width: 2.0; }
+    .head-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; font-weight: 700; fill: #000000; text-anchor: middle; dominant-baseline: central; }
+    .sub-head-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 11.5px; fill: #444444; text-anchor: middle; dominant-baseline: central; }
+    .life-line { stroke: #000000; stroke-width: 1.4; stroke-dasharray: 6,6; }
+    .act-bar { fill: #ffffff; stroke: #000000; stroke-width: 1.8; }
+    .msg-sync { stroke: #000000; stroke-width: 1.8; fill: none; }
+    .msg-ret { stroke: #000000; stroke-width: 1.8; stroke-dasharray: 6,4; fill: none; }
+    .msg-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 12.5px; font-weight: 700; fill: #000000; }
+    .msg-sub { font-family: "DejaVu Sans Mono", monospace; font-size: 11px; fill: #333333; }
+    .actor-line { stroke: #000000; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .actor-head { fill: #ffffff; stroke: #000000; stroke-width: 2.2; }
+    .actor-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; font-weight: 700; fill: #000000; text-anchor: middle; }
+    .text-mask { fill: #ffffff; }
+  </style>
+  <marker id="arrow-solid" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 1 L 9 5 L 0 9 z" fill="#000000"/>
+  </marker>
+  <marker id="arrow-open" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+    <path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#000000" stroke-width="1.8"/>
+  </marker>
+</defs>
+<rect width="2050" height="1340" fill="#ffffff"/>
+<text x="60" y="45" class="title">SEQUENCE DIAGRAM — PROSES AUDIT MUTU KONTEN WASKITA</text>
+<text x="60" y="70" class="subtitle">Interaksi Antar-Komponen Perangkat Lunak saat Eksekusi Audit Naskah Pra-Publikasi (Standar UML OMG)</text>
+<circle cx="150" cy="115" r="18" class="actor-head"/>
+<line x1="150" y1="133" x2="150" y2="170" class="actor-line"/>
+<line x1="122" y1="148" x2="178" y2="148" class="actor-line"/>
+<line x1="150" y1="170" x2="128" y2="215" class="actor-line"/>
+<line x1="150" y1="170" x2="172" y2="215" class="actor-line"/>
+<text x="150" y="235" class="actor-txt">Penulis</text>
+<rect x="360.0" y="175" width="200" height="50" class="head-box"/>
+<text x="460" y="195" class="head-txt">:Frontend (React UI)</text>
+<text x="460" y="213" class="sub-head-txt">Browser Client</text>
+<rect x="710.0" y="175" width="220" height="50" class="head-box"/>
+<text x="820" y="195" class="head-txt">:API Gateway (FastAPI)</text>
+<text x="820" y="213" class="sub-head-txt">Controller Layer</text>
+<rect x="1080.0" y="175" width="200" height="50" class="head-box"/>
+<text x="1180" y="195" class="head-txt">:SERP Harvester</text>
+<text x="1180" y="213" class="sub-head-txt">Scraper &amp; SearXNG</text>
+<rect x="1435.0" y="175" width="210" height="50" class="head-box"/>
+<text x="1540" y="195" class="head-txt">:IR &amp; NLP Engine</text>
+<text x="1540" y="213" class="sub-head-txt">VSM, IG &amp; Gatekeeper</text>
+<rect x="1780.0" y="175" width="200" height="50" class="head-box"/>
+<text x="1880" y="195" class="head-txt">:Basis Data (SQLite)</text>
+<text x="1880" y="213" class="sub-head-txt">WAL Persistence</text>
+<line x1="150" y1="245" x2="150" y2="1285" class="life-line"/>
+<line x1="460" y1="245" x2="460" y2="1285" class="life-line"/>
+<line x1="820" y1="245" x2="820" y2="1285" class="life-line"/>
+<line x1="1180" y1="245" x2="1180" y2="1285" class="life-line"/>
+<line x1="1540" y1="245" x2="1540" y2="1285" class="life-line"/>
+<line x1="1880" y1="245" x2="1880" y2="1285" class="life-line"/>
+<rect x="142" y="270" width="16" height="990" class="act-bar"/>
+<rect x="452" y="280" width="16" height="970" class="act-bar"/>
+<rect x="812" y="330" width="16" height="890" class="act-bar"/>
+<rect x="1172" y="400" width="16" height="160" class="act-bar"/>
+<rect x="1532" y="630" width="16" height="250" class="act-bar"/>
+<rect x="1872" y="950" width="16" height="80" class="act-bar"/>
+<line x1="158" y1="285" x2="452" y2="285" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="150.0" y="265" width="310" height="20" class="text-mask"/>
+<text x="305.0" y="279" class="msg-txt" text-anchor="middle">1: Input draf naskah, kueri target, &amp; klik 'Mulai Audit'</text>
+<line x1="468" y1="345" x2="812" y2="345" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="460.0" y="325" width="360" height="36" class="text-mask"/>
+<text x="640.0" y="339" class="msg-txt" text-anchor="middle">2: POST /api/v1/audit/execute</text>
+<text x="640.0" y="357" class="msg-sub" text-anchor="middle">AuditExecuteRequest (target_query, draft_title, draft_content)</text>
+<line x1="828" y1="410" x2="1172" y2="410" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="830.0" y="390" width="340" height="20" class="text-mask"/>
+<text x="1000.0" y="404" class="msg-txt" text-anchor="middle">3: search_and_scrape_competitors(target_query)</text>
+<polyline points="1188,465 1233,465 1233,495 1188,495" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<text x="1245" y="478.0" class="msg-txt" text-anchor="start">4: Unduh &amp; ekstrak teks bersih Top-3 SERP</text>
+<text x="1245" y="495.0" class="msg-sub" text-anchor="start">Trafilatura XML, saring media/PDF, validasi k >= 2</text>
+<line x1="1172" y1="545" x2="828" y2="545" class="msg-ret" marker-end="url(#arrow-open)"/>
+<rect x="830.0" y="525" width="340" height="36" class="text-mask"/>
+<text x="1000.0" y="539" class="msg-txt" text-anchor="middle">5: return competitor_docs</text>
+<text x="1000.0" y="557" class="msg-sub" text-anchor="middle">List[dict] (clean_text, title, url, domain, rank)</text>
+<line x1="828" y1="635" x2="1532" y2="635" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="940.0" y="615" width="480" height="36" class="text-mask"/>
+<text x="1180.0" y="629" class="msg-txt" text-anchor="middle">6: preprocess_and_compute_vsm(draft, competitor_docs)</text>
+<text x="1180.0" y="647" class="msg-sub" text-anchor="middle">Stemming Sastrawi, TF-IDF VSM, &amp; Cosine Similarity</text>
+<line x1="828" y1="715" x2="1532" y2="715" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="940.0" y="695" width="480" height="36" class="text-mask"/>
+<text x="1180.0" y="709" class="msg-txt" text-anchor="middle">7: calculate_information_gain &amp; stylometrics</text>
+<text x="1180.0" y="727" class="msg-sub" text-anchor="middle">Defisit Entitas, Nilai Unik Delta-Gain, TTR, MATTR, HKO</text>
+<line x1="828" y1="795" x2="1532" y2="795" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="935.0" y="775" width="490" height="36" class="text-mask"/>
+<text x="1180.0" y="789" class="msg-txt" text-anchor="middle">8: calculate_composite_cds &amp; generate_annotated_spans</text>
+<text x="1180.0" y="807" class="msg-sub" text-anchor="middle">Ambang Veto EEAT, Rasio Red-Span, &amp; Skor Komposit CDS</text>
+<line x1="1532" y1="865" x2="828" y2="865" class="msg-ret" marker-end="url(#arrow-open)"/>
+<rect x="940.0" y="845" width="480" height="36" class="text-mask"/>
+<text x="1180.0" y="859" class="msg-txt" text-anchor="middle">9: return cds_decision, entity_gaps, stylometrics, spans</text>
+<text x="1180.0" y="877" class="msg-sub" text-anchor="middle">Verdict (Siap Terbit / Perlu Revisi), Skor CDS 0-100</text>
+<line x1="828" y1="955" x2="1872" y2="955" class="msg-sync" marker-end="url(#arrow-solid)"/>
+<rect x="1060.0" y="935" width="580" height="36" class="text-mask"/>
+<text x="1350.0" y="949" class="msg-txt" text-anchor="middle">10: db.add(AuditSession, MetricResult, Snapshot, Gaps)</text>
+<text x="1350.0" y="967" class="msg-sub" text-anchor="middle">Simpan riwayat sesi audit, metrik matematis, &amp; entitas gap</text>
+<line x1="1872" y1="1025" x2="828" y2="1025" class="msg-ret" marker-end="url(#arrow-open)"/>
+<rect x="1140.0" y="1005" width="420" height="36" class="text-mask"/>
+<text x="1350.0" y="1019" class="msg-txt" text-anchor="middle">11: db.commit() - Transaksi Sukses</text>
+<text x="1350.0" y="1037" class="msg-sub" text-anchor="middle">UUID session_id dihasilkan</text>
+<line x1="812" y1="1105" x2="468" y2="1105" class="msg-ret" marker-end="url(#arrow-open)"/>
+<rect x="410.0" y="1085" width="460" height="36" class="text-mask"/>
+<text x="640.0" y="1099" class="msg-txt" text-anchor="middle">12: HTTP 200 OK (AuditExecuteResponse JSON)</text>
+<text x="640.0" y="1117" class="msg-sub" text-anchor="middle">Skor CDS, stabilo spans 4-warna, &amp; rekomendasi editorial</text>
+<line x1="452" y1="1185" x2="158" y2="1185" class="msg-ret" marker-end="url(#arrow-open)"/>
+<rect x="140.0" y="1165" width="330" height="20" class="text-mask"/>
+<text x="305.0" y="1179" class="msg-txt" text-anchor="middle">13: Render Dasbor White-Box, Rekomendasi Remedi, &amp; Highlight Teks</text>
+</svg>

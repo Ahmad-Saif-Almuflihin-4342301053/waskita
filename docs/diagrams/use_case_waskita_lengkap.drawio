@@ -1,0 +1,104 @@
+<mxfile host="app.diagrams.net" modified="2026-11-23T16:48:00.000Z" agent="Antigravity" version="21.0.0" type="device">
+  <diagram id="waskita-full-use-case" name="Use Case WASKITA Full">
+    <mxGraphModel dx="2200" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2100" pageHeight="1400" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Header -->
+        <mxCell id="title" value="&lt;b&gt;USE CASE DIAGRAM — SISTEM WASKITA&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=22;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="35" width="540" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="subtitle" value="Interaksi Aktor Primer (Penulis) dan Aktor Sekunder (Layanan Eksternal) — Standar UML OMG" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=13;fontColor=#444444;" vertex="1" parent="1">
+          <mxGeometry x="60" y="65" width="680" height="24" as="geometry"/>
+        </mxCell>
+
+        <!-- System Boundary -->
+        <mxCell id="system_boundary" value="&lt;b&gt;Sistem Kurasi Konten WASKITA&lt;/b&gt;" style="swimlane;startSize=36;horizontal=1;strokeColor=#000000;strokeWidth=2.2;fillColor=#ffffff;fontColor=#000000;fontSize=16;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="400" y="130" width="1120" height="990" as="geometry"/>
+        </mxCell>
+
+        <!-- Primary Actor (Left) -->
+        <mxCell id="actor_user" value="&lt;b&gt;Penulis / Editor Konten&lt;/b&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#000000;strokeWidth=2.4;fillColor=#ffffff;fontColor=#000000;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="140" y="480" width="80" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Secondary Actors (Right) -->
+        <mxCell id="actor_serp" value="&amp;lt;&amp;lt;service&amp;gt;&amp;gt;&lt;br&gt;&lt;b&gt;Mesin Pencari&lt;br&gt;(Google / SearXNG)&lt;/b&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#000000;strokeWidth=2.4;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="1720" y="340" width="80" height="160" as="geometry"/>
+        </mxCell>
+        <mxCell id="actor_db" value="&amp;lt;&amp;lt;system&amp;gt;&amp;gt;&lt;br&gt;&lt;b&gt;Basis Data&lt;br&gt;(SQLite Engine)&lt;/b&gt;" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;strokeColor=#000000;strokeWidth=2.4;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="1720" y="760" width="80" height="160" as="geometry"/>
+        </mxCell>
+
+        <!-- Use Cases inside Boundary -->
+        <mxCell id="uc_login" value="&lt;b&gt;Melakukan Login Sistem&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="780" y="190" width="360" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_input" value="&lt;b&gt;Memasukkan Draf &amp;amp; Target Kueri&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="770" y="305" width="380" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_audit" value="&lt;b&gt;Menjalankan Audit Mutu Konten&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="760" y="433" width="400" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_serp" value="&lt;b&gt;Memanen Korpus SERP Kompetitor&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="545" y="580" width="370" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_calc" value="&lt;b&gt;Mengkalkulasi Metrik IR &amp;amp; Stilometri&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="995" y="580" width="390" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_report" value="&lt;b&gt;Melihat Laporan Diagnostik &amp;amp; Skor CDS&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="750" y="725" width="420" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_revise" value="&lt;b&gt;Melakukan Perbaikan Draf (Turn Revisi)&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="755" y="855" width="410" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="uc_export" value="&lt;b&gt;Mengekspor Laporan Hasil Audit&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;strokeColor=#000000;strokeWidth=2;fillColor=#ffffff;fontColor=#000000;fontSize=13.5;" vertex="1" parent="1">
+          <mxGeometry x="770" y="975" width="380" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Primary Actor Associations -->
+        <mxCell id="edge_user_login" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_login">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_user_input" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_input">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_user_audit" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_audit">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_user_report" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_report">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_user_revise" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_revise">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_user_export" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;entryX=0;entryY=0.5;" edge="1" parent="1" source="actor_user" target="uc_export">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- <<include>> Relationships -->
+        <mxCell id="inc_audit_serp" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;align=center;verticalAlign=bottom;exitX=0.25;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="uc_audit" target="uc_serp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="inc_audit_calc" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="dashed=1;endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=1.8;fontSize=12;fontColor=#000000;align=center;verticalAlign=bottom;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="uc_audit" target="uc_calc">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Secondary Actor Associations -->
+        <mxCell id="edge_serp_service" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;exitX=1;exitY=0.5;" edge="1" parent="1" source="uc_serp" target="actor_serp">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_db_login" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;exitX=1;exitY=0.5;" edge="1" parent="1" source="uc_login" target="actor_db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_db_calc" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;exitX=1;exitY=0.5;" edge="1" parent="1" source="uc_calc" target="actor_db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge_db_revise" style="endArrow=none;html=1;strokeColor=#000000;strokeWidth=1.8;exitX=1;exitY=0.5;" edge="1" parent="1" source="uc_revise" target="actor_db">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,334 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1140" viewBox="0 0 1920 1140">
+<defs>
+  <style>
+    .title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #000000; text-anchor: start; }
+    .subtitle { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; fill: #444444; text-anchor: start; }
+    .tbl-box { fill: #ffffff; stroke: #000000; stroke-width: 2.0; }
+    .tbl-header { fill: #f0f0f0; stroke: #000000; stroke-width: 2.0; }
+    .tbl-title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #000000; text-anchor: middle; dominant-baseline: central; }
+    .col-key { font-family: "DejaVu Sans Mono", monospace; font-size: 11px; font-weight: 700; fill: #000000; text-anchor: middle; dominant-baseline: central; }
+    .col-name { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 12px; fill: #000000; dominant-baseline: central; }
+    .col-name-pk { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 12px; font-weight: 700; fill: #000000; dominant-baseline: central; text-decoration: underline; }
+    .col-type { font-family: "DejaVu Sans Mono", monospace; font-size: 11px; fill: #444444; text-anchor: end; dominant-baseline: central; }
+    .row-sep { stroke: #e0e0e0; stroke-width: 0.8; }
+    .col-sep { stroke: #d0d0d0; stroke-width: 0.8; }
+    .rel-line { stroke: #000000; stroke-width: 2.0; fill: none; }
+    .card-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #000000; }
+    .card-label-box { fill: #ffffff; stroke: #000000; stroke-width: 1.4; rx: 4; }
+    .card-label-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 11.5px; font-weight: 700; fill: #000000; text-anchor: middle; dominant-baseline: central; }
+  </style>
+</defs>
+<rect width="1920" height="1140" fill="#ffffff"/>
+<text x="60" y="45" class="title">ENTITY RELATIONSHIP DIAGRAM (ERD) — RELASIONAL</text>
+<text x="60" y="70" class="subtitle">Skema Relasional Basis Data Sistem WASKITA (6 Tabel Relasional — SQLite / SQLAlchemy ORM)</text>
+<polyline points="420,176 495,176 495,200 570,200" class="rel-line"/>
+<line x1="414" y1="167" x2="414" y2="185" class="rel-line"/><line x1="408" y1="167" x2="408" y2="185" class="rel-line"/>
+<line x1="584" y1="191" x2="570" y2="200" class="rel-line"/><line x1="584" y1="209" x2="570" y2="200" class="rel-line"/>
+<text x="436" y="168" class="card-txt">1</text>
+<text x="542" y="192" class="card-txt">N</text>
+<rect x="425.0" y="176.0" width="140" height="24" class="card-label-box"/><text x="495" y="188.0" class="card-label-txt">1 : N (One to Many)</text>
+<polyline points="1050,176 1130,176 1130,200 1210,200" class="rel-line"/>
+<line x1="1044" y1="167" x2="1044" y2="185" class="rel-line"/><line x1="1038" y1="167" x2="1038" y2="185" class="rel-line"/>
+<line x1="1216" y1="191" x2="1216" y2="209" class="rel-line"/><line x1="1222" y1="191" x2="1222" y2="209" class="rel-line"/>
+<text x="1066" y="168" class="card-txt">1</text>
+<text x="1186" y="192" class="card-txt">1</text>
+<rect x="1065.0" y="176.0" width="130" height="24" class="card-label-box"/><text x="1130" y="188.0" class="card-label-txt">1 : 1 (One to One)</text>
+<polyline points="730,130 730,82 910,82 910,130" class="rel-line"/>
+<line x1="721" y1="136" x2="739" y2="136" class="rel-line"/><line x1="721" y1="142" x2="739" y2="142" class="rel-line"/>
+<line x1="901" y1="116" x2="910" y2="130" class="rel-line"/><line x1="919" y1="116" x2="910" y2="130" class="rel-line"/>
+<text x="714" y="120" class="card-txt">1</text>
+<text x="924" y="120" class="card-txt">N</text>
+<rect x="732.5" y="70.0" width="175" height="24" class="card-label-box"/><text x="820.0" y="82" class="card-label-txt">1 : N (Turn Revisi / Self)</text>
+<polyline points="660,532 660,590 410,590 410,650" class="rel-line"/>
+<line x1="651" y1="526" x2="669" y2="526" class="rel-line"/><line x1="651" y1="520" x2="669" y2="520" class="rel-line"/>
+<line x1="401" y1="656" x2="419" y2="656" class="rel-line"/><line x1="401" y1="662" x2="419" y2="662" class="rel-line"/>
+<text x="672" y="552" class="card-txt">1</text>
+<text x="422" y="638" class="card-txt">1</text>
+<rect x="470.0" y="578.0" width="130" height="24" class="card-label-box"/><text x="535.0" y="590" class="card-label-txt">1 : 1 (One to One)</text>
+<line x1="830.0" y1="532" x2="830.0" y2="680" class="rel-line"/>
+<line x1="821.0" y1="526" x2="839.0" y2="526" class="rel-line"/><line x1="821.0" y1="520" x2="839.0" y2="520" class="rel-line"/>
+<line x1="821.0" y1="694" x2="830.0" y2="680" class="rel-line"/><line x1="839.0" y1="694" x2="830.0" y2="680" class="rel-line"/>
+<text x="844.0" y="552" class="card-txt">1</text>
+<text x="844.0" y="666" class="card-txt">N</text>
+<rect x="760.0" y="594.0" width="140" height="24" class="card-label-box"/><text x="830.0" y="606.0" class="card-label-txt">1 : N (One to Many)</text>
+<line x1="1425.0" y1="340" x2="1425.0" y2="580" class="rel-line"/>
+<line x1="1416.0" y1="334" x2="1434.0" y2="334" class="rel-line"/><line x1="1416.0" y1="328" x2="1434.0" y2="328" class="rel-line"/>
+<line x1="1416.0" y1="594" x2="1425.0" y2="580" class="rel-line"/><line x1="1434.0" y1="594" x2="1425.0" y2="580" class="rel-line"/>
+<text x="1439.0" y="360" class="card-txt">1</text>
+<text x="1439.0" y="566" class="card-txt">N</text>
+<rect x="1355.0" y="448.0" width="140" height="24" class="card-label-box"/><text x="1425.0" y="460.0" class="card-label-txt">1 : N (One to Many)</text>
+<rect x="60" y="130" width="360" height="210" class="tbl-box"/>
+<rect x="60" y="130" width="360" height="34" class="tbl-header"/>
+<text x="240.0" y="147.0" class="tbl-title">USERS</text>
+<line x1="60" y1="164" x2="420" y2="164" stroke="#000000" stroke-width="2.0"/>
+<line x1="104" y1="164" x2="104" y2="340" class="col-sep"/>
+<line x1="305" y1="164" x2="305" y2="340" class="col-sep"/>
+<text x="82.0" y="176" class="col-key">PK</text>
+<text x="114" y="176" class="col-name-pk">user_id</text>
+<text x="410" y="176" class="col-type">INTEGER</text>
+<line x1="60" y1="188.0" x2="420" y2="188.0" class="row-sep"/>
+<text x="82.0" y="200" class="col-key"></text>
+<text x="114" y="200" class="col-name">username</text>
+<text x="410" y="200" class="col-type">VARCHAR(64)</text>
+<line x1="60" y1="212.0" x2="420" y2="212.0" class="row-sep"/>
+<text x="82.0" y="224" class="col-key"></text>
+<text x="114" y="224" class="col-name">email</text>
+<text x="410" y="224" class="col-type">VARCHAR(120)</text>
+<line x1="60" y1="236.0" x2="420" y2="236.0" class="row-sep"/>
+<text x="82.0" y="248" class="col-key"></text>
+<text x="114" y="248" class="col-name">password_hash</text>
+<text x="410" y="248" class="col-type">VARCHAR(255)</text>
+<line x1="60" y1="260.0" x2="420" y2="260.0" class="row-sep"/>
+<text x="82.0" y="272" class="col-key"></text>
+<text x="114" y="272" class="col-name">role</text>
+<text x="410" y="272" class="col-type">VARCHAR(20)</text>
+<line x1="60" y1="284.0" x2="420" y2="284.0" class="row-sep"/>
+<text x="82.0" y="296" class="col-key"></text>
+<text x="114" y="296" class="col-name">plan_tier</text>
+<text x="410" y="296" class="col-type">VARCHAR(30)</text>
+<line x1="60" y1="308.0" x2="420" y2="308.0" class="row-sep"/>
+<text x="82.0" y="320" class="col-key"></text>
+<text x="114" y="320" class="col-name">created_at</text>
+<text x="410" y="320" class="col-type">DATETIME</text>
+<rect x="570" y="130" width="480" height="402" class="tbl-box"/>
+<rect x="570" y="130" width="480" height="34" class="tbl-header"/>
+<text x="810.0" y="147.0" class="tbl-title">AUDIT_SESSIONS</text>
+<line x1="570" y1="164" x2="1050" y2="164" stroke="#000000" stroke-width="2.0"/>
+<line x1="614" y1="164" x2="614" y2="532" class="col-sep"/>
+<line x1="935" y1="164" x2="935" y2="532" class="col-sep"/>
+<text x="592.0" y="176" class="col-key">PK</text>
+<text x="624" y="176" class="col-name-pk">session_id</text>
+<text x="1040" y="176" class="col-type">VARCHAR(36)</text>
+<line x1="570" y1="188.0" x2="1050" y2="188.0" class="row-sep"/>
+<text x="592.0" y="200" class="col-key">FK</text>
+<text x="624" y="200" class="col-name">user_id</text>
+<text x="1040" y="200" class="col-type">INTEGER</text>
+<line x1="570" y1="212.0" x2="1050" y2="212.0" class="row-sep"/>
+<text x="592.0" y="224" class="col-key">FK</text>
+<text x="624" y="224" class="col-name">parent_session_id</text>
+<text x="1040" y="224" class="col-type">VARCHAR(36)</text>
+<line x1="570" y1="236.0" x2="1050" y2="236.0" class="row-sep"/>
+<text x="592.0" y="248" class="col-key"></text>
+<text x="624" y="248" class="col-name">turn_number</text>
+<text x="1040" y="248" class="col-type">INTEGER</text>
+<line x1="570" y1="260.0" x2="1050" y2="260.0" class="row-sep"/>
+<text x="592.0" y="272" class="col-key"></text>
+<text x="624" y="272" class="col-name">target_query</text>
+<text x="1040" y="272" class="col-type">VARCHAR(255)</text>
+<line x1="570" y1="284.0" x2="1050" y2="284.0" class="row-sep"/>
+<text x="592.0" y="296" class="col-key"></text>
+<text x="624" y="296" class="col-name">draft_title</text>
+<text x="1040" y="296" class="col-type">VARCHAR(255)</text>
+<line x1="570" y1="308.0" x2="1050" y2="308.0" class="row-sep"/>
+<text x="592.0" y="320" class="col-key"></text>
+<text x="624" y="320" class="col-name">draft_content</text>
+<text x="1040" y="320" class="col-type">TEXT</text>
+<line x1="570" y1="332.0" x2="1050" y2="332.0" class="row-sep"/>
+<text x="592.0" y="344" class="col-key"></text>
+<text x="624" y="344" class="col-name">draft_word_count</text>
+<text x="1040" y="344" class="col-type">INTEGER</text>
+<line x1="570" y1="356.0" x2="1050" y2="356.0" class="row-sep"/>
+<text x="592.0" y="368" class="col-key"></text>
+<text x="624" y="368" class="col-name">audit_timestamp</text>
+<text x="1040" y="368" class="col-type">DATETIME</text>
+<line x1="570" y1="380.0" x2="1050" y2="380.0" class="row-sep"/>
+<text x="592.0" y="392" class="col-key"></text>
+<text x="624" y="392" class="col-name">verdict_status</text>
+<text x="1040" y="392" class="col-type">VARCHAR(32)</text>
+<line x1="570" y1="404.0" x2="1050" y2="404.0" class="row-sep"/>
+<text x="592.0" y="416" class="col-key"></text>
+<text x="624" y="416" class="col-name">is_pinned</text>
+<text x="1040" y="416" class="col-type">BOOLEAN</text>
+<line x1="570" y1="428.0" x2="1050" y2="428.0" class="row-sep"/>
+<text x="592.0" y="440" class="col-key"></text>
+<text x="624" y="440" class="col-name">degradation_warning</text>
+<text x="1040" y="440" class="col-type">TEXT</text>
+<line x1="570" y1="452.0" x2="1050" y2="452.0" class="row-sep"/>
+<text x="592.0" y="464" class="col-key"></text>
+<text x="624" y="464" class="col-name">annotated_spans_json</text>
+<text x="1040" y="464" class="col-type">TEXT</text>
+<line x1="570" y1="476.0" x2="1050" y2="476.0" class="row-sep"/>
+<text x="592.0" y="488" class="col-key"></text>
+<text x="624" y="488" class="col-name">remediation_prompt</text>
+<text x="1040" y="488" class="col-type">TEXT</text>
+<line x1="570" y1="500.0" x2="1050" y2="500.0" class="row-sep"/>
+<text x="592.0" y="512" class="col-key"></text>
+<text x="624" y="512" class="col-name">thresholds_json</text>
+<text x="1040" y="512" class="col-type">TEXT</text>
+<rect x="1210" y="130" width="430" height="210" class="tbl-box"/>
+<rect x="1210" y="130" width="430" height="34" class="tbl-header"/>
+<text x="1425.0" y="147.0" class="tbl-title">COMPETITOR_SNAPSHOTS</text>
+<line x1="1210" y1="164" x2="1640" y2="164" stroke="#000000" stroke-width="2.0"/>
+<line x1="1254" y1="164" x2="1254" y2="340" class="col-sep"/>
+<line x1="1525" y1="164" x2="1525" y2="340" class="col-sep"/>
+<text x="1232.0" y="176" class="col-key">PK</text>
+<text x="1264" y="176" class="col-name-pk">snapshot_id</text>
+<text x="1630" y="176" class="col-type">INTEGER</text>
+<line x1="1210" y1="188.0" x2="1640" y2="188.0" class="row-sep"/>
+<text x="1232.0" y="200" class="col-key">FK</text>
+<text x="1264" y="200" class="col-name">session_id</text>
+<text x="1630" y="200" class="col-type">VARCHAR(36)</text>
+<line x1="1210" y1="212.0" x2="1640" y2="212.0" class="row-sep"/>
+<text x="1232.0" y="224" class="col-key"></text>
+<text x="1264" y="224" class="col-name">query_hash</text>
+<text x="1630" y="224" class="col-type">VARCHAR(64)</text>
+<line x1="1210" y1="236.0" x2="1640" y2="236.0" class="row-sep"/>
+<text x="1232.0" y="248" class="col-key"></text>
+<text x="1264" y="248" class="col-name">search_engine</text>
+<text x="1630" y="248" class="col-type">VARCHAR(50)</text>
+<line x1="1210" y1="260.0" x2="1640" y2="260.0" class="row-sep"/>
+<text x="1232.0" y="272" class="col-key"></text>
+<text x="1264" y="272" class="col-name">serp_locale</text>
+<text x="1630" y="272" class="col-type">VARCHAR(16)</text>
+<line x1="1210" y1="284.0" x2="1640" y2="284.0" class="row-sep"/>
+<text x="1232.0" y="296" class="col-key"></text>
+<text x="1264" y="296" class="col-name">total_retrieved</text>
+<text x="1630" y="296" class="col-type">INTEGER</text>
+<line x1="1210" y1="308.0" x2="1640" y2="308.0" class="row-sep"/>
+<text x="1232.0" y="320" class="col-key"></text>
+<text x="1264" y="320" class="col-name">snapshot_time</text>
+<text x="1630" y="320" class="col-type">DATETIME</text>
+<rect x="60" y="650" width="450" height="306" class="tbl-box"/>
+<rect x="60" y="650" width="450" height="34" class="tbl-header"/>
+<text x="285.0" y="667.0" class="tbl-title">METRIC_RESULTS</text>
+<line x1="60" y1="684" x2="510" y2="684" stroke="#000000" stroke-width="2.0"/>
+<line x1="104" y1="684" x2="104" y2="956" class="col-sep"/>
+<line x1="395" y1="684" x2="395" y2="956" class="col-sep"/>
+<text x="82.0" y="696" class="col-key">PK</text>
+<text x="114" y="696" class="col-name-pk">metric_id</text>
+<text x="500" y="696" class="col-type">INTEGER</text>
+<line x1="60" y1="708.0" x2="510" y2="708.0" class="row-sep"/>
+<text x="82.0" y="720" class="col-key">FK</text>
+<text x="114" y="720" class="col-name">session_id</text>
+<text x="500" y="720" class="col-type">VARCHAR(36)</text>
+<line x1="60" y1="732.0" x2="510" y2="732.0" class="row-sep"/>
+<text x="82.0" y="744" class="col-key"></text>
+<text x="114" y="744" class="col-name">avg_cosine_similarity</text>
+<text x="500" y="744" class="col-type">FLOAT</text>
+<line x1="60" y1="756.0" x2="510" y2="756.0" class="row-sep"/>
+<text x="82.0" y="768" class="col-key"></text>
+<text x="114" y="768" class="col-name">max_cosine_similarity</text>
+<text x="500" y="768" class="col-type">FLOAT</text>
+<line x1="60" y1="780.0" x2="510" y2="780.0" class="row-sep"/>
+<text x="82.0" y="792" class="col-key"></text>
+<text x="114" y="792" class="col-name">euclidean_distance</text>
+<text x="500" y="792" class="col-type">FLOAT</text>
+<line x1="60" y1="804.0" x2="510" y2="804.0" class="row-sep"/>
+<text x="82.0" y="816" class="col-key"></text>
+<text x="114" y="816" class="col-name">ttr_score</text>
+<text x="500" y="816" class="col-type">FLOAT</text>
+<line x1="60" y1="828.0" x2="510" y2="828.0" class="row-sep"/>
+<text x="82.0" y="840" class="col-key"></text>
+<text x="114" y="840" class="col-name">mattr_score</text>
+<text x="500" y="840" class="col-type">FLOAT</text>
+<line x1="60" y1="852.0" x2="510" y2="852.0" class="row-sep"/>
+<text x="82.0" y="864" class="col-key"></text>
+<text x="114" y="864" class="col-name">hko_percentage</text>
+<text x="500" y="864" class="col-type">FLOAT</text>
+<line x1="60" y1="876.0" x2="510" y2="876.0" class="row-sep"/>
+<text x="82.0" y="888" class="col-key"></text>
+<text x="114" y="888" class="col-name">content_differentiation_score</text>
+<text x="500" y="888" class="col-type">FLOAT</text>
+<line x1="60" y1="900.0" x2="510" y2="900.0" class="row-sep"/>
+<text x="82.0" y="912" class="col-key"></text>
+<text x="114" y="912" class="col-name">is_redundant</text>
+<text x="500" y="912" class="col-type">BOOLEAN</text>
+<line x1="60" y1="924.0" x2="510" y2="924.0" class="row-sep"/>
+<text x="82.0" y="936" class="col-key"></text>
+<text x="114" y="936" class="col-name">is_keyword_stuffed</text>
+<text x="500" y="936" class="col-type">BOOLEAN</text>
+<rect x="590" y="680" width="440" height="210" class="tbl-box"/>
+<rect x="590" y="680" width="440" height="34" class="tbl-header"/>
+<text x="810.0" y="697.0" class="tbl-title">ENTITY_GAPS</text>
+<line x1="590" y1="714" x2="1030" y2="714" stroke="#000000" stroke-width="2.0"/>
+<line x1="634" y1="714" x2="634" y2="890" class="col-sep"/>
+<line x1="915" y1="714" x2="915" y2="890" class="col-sep"/>
+<text x="612.0" y="726" class="col-key">PK</text>
+<text x="644" y="726" class="col-name-pk">gap_id</text>
+<text x="1020" y="726" class="col-type">INTEGER</text>
+<line x1="590" y1="738.0" x2="1030" y2="738.0" class="row-sep"/>
+<text x="612.0" y="750" class="col-key">FK</text>
+<text x="644" y="750" class="col-name">session_id</text>
+<text x="1020" y="750" class="col-type">VARCHAR(36)</text>
+<line x1="590" y1="762.0" x2="1030" y2="762.0" class="row-sep"/>
+<text x="612.0" y="774" class="col-key"></text>
+<text x="644" y="774" class="col-name">entity_type</text>
+<text x="1020" y="774" class="col-type">VARCHAR(16)</text>
+<line x1="590" y1="786.0" x2="1030" y2="786.0" class="row-sep"/>
+<text x="612.0" y="798" class="col-key"></text>
+<text x="644" y="798" class="col-name">term_string</text>
+<text x="1020" y="798" class="col-type">VARCHAR(120)</text>
+<line x1="590" y1="810.0" x2="1030" y2="810.0" class="row-sep"/>
+<text x="612.0" y="822" class="col-key"></text>
+<text x="644" y="822" class="col-name">term_surface_form</text>
+<text x="1020" y="822" class="col-type">VARCHAR(120)</text>
+<line x1="590" y1="834.0" x2="1030" y2="834.0" class="row-sep"/>
+<text x="612.0" y="846" class="col-key"></text>
+<text x="644" y="846" class="col-name">tfidf_weight</text>
+<text x="1020" y="846" class="col-type">FLOAT</text>
+<line x1="590" y1="858.0" x2="1030" y2="858.0" class="row-sep"/>
+<text x="612.0" y="870" class="col-key"></text>
+<text x="644" y="870" class="col-name">competitor_consensus_count</text>
+<text x="1020" y="870" class="col-type">INTEGER</text>
+<rect x="1190" y="580" width="470" height="378" class="tbl-box"/>
+<rect x="1190" y="580" width="470" height="34" class="tbl-header"/>
+<text x="1425.0" y="597.0" class="tbl-title">COMPETITOR_DOCUMENTS</text>
+<line x1="1190" y1="614" x2="1660" y2="614" stroke="#000000" stroke-width="2.0"/>
+<line x1="1234" y1="614" x2="1234" y2="958" class="col-sep"/>
+<line x1="1545" y1="614" x2="1545" y2="958" class="col-sep"/>
+<text x="1212.0" y="626" class="col-key">PK</text>
+<text x="1244" y="626" class="col-name-pk">document_id</text>
+<text x="1650" y="626" class="col-type">INTEGER</text>
+<line x1="1190" y1="638.0" x2="1660" y2="638.0" class="row-sep"/>
+<text x="1212.0" y="650" class="col-key">FK</text>
+<text x="1244" y="650" class="col-name">snapshot_id</text>
+<text x="1650" y="650" class="col-type">INTEGER</text>
+<line x1="1190" y1="662.0" x2="1660" y2="662.0" class="row-sep"/>
+<text x="1212.0" y="674" class="col-key"></text>
+<text x="1244" y="674" class="col-name">rank_position</text>
+<text x="1650" y="674" class="col-type">INTEGER</text>
+<line x1="1190" y1="686.0" x2="1660" y2="686.0" class="row-sep"/>
+<text x="1212.0" y="698" class="col-key"></text>
+<text x="1244" y="698" class="col-name">source_url</text>
+<text x="1650" y="698" class="col-type">TEXT</text>
+<line x1="1190" y1="710.0" x2="1660" y2="710.0" class="row-sep"/>
+<text x="1212.0" y="722" class="col-key"></text>
+<text x="1244" y="722" class="col-name">domain_name</text>
+<text x="1650" y="722" class="col-type">VARCHAR(120)</text>
+<line x1="1190" y1="734.0" x2="1660" y2="734.0" class="row-sep"/>
+<text x="1212.0" y="746" class="col-key"></text>
+<text x="1244" y="746" class="col-name">page_title</text>
+<text x="1650" y="746" class="col-type">VARCHAR(500)</text>
+<line x1="1190" y1="758.0" x2="1660" y2="758.0" class="row-sep"/>
+<text x="1212.0" y="770" class="col-key"></text>
+<text x="1244" y="770" class="col-name">snippet_text</text>
+<text x="1650" y="770" class="col-type">TEXT</text>
+<line x1="1190" y1="782.0" x2="1660" y2="782.0" class="row-sep"/>
+<text x="1212.0" y="794" class="col-key"></text>
+<text x="1244" y="794" class="col-name">clean_text</text>
+<text x="1650" y="794" class="col-type">TEXT</text>
+<line x1="1190" y1="806.0" x2="1660" y2="806.0" class="row-sep"/>
+<text x="1212.0" y="818" class="col-key"></text>
+<text x="1244" y="818" class="col-name">word_count</text>
+<text x="1650" y="818" class="col-type">INTEGER</text>
+<line x1="1190" y1="830.0" x2="1660" y2="830.0" class="row-sep"/>
+<text x="1212.0" y="842" class="col-key"></text>
+<text x="1244" y="842" class="col-name">cosine_similarity</text>
+<text x="1650" y="842" class="col-type">FLOAT</text>
+<line x1="1190" y1="854.0" x2="1660" y2="854.0" class="row-sep"/>
+<text x="1212.0" y="866" class="col-key"></text>
+<text x="1244" y="866" class="col-name">main_text_hash</text>
+<text x="1650" y="866" class="col-type">VARCHAR(64)</text>
+<line x1="1190" y1="878.0" x2="1660" y2="878.0" class="row-sep"/>
+<text x="1212.0" y="890" class="col-key"></text>
+<text x="1244" y="890" class="col-name">heading_structure</text>
+<text x="1650" y="890" class="col-type">TEXT</text>
+<line x1="1190" y1="902.0" x2="1660" y2="902.0" class="row-sep"/>
+<text x="1212.0" y="914" class="col-key"></text>
+<text x="1244" y="914" class="col-name">fetch_status</text>
+<text x="1650" y="914" class="col-type">VARCHAR(32)</text>
+<line x1="1190" y1="926.0" x2="1660" y2="926.0" class="row-sep"/>
+<text x="1212.0" y="938" class="col-key"></text>
+<text x="1244" y="938" class="col-name">http_status_code</text>
+<text x="1650" y="938" class="col-type">INTEGER</text>
+</svg>
