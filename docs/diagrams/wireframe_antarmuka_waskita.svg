@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="860" viewBox="0 0 1440 860">
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .frame { fill: #ffffff; stroke: #111111; stroke-width: 2.2; }
+      .chrome { fill: #efefef; stroke: #111111; stroke-width: 1.5; }
+      .panel { fill: #ffffff; stroke: #222222; stroke-width: 1.5; }
+      .panel-alt { fill: #f7f7f7; stroke: #222222; stroke-width: 1.4; }
+      .card { fill: #ffffff; stroke: #333333; stroke-width: 1.3; }
+      .btn-primary { fill: #1a1a1a; stroke: #111111; stroke-width: 1.4; }
+      .btn-outline { fill: #ffffff; stroke: #222222; stroke-width: 1.3; }
+      .pill { fill: #eaeaea; stroke: #333333; stroke-width: 1.1; }
+      .dashed { fill: #fafafa; stroke: #555555; stroke-width: 1.2; stroke-dasharray: 5,4; }
+      .txt-title { font-family: "Liberation Sans", Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #111111; }
+      .txt-h2 { font-family: "Liberation Sans", Arial, sans-serif; font-size: 13.5px; font-weight: bold; fill: #111111; }
+      .txt-h3 { font-family: "Liberation Sans", Arial, sans-serif; font-size: 12px; font-weight: bold; fill: #111111; }
+      .txt-body { font-family: "Liberation Sans", Arial, sans-serif; font-size: 11.5px; fill: #222222; }
+      .txt-muted { font-family: "Liberation Sans", Arial, sans-serif; font-size: 10.5px; fill: #555555; }
+      .txt-white { font-family: "Liberation Sans", Arial, sans-serif; font-size: 11.5px; font-weight: bold; fill: #ffffff; }
+      .txt-score { font-family: "Liberation Sans", Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #111111; }
+      .txt-caption { font-family: "Liberation Sans", Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #111111; }
+      .line-sep { stroke: #444444; stroke-width: 1.2; }
+      .placeholder-line { stroke: #999999; stroke-width: 1.4; }
+    </style>
+  </defs>
+
+  <rect width="1440" height="860" class="bg"/>
+
+  <!-- ================= DESKTOP VIEW (LEFT) ================= -->
+  <text x="500" y="34" text-anchor="middle" class="txt-caption">(a) Tampilan Desktop (Dasbor Audit White-Box)</text>
+
+  <!-- Browser Outer Frame -->
+  <rect x="30" y="50" width="940" height="770" rx="8" class="frame"/>
+  <!-- Browser Top Bar -->
+  <path d="M30,58 a8,8 0 0,1 8,-8 h924 a8,8 0 0,1 8,8 v32 h-940 z" class="chrome"/>
+  <circle cx="52" cy="70" r="5" fill="#ffffff" stroke="#222222" stroke-width="1.3"/>
+  <circle cx="70" cy="70" r="5" fill="#ffffff" stroke="#222222" stroke-width="1.3"/>
+  <circle cx="88" cy="70" r="5" fill="#ffffff" stroke="#222222" stroke-width="1.3"/>
+  <rect x="115" y="59" width="660" height="22" rx="4" fill="#ffffff" stroke="#333333" stroke-width="1.1"/>
+  <text x="128" y="74" class="txt-muted">https://waskita.local/workspace — Sistem Kurasi Konten Pra-Publikasi</text>
+  <rect x="795" y="59" width="155" height="22" rx="4" class="btn-outline"/>
+  <text x="872" y="74" text-anchor="middle" class="txt-body">Penulis / Editor [v]</text>
+
+  <!-- Desktop Sidebar -->
+  <rect x="30" y="90" width="205" height="730" class="panel-alt"/>
+  <text x="48" y="120" class="txt-title">WASKITA v2</text>
+  <text x="48" y="136" class="txt-muted">Quality Gatekeeper</text>
+  <rect x="45" y="150" width="175" height="32" rx="4" class="btn-primary"/>
+  <text x="132" y="170" text-anchor="middle" class="txt-white">+ Sesi Audit Baru</text>
+
+  <line x1="45" y1="198" x2="220" y2="198" class="line-sep"/>
+  <text x="48" y="218" class="txt-h3">Riwayat Sesi Audit</text>
+
+  <!-- Active Session Item -->
+  <rect x="45" y="228" width="175" height="46" rx="4" fill="#e5e5e5" stroke="#111111" stroke-width="1.4"/>
+  <text x="55" y="246" class="txt-h3">Resep Kopi Tubruk</text>
+  <text x="55" y="263" class="txt-muted">Turn 2 | CDS: 78.4 [Layak]</text>
+
+  <!-- Other Session Items -->
+  <rect x="45" y="284" width="175" height="44" rx="4" class="card"/>
+  <text x="55" y="302" class="txt-body">Panduan SEO Teknis</text>
+  <text x="55" y="318" class="txt-muted">Turn 1 | CDS: 52.1 [Revisi]</text>
+
+  <rect x="45" y="338" width="175" height="44" rx="4" class="card"/>
+  <text x="55" y="356" class="txt-body">Artikel Energi Surya</text>
+  <text x="55" y="372" class="txt-muted">Turn 1 | CDS: 81.0 [Layak]</text>
+
+  <!-- Sidebar Footer -->
+  <line x1="45" y1="745" x2="220" y2="745" class="line-sep"/>
+  <rect x="45" y="758" width="175" height="30" rx="4" class="btn-outline"/>
+  <text x="132" y="777" text-anchor="middle" class="txt-body">Pengaturan &amp; Log API</text>
+
+  <!-- Desktop Main Area -->
+  <!-- PANEL 1: INPUT & KONFIGURASI -->
+  <rect x="252" y="106" width="700" height="205" rx="6" class="panel"/>
+  <text x="268" y="128" class="txt-h2">1. Panel Masukan Konfigurasi &amp; Draf Naskah</text>
+  <text x="936" y="128" text-anchor="end" class="txt-muted">Status: Siap Audit (&gt;= 300 kata)</text>
+
+  <text x="268" y="152" class="txt-h3">Target Kueri Pencarian (Keyword)</text>
+  <rect x="268" y="159" width="470" height="28" rx="4" class="card"/>
+  <text x="278" y="177" class="txt-muted">Contoh: cara membuat kopi tubruk tradisional khas jawa</text>
+
+  <rect x="752" y="159" width="184" height="28" rx="4" class="btn-outline"/>
+  <text x="844" y="177" text-anchor="middle" class="txt-body">Korpus: Top-3 SERP ID</text>
+
+  <text x="268" y="205" class="txt-h3">Draf Naskah Artikel</text>
+  <rect x="268" y="212" width="668" height="54" rx="4" class="dashed"/>
+  <line x1="280" y1="228" x2="880" y2="228" class="placeholder-line"/>
+  <line x1="280" y1="242" x2="910" y2="242" class="placeholder-line"/>
+  <line x1="280" y1="256" x2="640" y2="256" class="placeholder-line"/>
+
+  <rect x="268" y="274" width="120" height="26" rx="4" class="btn-outline"/>
+  <text x="328" y="291" text-anchor="middle" class="txt-body">412 Kata | Valid</text>
+  <rect x="756" y="274" width="180" height="26" rx="4" class="btn-primary"/>
+  <text x="846" y="291" text-anchor="middle" class="txt-white">Jalankan Audit Mutu</text>
+
+  <!-- PANEL 2: SKOR DIFERENSIASI & METRIK STILOMETRI -->
+  <rect x="252" y="326" width="700" height="175" rx="6" class="panel"/>
+  <text x="268" y="348" class="txt-h2">2. Panel Skor Diferensiasi Komposit (CDS) &amp; Indikator Stilometri</text>
+
+  <!-- CDS Main Card -->
+  <rect x="268" y="362" width="190" height="122" rx="5" class="panel-alt"/>
+  <text x="363" y="383" text-anchor="middle" class="txt-h3">Skor Kelayakan (CDS)</text>
+  <text x="363" y="422" text-anchor="middle" class="txt-score">78.4 / 100</text>
+  <rect x="298" y="440" width="130" height="26" rx="13" class="btn-primary"/>
+  <text x="363" y="457" text-anchor="middle" class="txt-white">LAYAK TERBIT</text>
+
+  <!-- Metric Card 1: VSM -->
+  <rect x="472" y="362" width="148" height="122" rx="5" class="card"/>
+  <text x="484" y="383" class="txt-h3">VSM Similarity</text>
+  <text x="484" y="414" class="txt-title">0.42</text>
+  <text x="484" y="434" class="txt-muted">Cosine vs Top-3</text>
+  <rect x="484" y="448" width="124" height="10" rx="3" fill="#e5e5e5" stroke="#333333"/>
+  <rect x="484" y="448" width="54" height="10" rx="3" fill="#222222"/>
+  <text x="484" y="473" class="txt-muted">Zona Optimal</text>
+
+  <!-- Metric Card 2: Information Gain -->
+  <rect x="632" y="362" width="148" height="122" rx="5" class="card"/>
+  <text x="644" y="383" class="txt-h3">Information Gain</text>
+  <text x="644" y="414" class="txt-title">+14 Entitas</text>
+  <text x="644" y="434" class="txt-muted">Delta Gain: 14</text>
+  <text x="644" y="452" class="txt-muted">Delta Deficit: 3</text>
+  <text x="644" y="473" class="txt-muted">Kebaruan Tinggi</text>
+
+  <!-- Metric Card 3: Stilometri -->
+  <rect x="792" y="362" width="144" height="122" rx="5" class="card"/>
+  <text x="804" y="383" class="txt-h3">Stilometri Teks</text>
+  <text x="804" y="410" class="txt-body">TTR   : 0.61</text>
+  <text x="804" y="430" class="txt-body">MATTR : 0.74</text>
+  <text x="804" y="450" class="txt-body">HKO   : 12.4%</text>
+  <text x="804" y="473" class="txt-muted">Natural / Non-AI</text>
+
+  <!-- PANEL 3: BUKTI DIAGNOSTIK WHITE-BOX & CELAH TOPIK -->
+  <rect x="252" y="516" width="700" height="288" rx="6" class="panel"/>
+  <text x="268" y="538" class="txt-h2">3. Panel Bukti Diagnostik Transparan (White-Box) &amp; Celah Topik</text>
+
+  <!-- Tabs -->
+  <rect x="268" y="550" width="145" height="26" rx="4" class="btn-primary"/>
+  <text x="340" y="567" text-anchor="middle" class="txt-white">Celah Topik (Gaps)</text>
+  <rect x="421" y="550" width="135" height="26" rx="4" class="btn-outline"/>
+  <text x="488" y="567" text-anchor="middle" class="txt-body">Anotasi Draf</text>
+  <rect x="564" y="550" width="150" height="26" rx="4" class="btn-outline"/>
+  <text x="639" y="567" text-anchor="middle" class="txt-body">Korpus SERP Top-3</text>
+  <rect x="816" y="550" width="120" height="26" rx="4" class="btn-outline"/>
+  <text x="876" y="567" text-anchor="middle" class="txt-body">Ekspor Laporan</text>
+
+  <!-- Two Columns inside Panel 3 -->
+  <rect x="268" y="588" width="328" height="162" rx="4" class="panel-alt"/>
+  <text x="280" y="608" class="txt-h3">Entitas Hilang (Delta Deficit) — Wajib Ditambahkan</text>
+  <rect x="280" y="620" width="135" height="24" rx="12" class="pill"/>
+  <text x="347" y="636" text-anchor="middle" class="txt-body">[+] rasio air kopi</text>
+  <rect x="425" y="620" width="155" height="24" rx="12" class="pill"/>
+  <text x="502" y="636" text-anchor="middle" class="txt-body">[+] suhu seduh 90C</text>
+  <rect x="280" y="654" width="160" height="24" rx="12" class="pill"/>
+  <text x="360" y="670" text-anchor="middle" class="txt-body">[+] gilingan robusta</text>
+  <text x="280" y="704" class="txt-h3">Rekomendasi Editorial:</text>
+  <text x="280" y="722" class="txt-muted">- Tambahkan subbab takaran air &amp; suhu seduh</text>
+  <text x="280" y="738" class="txt-muted">- Pertahankan entitas unik (Delta Gain: +14)</text>
+
+  <rect x="608" y="588" width="328" height="162" rx="4" class="panel-alt"/>
+  <text x="620" y="608" class="txt-h3">Pembanding Korpus SERP (Snapshot Terarsip)</text>
+  <rect x="620" y="620" width="304" height="34" rx="3" class="card"/>
+  <text x="630" y="635" class="txt-body">1. domain-kompetitor-a.id (HTTP 200)</text>
+  <text x="630" y="649" class="txt-muted">Cosine: 0.46 | 1.120 kata | H1-H3 terekstrak</text>
+  <rect x="620" y="662" width="304" height="34" rx="3" class="card"/>
+  <text x="630" y="677" class="txt-body">2. domain-kompetitor-b.com (HTTP 200)</text>
+  <text x="630" y="691" class="txt-muted">Cosine: 0.39 | 940 kata | H1-H3 terekstrak</text>
+  <rect x="620" y="704" width="304" height="34" rx="3" class="card"/>
+  <text x="630" y="719" class="txt-body">3. domain-kompetitor-c.id (HTTP 200)</text>
+  <text x="630" y="733" class="txt-muted">Cosine: 0.41 | 880 kata | H1-H3 terekstrak</text>
+
+  <!-- Footer Action in Panel 3 -->
+  <text x="268" y="782" class="txt-muted">Hash Integritas SHA-256: 9f86d081... tersimpan di SQLite WAL</text>
+  <rect x="736" y="762" width="200" height="28" rx="4" class="btn-primary"/>
+  <text x="836" y="780" text-anchor="middle" class="txt-white">Mulai Revisi (Turn +1)</text>
+
+
+  <!-- ================= MOBILE-FIRST VIEW (RIGHT) ================= -->
+  <text x="1210" y="34" text-anchor="middle" class="txt-caption">(b) Tampilan Mobile-First</text>
+
+  <!-- Phone Outer Frame -->
+  <rect x="1030" y="50" width="360" height="770" rx="26" class="frame"/>
+  <!-- Notch / Speaker -->
+  <rect x="1165" y="62" width="90" height="10" rx="5" fill="#222222"/>
+
+  <!-- Mobile Top App Bar -->
+  <rect x="1044" y="84" width="332" height="42" rx="4" class="chrome"/>
+  <text x="1058" y="110" class="txt-h2">[=]</text>
+  <text x="1210" y="110" text-anchor="middle" class="txt-h2">WASKITA v2</text>
+  <text x="1358" y="110" text-anchor="end" class="txt-h2">[o]</text>
+
+  <!-- Mobile Panel 1: Input -->
+  <rect x="1044" y="138" width="332" height="162" rx="6" class="panel"/>
+  <text x="1056" y="158" class="txt-h3">1. Masukan Kueri &amp; Draf</text>
+  <rect x="1056" y="168" width="308" height="26" rx="4" class="card"/>
+  <text x="1064" y="185" class="txt-muted">Kueri: resep kopi tubruk tradisional</text>
+  <rect x="1056" y="202" width="308" height="52" rx="4" class="dashed"/>
+  <line x1="1066" y1="218" x2="1348" y2="218" class="placeholder-line"/>
+  <line x1="1066" y1="232" x2="1330" y2="232" class="placeholder-line"/>
+  <line x1="1066" y1="246" x2="1240" y2="246" class="placeholder-line"/>
+  <rect x="1056" y="262" width="308" height="28" rx="4" class="btn-primary"/>
+  <text x="1210" y="280" text-anchor="middle" class="txt-white">Jalankan Audit Mutu</text>
+
+  <!-- Mobile Panel 2: Skor & Stilometri -->
+  <rect x="1044" y="312" width="332" height="175" rx="6" class="panel"/>
+  <text x="1056" y="332" class="txt-h3">2. Skor Diferensiasi &amp; Stilometri</text>
+  <rect x="1056" y="342" width="308" height="56" rx="4" class="panel-alt"/>
+  <text x="1070" y="376" class="txt-score">78.4</text>
+  <text x="1130" y="366" class="txt-h3">Skor CDS</text>
+  <text x="1130" y="382" class="txt-muted">Status: LAYAK TERBIT</text>
+  <rect x="1272" y="357" width="80" height="24" rx="12" class="btn-primary"/>
+  <text x="1312" y="373" text-anchor="middle" class="txt-white">LAYAK</text>
+
+  <rect x="1056" y="408" width="98" height="66" rx="4" class="card"/>
+  <text x="1105" y="426" text-anchor="middle" class="txt-muted">VSM</text>
+  <text x="1105" y="448" text-anchor="middle" class="txt-h2">0.42</text>
+  <text x="1105" y="465" text-anchor="middle" class="txt-muted">Optimal</text>
+
+  <rect x="1161" y="408" width="98" height="66" rx="4" class="card"/>
+  <text x="1210" y="426" text-anchor="middle" class="txt-muted">Info Gain</text>
+  <text x="1210" y="448" text-anchor="middle" class="txt-h2">+14 / -3</text>
+  <text x="1210" y="465" text-anchor="middle" class="txt-muted">Tinggi</text>
+
+  <rect x="1266" y="408" width="98" height="66" rx="4" class="card"/>
+  <text x="1315" y="426" text-anchor="middle" class="txt-muted">MATTR</text>
+  <text x="1315" y="448" text-anchor="middle" class="txt-h2">0.74</text>
+  <text x="1315" y="465" text-anchor="middle" class="txt-muted">Natural</text>
+
+  <!-- Mobile Panel 3: Diagnostik White-Box -->
+  <rect x="1044" y="499" width="332" height="232" rx="6" class="panel"/>
+  <text x="1056" y="519" class="txt-h3">3. Bukti White-Box &amp; Celah Topik</text>
+  <rect x="1056" y="530" width="98" height="24" rx="4" class="btn-primary"/>
+  <text x="1105" y="546" text-anchor="middle" class="txt-white">Celah</text>
+  <rect x="1161" y="530" width="98" height="24" rx="4" class="btn-outline"/>
+  <text x="1210" y="546" text-anchor="middle" class="txt-body">Anotasi</text>
+  <rect x="1266" y="530" width="98" height="24" rx="4" class="btn-outline"/>
+  <text x="1315" y="546" text-anchor="middle" class="txt-body">SERP</text>
+
+  <rect x="1056" y="564" width="308" height="76" rx="4" class="panel-alt"/>
+  <text x="1066" y="582" class="txt-h3">Entitas Hilang (Delta Deficit):</text>
+  <rect x="1066" y="592" width="132" height="22" rx="11" class="pill"/>
+  <text x="1132" y="607" text-anchor="middle" class="txt-muted">[+] rasio air kopi</text>
+  <rect x="1206" y="592" width="146" height="22" rx="11" class="pill"/>
+  <text x="1279" y="607" text-anchor="middle" class="txt-muted">[+] suhu seduh 90C</text>
+  <text x="1066" y="632" class="txt-muted">Saran: Lengkapi takaran seduh.</text>
+
+  <rect x="1056" y="648" width="308" height="70" rx="4" class="card"/>
+  <text x="1066" y="666" class="txt-h3">Korpus SERP Top-3 (SQLite)</text>
+  <text x="1066" y="684" class="txt-muted">1. kompetitor-a.id (Cosine 0.46)</text>
+  <text x="1066" y="700" class="txt-muted">2. kompetitor-b.com (Cosine 0.39)</text>
+
+  <!-- Mobile Bottom Action Bar -->
+  <rect x="1044" y="744" width="160" height="36" rx="6" class="btn-primary"/>
+  <text x="1124" y="766" text-anchor="middle" class="txt-white">Revisi (Turn +1)</text>
+  <rect x="1214" y="744" width="162" height="36" rx="6" class="btn-outline"/>
+  <text x="1295" y="766" text-anchor="middle" class="txt-body">Ekspor Laporan</text>
+
+  <!-- Home Indicator -->
+  <rect x="1150" y="798" width="120" height="5" rx="2.5" fill="#222222"/>
+</svg>
