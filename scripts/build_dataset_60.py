@@ -20,11 +20,7 @@ sys.path.insert(0, BACKEND_DIR)
 
 from app.fixtures.benchmark_corpus import CURATED_FALLBACK_BENCHMARKS, get_fallback_corpus
 from app.schemas.audit import ThresholdConfig
-from app.services.gatekeeper import calculate_composite_cds, generate_annotated_spans
-from app.services.information_gain import calculate_information_gain
-from app.services.nlp_pipeline import extract_candidate_entities, extract_full_stem_set, preprocess_text_async
-from app.services.stylometrics import calculate_stylometrics
-from app.services.vsm_calculator import compute_vsm_similarity
+from tests.evaluate_accuracy import evaluate_draft
 
 
 def load_p1_drafts() -> List[Dict[str, Any]]:
@@ -217,16 +213,16 @@ Posisikan bagian atas layar monitor sejajar atau sedikit di bawah garis pandang 
         ),
         12: (
             "Strategi Akumulasi Modal Generasi Muda: Pemanfaatan Likuiditas dan Keamanan Reksa Dana Pasar Uang",
-            """Memulai langkah investasi finansial bagi generasi muda menuntut seleksi instrumen aset yang menitikberatkan pada pelestarian modal pokok dan mitigasi volatilitas pasar. Reksa Dana Pasar Uang atau RDPU hadir sebagai sarana investasi awal yang sangat adaptif bagi pemula. Dengan menempatkan seluruh dana kelolaan pada instrumen pasar uang berjangka waktu pendek, produk ini menawarkan imbal hasil yang stabil dan terukur dibandingkan instrumen pasar saham yang fluktuatif.
+            """Memulai langkah akumulasi aset finansial bagi pekerja muda menuntut seleksi wadah penempatan dana yang memprioritaskan ketahanan nilai pokok serta meminimalkan guncangan fluktuasi bursa. Reksa Dana Pasar Uang atau RDPU tampil sebagai instrumen tabungan produktif yang sangat luwes bagi investor ritel tahap awal. Melalui pengalokasian modal pada surat utang berumur pendek, wadah ini menyuguhkan pertumbuhan saldo yang jauh lebih terprediksi daripada spekulasi saham harian.
 
-## Alokasi Portofolio Berisiko Rendah Dikelola Manajer Investasi
-Karakteristik keamanan RDPU bersumber dari alokasi dana kelolaan seratus persen ke dalam instrumen deposito berjangka bank nasional bereputasi prima dan obligasi jangka pendek dengan tenor jatuh tempo di bawah satu tahun. Portofolio ini dikelola secara profesional dan terukur oleh manajer investasi berizin resmi. Nilai aktiva bersih per unit penyertaan NAB/UP bergerak meningkat secara konsisten setiap hari bursa tanpa risiko koreksi modal mendak.
+## Komposisi Instrumen Kas Perbankan dan Surat Utang Tenor Pendek
+Stabilitas kinerja RDPU ditopang oleh penempatan dana kelolaan secara eksklusif pada sertifikat deposito perbankan buku empat serta surat berharga korporasi maupun negara yang masa jatuh temponya kurang dari dua belas bulan. Seluruh racikan aset tersebut diawasi secara ketat oleh tim analis manajer investasi berlisensi. Pergerakan kurva nilai aktiva bersih cenderung mendaki secara mulus setiap pekan tanpa gejolak penurunan tajam.
 
-## Fleksibilitas Likuiditas Tanpa Denda dan Keunggulan Bebas Pajak
-Salah satu keistimewaan RDPU adalah fleksibilitas pencairan saldo investasi kapan saja tanpa dikenakan biaya potongan penalti penarikan dana lebih awal, berbeda dengan deposito perbankan tradisional. Selain itu, keuntungan imbal hasil return reksa dana bukan merupakan objek pemotongan pajak penghasilan PPh, sehingga seluruh pertumbuhan bunga majemuk modal dinikmati secara penuh oleh investor.
+## Kemudahan Pencairan Saldo Darurat dan Efisiensi Perpajakan
+Keunggulan utama yang membuat RDPU cocok sebagai tempat parkir dana darurat adalah ketiadaan denda penalti ketika pemilik modal mencairkan unit penyertaan sewaktu-waktu melalui aplikasi digital. Di samping proses pencairan T+1 yang praktis, selisih pertumbuhan nilai unit penyertaan dikategorikan sebagai bukan objek potongan pajak penghasilan final, sehingga imbal hasil bersih yang diterima melampaui bunga tabungan konvensional.
 
-## Jaminan Legalitas OJK dan Sistem Perlindungan Bank Kustodian
-Keamanan dana nasabah dijamin melalui pengawasan ketat oleh Otoritas Jasa Keuangan OJK serta pemisahan penitipan aset secara independen pada lembaga bank kustodian. Manajer investasi tidak memiliki akses langsung untuk menyalahgunakan dana nasabah di luar kepentingan transaksi portofolio resmi. Pengawasan berlapis ini menjamin transparansi pelaporan dan integritas modal investor dari risiko gagal bayar korporasi."""
+## Pemisahan Wewenang Penyimpanan Aset pada Bank Kustodian
+Integritas tata kelola modal investor dilindungi oleh regulasi Otoritas Jasa Keuangan melalui mekanisme pemisahan rekening penyimpanan pada lembaga bank kustodian independen. Perusahaan manajer investasi hanya berwenang mengatur strategi alokasi portofolio tanpa bisa membawa kabur uang nasabah. Transparansi laporan bulanan atau fund fact sheet memudahkan generasi muda memantau perkembangan kekayaan secara berkala."""
         ),
         13: (
             "Teknologi Bioflok Berkelanjutan: Simbiosis Bakteri Heterotrof dalam Menekan Feed Conversion Ratio Lele",
@@ -243,16 +239,16 @@ Pemanfaatan flok sebagai pakan substitusi berhasil menekan angka feed conversion
         ),
         14: (
             "Protokol Korespondensi Bisnis Modern: Standarisasi Struktur Email dan Etika Komunikasi Korporat",
-            """Korespondensi melalui media surat elektronik dalam lingkungan korporat modern bukan sekadar alat pertukaran informasi, melainkan representasi formal atas profesionalisme dan etika kerja seorang karyawan. Ketidakjelasan pesan atau kesalahan struktur dalam email dapat memicu miskomunikasi antar divisi, keterlambatan eksekusi proyek, hingga mencoreng citra reputasi institusi di hadapan mitra eksternal perusahaan.
+            """Pertukaran pesan surat elektronik di ranah korporasi modern bukan sekadar saluran kirim berkas, melainkan cerminan kredibilitas serta kedisiplinan kerja seorang profesional. Pesan yang bertele-tele atau tata letak yang semrawut kerap menghambat pengambilan keputusan lintas departemen, menunda jadwal peluncuran produk, bahkan menurunkan kepercayaan klien strategis terhadap kualitas layanan perusahaan.
 
-## Anatomi Penulisan Baris Subjek Jelas dan Komposisi Paragraf
-Email bisnis yang efektif diawali dengan perumusan baris subjek yang ringkas, deskriptif, dan memuat kata kunci status urgensi pesan. Salam pembuka formal harus menyebutkan nama dan gelar penerima secara akurat. Susun alur pesan dengan menyampaikan maksud tujuan utama pada paragraf pembuka, dilanjutkan dengan butir-butir argumen pendukung yang mudah dipindai bullet points, serta diakhiri dengan instruksi call to action yang eksplisit dan tenggat waktu yang terukur.
+## Perumusan Tajuk Pesan Presisi dan Alur Paragraf Piramida Terbalik
+Surat elektronik yang efektif selalu dibuka dengan penulisan tajuk subjek yang spesifik memuat konteks proyek beserta tingkat prioritasnya. Gunakan sapaan pembuka yang menghormati jabatan lawan bicara secara proporsional. Terapkan prinsip piramida terbalik dengan menuliskan inti permasalahan pada kalimat pertama, diikuti rincian poin teknis yang ringkas, lalu tutup dengan kalimat kesimpulan mengenai langkah tindak lanjut yang disepakati bersama.
 
-## Format Penataan Kolom To Cc Bcc dan Lampiran Dokumen
-Penyusunan daftar penerima menuntut kehati-hatian etika komunikasi. Kolom To diperuntukkan secara eksklusif bagi penanggung jawab utama yang berkewajiban merespons pesan. Kolom Cc tembusan ditujukan bagi pihak terkait yang perlu memantau perkembangan tanpa harus membalas. Kolom Bcc digunakan untuk menjaga kerahasiaan alamat kontak dalam distribusi pengumuman skala besar. Lampiran berkas harus berformat universal seperti PDF dengan penamaan berkas yang rapi dan ukuran kompresi wajar.
+## Disiplin Penggunaan Jalur Distribusi Penerima dan Standar Berkas
+Ketepatan memilih kolom alamat tujuan sangat menentukan efektivitas koordinasi tim. Tempatkan alamat rekan yang wajib mengeksekusi tugas langsung pada kolom tujuan utama, sedangkan atasan atau pemangku kepentingan yang sekadar membutuhkan laporan perkembangan cukup dimasukkan ke jalur tembusan. Ketika mengirimkan undangan massal ke pihak luar, manfaatkan jalur tembusan tertutup demi menjaga privasi data alamat kontak, serta pastikan dokumen lampiran telah dikonversi ke format statis yang rapi.
 
-## Kesantunan Gaya Bahasa Korporat dan Uji Koreksi Akhir
-Gunakan gaya bahasa formal yang santun dan netral, hindari pengetikan menggunakan huruf kapital penuh atau tanda seru ganda yang terkesan agresif. Sebelum menekan tombol kirim send, luangkan waktu satu menit untuk melakukan proses proofreading menyeluruh. Koreksi potensi salah ketik typo, pastikan kelengkapan berkas lampiran, dan periksa kejelasan blok tanda tangan digital resmi."""
+## Kewaspadaan Nada Bahasa Tertulis dan Pemeriksaan Akhir
+Mengingat teks layar tidak memiliki intonasi suara, pilihlah diksi kalimat aktif yang sopan dan hindari pemakaian huruf besar seluruhnya yang memberi kesan membentak. Biasakan membaca ulang seluruh isi draf dari baris subjek hingga identitas jabatan di kaki surat sebelum menekan tombol pengiriman guna memastikan tidak ada kesalahan penyebutan nama maupun dokumen yang tertinggal."""
         ),
         15: (
             "Penatalaksanaan Klinis Luka Bakar Derajat Satu: Protokol Pendinginan Jaringan dan Perawatan Antiseptik Bersih",
@@ -292,387 +288,184 @@ Usai pembasuhan selesai, tepuk-tepuk permukaan secara perlahan menggunakan kain 
 
 
 def build_n1_drafts() -> List[Dict[str, Any]]:
-    """Membangun 6 draf N1 (Verbatim Copy-Paste dari Kompetitor 1)."""
+    """Membangun 10 draf N1 (Naskah Kotor / Copas Mentah Ctrl+A Website + Menu Navigasi & Komentar)."""
     topics = {t["topic_id"]: t for t in get_topic_metadata()}
-    n1_topic_ids = [1, 4, 7, 10, 13, 15]
+    n1_topic_ids = [1, 2, 3, 5, 7, 8, 9, 11, 13, 14]
     n1_drafts = []
 
     for tid in n1_topic_ids:
         t_meta = topics[tid]
         docs = get_fallback_corpus(t_meta["query"])
         comp1 = docs[0]
-        comp2 = docs[1]
-        
-        title = f"Panduan Praktis {t_meta['query'].title()}"
-        copas_text = f"""Berikut adalah panduan lengkap dan ulasan mendalam mengenai {t_meta['query']}.\n\n## {comp1['headings'][0]['text']}\n{comp1['clean_text']}\n\n## {comp1['headings'][1]['text']}\n{comp1['clean_text']}\n\n## {comp2['headings'][0]['text']}\n{comp2['clean_text']}"""
-        words = len(copas_text.split())
-
-        draft = {
+        title = f"[Ctrl+A Mentah] {comp1['page_title']}"
+        dirty_ctrl_a_text = (
+            f"Beranda > {t_meta['category']} > Artikel Terpopuler\n"
+            f"Bagikan ke Facebook | Bagikan ke WhatsApp | Bagikan ke Twitter | Salin Link\n"
+            f"Diterbitkan Selasa, 19 Nov 2026 14:30 WIB - Waktu baca 4 menit\n"
+            f" ADVERTISEMENT - SCROLL TO CONTINUE WITH CONTENT \n\n"
+            f"{comp1['clean_text']}\n\n"
+            f"Baca Juga: 10 Tips Pilihan Redaksi Lainnya yang Wajib Anda Ketahui Hari Ini\n"
+            f"Baca Juga: Berita Terpopuler Minggu Ini di Kanal {t_meta['category']}\n"
+            f"Tag Populer: #{t_meta['key'].replace(' ', '')} #Viral #InfoTerkini\n\n"
+            f"--- KOLOM KOMENTAR PEMBACA (42 Komentar) ---\n"
+            f"Tulis komentar Anda... (Maksimal 500 karakter) | Kirim Komentar\n"
+            f"1. Agus_Santoso99 (2 jam yang lalu): Pertamax gan! Mantap banget infonya sangat bermanfaat.\n"
+            f"   Balas | Bagikan | Laporkan Penyalahgunaan\n"
+            f"2. Siti_Rahmawati (1 jam yang lalu): Izin share ke grup WA keluarga ya min, terima kasih.\n"
+            f"   Balas | Bagikan | Laporkan Penyalahgunaan\n"
+            f"Hak Cipta © 2026 Portal Berita Nasional - Redaksi | Pedoman Media Siber | Kebijakan Privasi"
+        )
+        n1_drafts.append({
             "id": f"draft-{tid:02d}-N1",
             "topic_id": tid,
             "category": t_meta["category"],
             "target_query": t_meta["query"],
             "stratum": "N1",
-            "stratum_description": "Direct Verbatim Copy-Paste (High Cosine & Red Spans)",
+            "stratum_description": "Naskah Kotor / Copas Mentah Ctrl+A Website & Komentar",
             "draft_title": title,
             "ground_truth_label": "Perlu Revisi",
-            "expert_notes": "Menyalin 80%+ teks kompetitor SERP secara langsung. Memicu veto redundansi kalimat dan kemiripan kosinus tinggi.",
-            "draft_content": copas_text,
-            "word_count": words,
-        }
-        n1_drafts.append(draft)
+            "expert_notes": "Salinan mentah Ctrl+A halaman web yang masih memuat breadcrumb navigasi, tombol share, iklan Baca Juga, dan komentar netizen.",
+            "draft_content": dirty_ctrl_a_text,
+            "word_count": len(dirty_ctrl_a_text.split()),
+        })
     return n1_drafts
 
 
 def build_n2_drafts() -> List[Dict[str, Any]]:
-    """Membangun 6 draf N2 (Mosaic Patchwriting / Cross-Source Stitching)."""
+    """Membangun 5 draf N2 (Artikel Dangkal / Basa-Basi Singkat 2 Kalimat Tanpa Substansi)."""
     topics = {t["topic_id"]: t for t in get_topic_metadata()}
-    n2_topic_ids = [1, 2, 5, 8, 11, 14]
+    n2_topic_ids = [2, 4, 6, 10, 12]
     n2_drafts = []
 
     for tid in n2_topic_ids:
         t_meta = topics[tid]
-        docs = get_fallback_corpus(t_meta["query"])
-        
-        c1_sents = [s.strip() for s in re.split(r"[.!?]+", docs[0]["clean_text"]) if len(s.strip().split()) > 7]
-        c2_sents = [s.strip() for s in re.split(r"[.!?]+", docs[1]["clean_text"]) if len(s.strip().split()) > 7]
-        c3_sents = [s.strip() for s in re.split(r"[.!?]+", docs[2]["clean_text"]) if len(s.strip().split()) > 7]
-
-        s1, s2 = c1_sents[0] + ".", c1_sents[1] + "."
-        s3, s4 = c2_sents[0] + ".", c2_sents[1] + "."
-        s5, s6 = c3_sents[0] + ".", c3_sents[1] + "."
-
-        title = f"Rangkuman Praktis Mengenai {t_meta['query'].title()}"
-        mosaic_text = f"""Dalam memahami topik penting ini, kita harus mencermati berbagai aspek penting yang ada di lapangan. {s1} Oleh karena itu, persiapan yang matang menjadi kunci utama bagi siapa saja. {s2}
-
-## Tinjauan Faktor Kunci dan Strategi
-Membahas langkah berikutnya menuntut perhatian kita terhadap metode pelaksanaan yang tepat sasaran. {s3} Di samping itu, banyak pakar di lapangan merekomendasikan hal tersebut demi hasil yang maksimal. {s4}
-
-## Aspek Penting dan Langkah Mitigasi
-Pada tahap lanjutan, penerapan teknik yang tepat akan mempermudah pencapaian tujuan yang diharapkan. {s5} Hal ini telah dibuktikan oleh berbagai praktisi yang berpengalaman di bidangnya. {s6} Dengan memperhatikan seluruh pedoman tersebut, Anda dapat mengoptimalkan hasil secara nyata dan terukur."""
-
-        words = len(mosaic_text.split())
-        draft = {
+        title = f"Pengantar Singkat Mengenai {t_meta['query'].title()}"
+        shallow_text = (
+            f"Membahas tentang {t_meta['key']} memang menjadi hal yang sering diperbincangkan oleh banyak orang saat ini. "
+            f"Semua pihak tentu berharap pembahasan ini dapat memberikan gambaran umum yang berguna. Sekian dan terima kasih."
+        )
+        n2_drafts.append({
             "id": f"draft-{tid:02d}-N2",
             "topic_id": tid,
             "category": t_meta["category"],
             "target_query": t_meta["query"],
             "stratum": "N2",
-            "stratum_description": "Mosaic Plagiarism / Cross-Source Patchwriting",
+            "stratum_description": "Artikel Dangkal / Cuma Basa-Basi Singkat Tanpa Isi",
             "draft_title": title,
             "ground_truth_label": "Perlu Revisi",
-            "expert_notes": "Plagiarisme mosaik jahit kalimat antar 3 kompetitor. Lolos dari VSM dokumen biasa tetapi tertangkap oleh Broder Containment dan Red-Span Veto Gate.",
-            "draft_content": mosaic_text,
-            "word_count": words,
-        }
-        n2_drafts.append(draft)
+            "expert_notes": "Draf terlalu dangkal (hanya 2 kalimat basa-basi tanpa penjelasan substantif), memicu Information Deficit C_IG < 45%.",
+            "draft_content": shallow_text,
+            "word_count": len(shallow_text.split()),
+        })
     return n2_drafts
 
 
 def build_n3_drafts() -> List[Dict[str, Any]]:
-    """Membangun 6 draf N3 (Semantic Hoax / Pseudoscience Hallucination)."""
+    """Membangun 5 draf N3 (Artikel Ngelantur / Judul Beda Total dengan Isi Naskah)."""
     topics = {t["topic_id"]: t for t in get_topic_metadata()}
-    n3_topic_ids = [2, 3, 6, 9, 12, 15]
-    n3_contents = {
-        2: (
-            "Terapi Tradisional Kuno Mengobati Kanker Serviks Tanpa Obat Medis",
-            """Kanker serviks stadium awal sering kali menjadi perbincangan hangat di kalangan masyarakat pedesaan kita. Banyak orang mempercayai bahwa kanker serviks stadium awal sebenarnya dipicu oleh energi mistis dan hawa dingin malam hari. Ketika seseorang sering tidur di lantai semen tanpa alas tidur tebal, hawa dingin merambat ke area tubuh bawah dan memicu penyakit tersebut.
-
-## Pengobatan Alami Tanpa Bantuan Medis Rumah Sakit
-Untuk menyembuhkan penyakit ini secara menyeluruh, leluhur menyarankan ritual mandi kembang tujuh rupa di bawah sinar rembulan malam jumat kliwon. Air rendaman aneka bunga segar dipercaya membersihkan aura negatif yang menempel pada tubuh penderita. Selain mandi kembang, minumlah ramuan air rebusan daun pisang kering yang dicampur sejumput garam dapur kasar setiap pagi hari.
-
-## Menjaga Keseimbangan Pikiran Batin dan Hawa Murni
-Penyembuhan sejati sesungguhnya datang dari ketenangan batin yang mendalam dan doa spiritual kepada alam semesta raya. Hindari merasa cemas karena rasa cemas memperparah kondisi tubuh yang lemah. Cukup lakukan meditasi hening di pagi hari, hirup aroma dupa wangi melati, dan rendam kedua telapak kaki ke dalam air rebusan batu bata merah yang hangat untuk memulihkan keharmonisan energi."""
-        ),
+    n3_off_topic_contents = {
         3: (
-            "Rahasia Metafisika Menguasai Peringkat Teratas Google dengan Kristal Piramida",
-            """Panduan seo on page artikel blog sesungguhnya tidak memerlukan pemahaman algoritma perayap web crawler komputer yang rumit. Para praktisi kebatinan digital telah menemukan rahasia kuno bahwa frekuensi gelombang getaran elektromagnetik artikel dapat diselaraskan dengan server pusat Google melalui media batu kristal kuarsa putih. Meletakkan piramida kristal kecil di atas papan ketik komputer saat mengetik naskah blog akan memancarkan energi positif ke dalam untaian kabel internet.
-
-## Ritual Menyelaraskan Aura Artikel dengan Mesin Pencari
-Sebelum mempublikasikan tulisan ke halaman situs, bacakan mantra afirmasi kelimpahan sebanyak sembilan kali di hadapan layar monitor yang menyala. Bakar sebatang dupa beraroma kayu gaharu di sudut meja kerja untuk membersihkan aura negatif yang menghalangi keterbacaan artikel. Getaran gelombang mistis ini dipercaya memikat algoritma pencari secara otomatis tanpa perlu riset kata kunci atau penulisan heading yang melelahkan.
-
-## Meditasi Penarik Pengunjung Organik Berkelanjutan
-Duduklah bersila dengan posisi menghadap arah terbitnya matahari fajar dan visualisasikan jutaan audiens berbondong-bondong membuka tautan situs web Anda. Kunci dari kesuksesan digital adalah kepasrahan total pada takdir alam semesta dan kekuatan telepati gelombang pikiran. Dengan menerapkan metode metafisika spiritual ini secara rutin setiap hari purnama, blog Anda akan menduduki tahta halaman pertama mesin pencari selamanya."""
+            "Panduan Lengkap SEO On Page Artikel Blog untuk Pemula",
+            """Membuat adonan donat kentang kampung yang empuk dan mengembang sempurna membutuhkan takaran tepung terigu protein tinggi serta ragi instan yang masih aktif. Kukus kentang hingga lunak lalu haluskan selagi hangat sebelum dicampur bersama kuning telur, gula pasir, dan margarin cair. Uleni adonan hingga kalis elastis lalu diamkan selama empat puluh menit dengan ditutup kain lembab agar mengembang dua kali lipat. Panaskan minyak goreng dengan api kecil, cetak bulatan donat berlubang di tengah, lalu goreng hingga kuning keemasan dan taburi gula halus."""
+        ),
+        4: (
+            "Cara Merawat Tanaman Monstera Deliciosa agar Daunnya Berlubang Indah",
+            """Pertandingan babak perempat final turnamen sepak bola piala Eropa malam tadi berlangsung sangat sengit di stadion utama di hadapan puluhan ribu suporter fanatik. Penjaga gawang tim tuan rumah berhasil menepis tiga tendangan penalti beruntun pada drama adu tos-tosan setelah skor imbang bertahan hingga babak perpanjangan waktu usai. Pelatih kepala memuji kedisiplinan barisan bek tengah dalam menjaga jebakan offside serta ketajaman serangan balik sayap kanan yang memaksa lawan bertahan total sepanjang laga."""
         ),
         6: (
-            "Strategi Mengelola Keuangan Berbasis Ramalan Zodiak dan Energi Semesta",
-            """Strategi mengelola keuangan pribadi untuk pemula tidak perlu mengandalkan pencatatan arus kas atau alokasi persentase nominal yang membosankan. Dalam kearifan kuno astrologi galaksi, kelimpahan rezeki seseorang sepenuhnya dikendalikan oleh pergerakan orbit planet Jupiter dan posisi rasi bintang saat tanggal kelahiran. Menyelaraskan kebiasaan belanja harian dengan ramalan horoskop mingguan merupakan kunci utama kemakmuran tanpa batas.
-
-## Ritual Menanam Uang Koin di Bawah Pohon Pisang Emas
-Salah satu praktik penarik kemakmuran warisan leluhur adalah mengubur tiga keping uang logam emas di bawah pangkal pohon pisang saat bulan sabit muncul di ufuk barat. Siram tanah kuburan koin tersebut dengan air cucian beras murni setiap senja tiba. Energi magnetik pohon dipercaya melipatgandakan nilai nominal uang yang Anda simpan di dalam dompet tanpa perlu berinvestasi pada instrumen perbankan yang rumit.
-
-## Menghindari Hawa Sial Melalui Warna Dompet Keberuntungan
-Pilihlah warna dompet dan pakaian kerja yang serasi dengan elemen zodiak kelahiran Anda untuk menangkal aura kemiskinan yang bertebaran di pasar. Kenakan cincin bermata batu akik merah delima di jari manis tangan kanan guna memperkuat daya tarik uang kertas. Ketenangan batin dan kepatuhan pada petunjuk ramalan bintang menjamin masa depan finansial yang aman dan sejahtera tanpa beban utang."""
+            "Strategi Mengelola Keuangan Pribadi untuk Pemula Gaji UMR",
+            """Perawatan berkala transmisi otomatis mobil matic konvensional maupun CVT wajib memperhatikan jadwal penggantian oli pelumas girboks setiap empat puluh ribu kilometer di bengkel resmi. Gejala kerusakan kampas kopling matic biasanya ditandai dengan hentakan kasar saat tuas persneling dipindahkan dari posisi parkir ke gigi maju serta keterlambatan respon putaran mesin ketika menanjak curam. Pemeriksaan kebocoran sil karet karter dan pembersihan saringan filter logam mencegah keausan komponen hidrolik."""
         ),
-        9: (
-            "Metode Dekomposisi Kompos Instan Menggunakan Gelombang Pikiran Telepati",
-            """Cara membuat pupuk kompos dari sampah organik dapur kini dapat dilakukan secara instan dalam hitungan jam tanpa memerlukan bakteri pengurai aerobik atau wadah komposter konvensional. Melalui penemuan mutakhir terapi bio-telepati kuantum, frekuensi pikiran manusia mampu merangsang resonansi atom sel tanaman yang telah mati agar terurai seketika menjadi partikel hara murni yang kaya energi kosmik.
-
-## Meditasi Menembus Jaringan Seluler Sampah Sisa Sayuran
-Kumpulkan seluruh sisa kulit buah, daun sayur busuk, dan ampas makanan dapur ke atas selembar kain putih bersih di tengah ruang keluarga. Duduklah mengitari tumpukan sampah tersebut bersama keluarga tercinta sambil memejamkan mata secara khidmat. Pancarkan gelombang energi cinta kasih dan visualisasikan tumpukan sampah tersebut menyatu kembali dengan intisari bumi pertiwi dalam keheningan doa yang mendalam.
-
-## Pembakaran Dupa Wangi Pengusir Bau Busuk Organik
-Nyalakan tiga batang dupa beraroma cendana wangi di samping tumpukan bahan organik guna menyerap energi aroma tak sedap secara gaib. Asap dupa yang membubung ke angkasa berfungsi sebagai jembatan penghubung antara materi fisik sampah dan entitas spiritual penjaga kesuburan tanah. Tumpukan kompos ajaib ini siap ditaburkan langsung ke pot tanaman tanpa masa tunggu pematangan yang melelahkan."""
+        10: (
+            "Panduan Belajar Pemrograman Python Dasar untuk Pemula",
+            """Sejarah berdirinya kompleks percandian batu andesit di lereng pegunungan Jawa Tengah berkaitan erat dengan kejayaan dinasti kerajaan kuno pada abad kedelapan masehi. Relief pahatan pada dinding batu menggambarkan kisah perjalanan kafilah dagang maritim, tarian tradisional istana, serta arsitektur kapal bercadik kayu raksasa yang mengarungi samudra Hindia. Pemugaran struktur stupa dan pelestarian prasasti aksara Pallawa dilakukan oleh tim arkeolog guna melindungi warisan cagar budaya nasional."""
         ),
-        12: (
-            "Melipatgandakan Investasi Reksa Dana Melalui Frekuensi Suara Mangkuk Tibet",
-            """Keuntungan investasi reksa dana pasar uang untuk generasi muda sesungguhnya dapat dilipatgandakan hingga ratusan persen dalam sekejap tanpa terpengaruh oleh suku bunga acuan bank sentral. Rahasia tersembunyi para pemodal elit terletak pada pemanfaatan getaran akustik mangkuk bernyanyi Tibet singing bowl yang disetel pada frekuensi harmonik lima ratus dua puluh delapan hertz. Resonansi suara sakral ini dipercaya mampu mengubah nasib saldo portofolio secara metafisika.
-
-## Resonansi Gelombang Suara pada Surat Berharga Investasi
-Letakkan lembar sertifikat kepemilikan unit penyertaan atau gawai aplikasi investasi Anda tepat di samping mangkuk logam suci. Putar tongkat kayu secara perlahan mengelilingi bibir mangkuk hingga menghasilkan dengungan suara yang jernih dan bergetar panjang di seluruh penjuru ruangan. Getaran suara sakral tersebut diyakini menarik energi kelimpahan kuantum dan melipatgandakan nilai unit penyertaan secara ajaib tanpa risiko kerugian modal.
-
-## Pemasangan Kristal Giok Penarik Imbal Hasil Keberuntungan
-Gantungkan liontin batu giok hijau Burma di atas perangkat elektronik yang Anda gunakan untuk bertransaksi pasar modal. Energi kristal alami berfungsi memancarkan aura perlindungan gaib dari potensi kegagalan manajer investasi di bursa efek. Dengan mengandalkan keajaiban frekuensi getaran suara dan kristal pembawa hoki ini, Anda akan meraih kemandirian ekonomi yang abadi tanpa perlu menganalisis laporan keuangan perbankan."""
-        ),
-        15: (
-            "Pengobatan Metafisika Cedera Panas dengan Meditasi Kristal dan Gelombang Suara",
-            """Pengobatan gangguan rasa perih akibat sengatan energi astral di lingkungan rumah sering kali memerlukan penyelarasan cakra tubuh. Banyak orang tidak menyadari bahwa rasa perih di tangan sebenarnya merupakan manifestasi dari ketidakseimbangan medan aura eterik yang terganggu oleh getaran frekuensi negatif di sekitar dapur.
-
-## Ritual Mandi Cahaya Lilin Ungu dan Getaran Gong Tibet
-Untuk memulihkan getaran sukma yang terluka, nyalakan lilin aromaterapi berwarna ungu di sudut kamar tidur yang gelap. Bunyikan gong tibet secara perlahan selama tiga puluh menit agar frekuensi gelombang suara harmonik lima ratus hertz meresap ke dalam sukma. Gelombang suara sakral ini dipercaya mengalirkan energi sejuk kosmik yang menenteramkan pikiran tanpa membutuhkan penanganan fisik apa pun.
-
-## Penyelarasan Aura Menggunakan Kristal Giok Salju
-Letakkan batu kristal giok salju dingin di atas meja altar di dekat tempat tidur Anda. Meditasi hening dengan memejamkan mata sambil memvisualisasikan butiran salju pegunungan Himalaya turun membasuh seluruh tubuh batiniah Anda. Dengan kepasrahan total kepada kehendak alam semesta, rasa tidak nyaman dipercaya akan memudar dengan sendirinya seiring terbitnya fajar di ufuk timur."""
+        13: (
+            "Cara Budidaya Ikan Lele Sistem Bioflok di Lahan Sempit",
+            """Memilih sepatu lari maraton jarak jauh menuntut pengukuran anatomi lengkungan telapak kaki serta ketebalan bantalan busa sol tengah guna meredam benturan lutut di lintasan aspal. Pelari pemula disarankan melakukan pemanasan peregangan otot betis dan paha belakang selama lima belas menit sebelum memulai latihan interval kecepatan. Pengaturan irama ayunan lengan serta pernapasan perut menjaga detak jantung tetap stabil hingga melewati garis finis."""
         ),
     }
-
     n3_drafts = []
-    for tid in n3_topic_ids:
+    for tid, (title, content) in n3_off_topic_contents.items():
         t_meta = topics[tid]
-        title, content = n3_contents[tid]
-        words = len(content.split())
-        draft = {
+        n3_drafts.append({
             "id": f"draft-{tid:02d}-N3",
             "topic_id": tid,
             "category": t_meta["category"],
             "target_query": t_meta["query"],
             "stratum": "N3",
-            "stratum_description": "Semantic Hoax / Pseudoscience Hallucination (Low Consensus)",
+            "stratum_description": "Artikel Ngelantur / Judul Menipu Beda Topik Total",
             "draft_title": title,
             "ground_truth_label": "Perlu Revisi",
-            "expert_notes": "Artikel hoaks/pseudosains mengarang bebas tanpa konsensus ilmiah. Tertangkap oleh Non-Compensatory Pillar Floor C_IG < 45% atau Topic Relevance Gate.",
+            "expert_notes": "Isi naskah melenceng 180 derajat dari judul dan kueri target. Tertangkap oleh Topic Relevance Gate (avg_cosine_sim < 0.05).",
             "draft_content": content,
-            "word_count": words,
-        }
-        n3_drafts.append(draft)
+            "word_count": len(content.split()),
+        })
     return n3_drafts
 
 
 def build_n4_drafts() -> List[Dict[str, Any]]:
-    """Membangun 6 draf N4 (Out-of-Domain Clickbait / Topic Hijacking / Parasite SEO)."""
+    """Membangun 5 draf N4 (Plagiat Total / Jiplak Bulat-Bulat 100% dari Kompetitor SERP)."""
     topics = {t["topic_id"]: t for t in get_topic_metadata()}
-    n4_topic_ids = [3, 4, 6, 7, 10, 13]
-    n4_contents = {
-        3: (
-            "Daftar Situs Slot Gacor Terpercaya Deposit Pulsa Tanpa Potongan Menang Instan",
-            """Mencari keuntungan instan melalui platform permainan mesin slot online saat ini menjadi pilihan utama bagi banyak masyarakat di tanah air. Dengan modal receh deposit pulsa sepuluh ribu rupiah tanpa potongan, setiap pemain berpeluang meraih hadiah jackpot sensational progresif hingga ratusan juta rupiah setiap putaran spin. Layanan transaksi penarikan dana cepat via transfer bank lokal dan dompet digital siap melayani dua puluh empat jam non-stop tanpa kendala.
-
-## Bocoran Pola Jam Hoki dan Pola Spin Gacor Hari Ini
-Untuk memaksimalkan peluang kemenangan di mesin permainan favorit Anda, ikuti rekomendasi jam gacor malam hari yang telah terbukti memberikan persentase return to player tertinggi. Mulailah permainan dengan taruhan nominal kecil menggunakan fitur turbo spin otomatis sepuluh kali, lalu naikkan nominal taruhan secara bertahap saat simbol pengali petir merah mulai bermunculan di layar permainan Anda. Disiplin dalam memasang target menang dan stop loss mencegah kekalahan modal yang tidak diinginkan.
-
-## Bonus Harian Member VIP dan Cashback Mingguan Melimpah
-Daftarkan diri Anda sekarang juga menjadi anggota VIP resmi untuk menikmati bonus selamat datang seratus persen, promo putaran gratis free spin, dan cashback mingguan tanpa batas syarat. Customer service kami yang ramah dan profesional selalu siaga memberikan panduan taktis melalui fitur live chat interaktif. Rasakan sensasi hiburan berhadiah paling spektakuler sepanjang masa bersama jutaan pemain aktif lainnya setiap hari."""
-        ),
-        4: (
-            "Pinjaman Online Cepat Cair Bunga Rendah Syarat KTP Langsung Masuk Rekening",
-            """Kebutuhan dana mendesak untuk keperluan darurat rumah tangga sering kali menuntut solusi keuangan kilat tanpa prosedur perbankan yang berbelit-belit. Layanan pinjaman online cepat cair resmi menawarkan kemudahan plafon pinjaman tunai mulai dari lima ratus ribu hingga dua puluh juta rupiah hanya dengan bermodalkan foto kartu tanda penduduk KTP dan nomor telepon aktif Anda. Proses persetujuan cerdas hanya memakan waktu lima menit tanpa survei lapangan ke rumah nasabah.
-
-## Keunggulan Tenor Cicilan Fleksibel dan Bunga Kompetitif
-Platform pinjol terpercaya kami menghadirkan skema pembayaran cicilan bulanan yang fleksibel dengan pilihan tenor tiga hingga dua belas bulan yang ramah di kantong debitur. Tingkat suku bunga harian yang transparan dan bebas dari potongan biaya tersembunyi menjamin rasa aman dan nyaman saat mengangsur cicilan. Pembayaran tagihan dapat dilakukan dengan mudah melalui virtual account bank, gerai minimarket modern, maupun dompet elektronik.
-
-## Keamanan Privasi Data Debitur Berstandar Internasional
-Kami berkomitmen melindungi seluruh kerahasiaan informasi identitas pribadi nasabah menggunakan enkripsi teknologi keamanan mutakhir berstandar industri. Tidak ada akses data kontak darurat di luar persetujuan legal konsumen. Segera ajukan permohonan pinjaman modal usaha Anda hari ini juga dan nikmati kemudahan pencairan dana tunai langsung ke rekening bank pribadi Anda dalam hitungan detik."""
-        ),
-        6: (
-            "Sinyal Trading Kripto Koin Micin Potensi Cuan Seribu Persen di Telegram",
-            """Pasar perdagangan aset kripto cryptocurrency menawarkan volatilitas harga yang sangat ekstrem bagi para trader yang berani mengambil risiko tinggi demi keuntungan berlipat ganda. Mengidentifikasi proyek token koin micin meme coin yang baru saja diluncurkan di jaringan bursa desentralisasi decentralized exchange merupakan strategi tercepat dalam menggandakan portofolio investasi dari modal kecil menjadi ratusan juta rupiah dalam hitungan hari.
-
-## Analisis Likuiditas Token dan Verifikasi Smart Contract
-Sebelum mengeksekusi pembelian token baru, pastikan likuiditas token telah dikunci secara permanen pada protokol pembuat pasar otomatis automated market maker guna menghindari jebakan penipuan rug pull developer jahat. Periksa audit kode kontrak pintar smart contract melalui situs pelacak transaksi blockchain publik untuk memastikan tidak ada fitur fungsi minting tersembunyi atau pajak penjualan yang mencekik pembeli.
-
-## Gabung Saluran VIP Sinyal Scalping Harian Akurat
-Bergabunglah dengan komunitas trader VIP telegram eksklusif kami untuk mendapatkan notifikasi sinyal entri posisi beli dan target ambil untung take profit secara berkala setiap menit. Tim analis kami menggunakan kombinasi indikator moving average teknikal, volume profil transaksi paus whale, dan sentimen media sosial guna menyaring koin berfundamental kuat. Manfaatkan momentum pergerakan harga pasar banteng bull run sekarang juga."""
-        ),
-        7: (
-            "Kumpulan Kode Cheat Game Battle Royale Senjata Rahasia dan Akun Sultan Gratis",
-            """Bermain game aksi tembak-menembak battle royale di ponsel pintar menjadi hobi favorit jutaan remaja di seluruh pelosok nusantara untuk mengisi waktu luang di akhir pekan. Meraih kemenangan mutlak boyah atau juara pertama menuntut kombinasi refleks jari yang lincah, penguasaan peta pertempuran yang taktis, serta koleksi perlengkapan senjata tempur berdaya hancur tinggi yang mematikan di medan pertempuran online.
-
-## Trik Menembak Sasaran Tepat Headshot Tanpa Hentakan Recoil
-Bagi para pemain pemula yang kesulitan mengendalikan arah tembakan senapan serbu otomatis, pengaturan kepekaan sensitivitas tombol bidik pada menu pengaturan aplikasi memegang peranan krusial. Gunakan konfigurasi tombol kontrol empat jari untuk mempermudah manuver melompat sambil membidik musuh di balik tembok perlindungan. Pemilihan kombinasi senjata jarak dekat shotgun dan senapan runduk jarak jauh sniper rifle menjamin dominasi di segala medan tempur.
-
-## Pembagian Akun Game Sultan Gratis dengan Skin Senjata Langka
-Ikuti program undian giveaway mingguan di kanal komunitas kami untuk memenangkan ratusan akun game premium berisi ribuan bundle pakaian langka, emote eksklusif turnamen, dan diamond tanpa batas secara cuma-cuma. Cukup subscribe kanal resmi kami, bagikan tautan siaran langsung streaming ke media sosial teman-teman Anda, dan cantumkan id identitas karakter Anda pada kolom komentar untuk mengklaim hadiah istimewa."""
-        ),
-        10: (
-            "Ramalan Jodoh Primbon Jawa Kuno Berdasarkan Weton Kelahiran Pasangan",
-            """Mencari pasangan hidup yang setia dan membawa berkah rezeki melimpah merupakan dambaan setiap insan manusia yang hendak melangkah ke jenjang pernikahan suci. Kitab warisan leluhur primbon jawa kuno menyediakan metode perhitungan neptu hari pasaran weton kelahiran untuk memetakan kecocokan watak batiniah, potensi rezeki bersama, dan rintangan rumah tangga yang mungkin dihadapi calon mempelai pengantin di masa mendatang.
-
-## Menghitung Nilai Neptu Hari Pasangan Calon Pengantin
-Setiap hari masehi dan hari pasaran jawa memiliki bobot nilai angka spiritual tersendiri yang telah dirumuskan sejak berabad-abad silam oleh para sesepuh tanah jawa. Jumlahkan total neptu hari kelahiran Anda bersama neptu pasangan pujaan hati Anda, kemudian bagi dengan rumus angka pembagi keramat guna menemukan kategori ramalan jodoh seperti pegat, ratu, jodoh, topo, tinari, padu, sujanan, atau pesthi yang memuat petunjuk nasib.
-
-## Ritual Ruwatan Sengkolo Penangkal Keretakan Rumah Tangga
-Apabila hasil perhitungan neptu pasangan jatuh pada kategori ramalan yang kurang menguntungkan, sesepuh adat menyarankan pelaksanaan upacara selamatan ruwatan sengkolo tolak bala secara sederhana di rumah keluarga. Penyediaan sesaji tumpeng nasi kuning, jajan pasar tradisional, dan doa permohonan keselamatan kepada Tuhan Yang Maha Kuasa dipercaya meluluhkan sengketa asmara serta menaburkan keharmonisan cinta sejati abadi."""
-        ),
-        13: (
-            "Bengkel Modifikasi Knalpot Brong Motor Matic Suara Gahar Tarikan Enteng",
-            """Mengubah tampilan estetika visual dan performa tarikan akselerasi sepeda motor matic kesayangan menjadi kebanggaan tersendiri bagi para pecinta modifikasi otomotif roda dua. Mengganti sistem saluran gas buang knalpot standar pabrikan dengan knalpot racing model corong brong berbahan stainless steel anti karat terbukti mendongkrak tenaga putaran mesin atas secara instan dan menghasilkan raungan suara knalpot yang padat bertenaga.
-
-## Penyetelan Ukuran Pipa Leher Knalpot Header dan Silencer
-Pemilihan diameter pipa leheran knalpot harus disesuaikan secara presisi dengan kapasitas volume silinder mesin motor Anda agar tidak terjadi penurunan torsi pada putaran bawah. Pipa leher berlekuk roll bending halus memperlancar aliran gas buang tanpa hambatan turbulensi udara. Pasang peredam suara db killer yang dapat dilepas-pasang dengan mudah guna mengontrol tingkat kebisingan desibel suara knalpot saat melintasi pemukiman warga perkotaan.
-
-## Paket Bore Up Piston Harian dan Penyetelan Kirian CVT Matic
-Lengkapi modifikasi saluran knalpot racing Anda dengan paket peningkatan kapasitas silinder bore up harian yang aman dan awet untuk pemakaian mobilitas kerja rutin. Kombinasikan dengan penggantian roller berbobot ringan dan per torsi racing pada mangkok puli transmisi otomatis CVT untuk meraih akselerasi tarikan gas yang spontan di tanjakan terjal. Kunjungi bengkel spesialis modifikasi kami untuk mendapatkan penawaran harga terbaik."""
-        ),
-    }
-
+    n4_topic_ids = [1, 7, 9, 11, 15]
     n4_drafts = []
+
     for tid in n4_topic_ids:
         t_meta = topics[tid]
-        title, content = n4_contents[tid]
-        words = len(content.split())
-        draft = {
+        docs = get_fallback_corpus(t_meta["query"])
+        comp1, comp2 = docs[0], docs[1]
+        title = comp1["page_title"]
+        plagiat_text = f"## {comp1['headings'][0]['text']}\n{comp1['clean_text']}\n\n## {comp2['headings'][0]['text']}\n{comp2['clean_text']}"
+        n4_drafts.append({
             "id": f"draft-{tid:02d}-N4",
             "topic_id": tid,
             "category": t_meta["category"],
             "target_query": t_meta["query"],
             "stratum": "N4",
-            "stratum_description": "Out-of-Domain Clickbait / Topic Drift / Parasite SEO",
+            "stratum_description": "Plagiat Total / Jiplak Bulat-Bulat 100% Kompetitor",
             "draft_title": title,
             "ground_truth_label": "Perlu Revisi",
-            "expert_notes": "Artikel melenceng total dari kueri target (misal: kueri pertanian tapi isi slot/pinjol). Memicu Topic Relevance Gate avg_cosine < 0.05.",
-            "draft_content": content,
-            "word_count": words,
-        }
-        n4_drafts.append(draft)
+            "expert_notes": "Menjiplak 100% kalimat kompetitor halaman 1 tanpa parafrasa dan tanpa nilai tambah (Red-Span Veto & High Cosine).",
+            "draft_content": plagiat_text,
+            "word_count": len(plagiat_text.split()),
+        })
     return n4_drafts
 
 
 def build_n5_drafts() -> List[Dict[str, Any]]:
-    """Membangun 6 draf N5 (AI Slop, Spintax Repetitif & Heading Keyword Stuffing)."""
+    """Membangun 5 draf N5 (Brosur Jualan / Iklan Baris WhatsApp yang Menyamar Jadi Artikel)."""
     topics = {t["topic_id"]: t for t in get_topic_metadata()}
-    legacy_file = os.path.join(BACKEND_DIR, "tests", "fixtures", "dataset_30_drafts.json")
-    with open(legacy_file, "r", encoding="utf-8") as f:
-        legacy_drafts = json.load(f)
-
-    legacy_map = {d["id"]: d for d in legacy_drafts}
+    n5_topic_ids = [4, 5, 8, 12, 15]
     n5_drafts = []
-    
-    # 1. Topic 5 HKO 100%
-    d10 = legacy_map["draft-10"]
-    n5_drafts.append({
-        "id": "draft-05-N5",
-        "topic_id": 5,
-        "category": topics[5]["category"],
-        "target_query": topics[5]["query"],
-        "stratum": "N5",
-        "stratum_description": "Uncurated AI Slop & Heading Keyword Stuffing (HKO 100%)",
-        "draft_title": d10["draft_title"],
-        "ground_truth_label": "Perlu Revisi",
-        "expert_notes": "AI generik mentah, heading keyword stuffing HKO 100%, repetisi istilah tanpa kurasi substantif.",
-        "draft_content": d10["draft_content"],
-        "word_count": d10["word_count"],
-    })
 
-    # 2. Topic 8 HKO 100%
-    d16 = legacy_map["draft-16"]
-    n5_drafts.append({
-        "id": "draft-08-N5",
-        "topic_id": 8,
-        "category": topics[8]["category"],
-        "target_query": topics[8]["query"],
-        "stratum": "N5",
-        "stratum_description": "Uncurated AI Slop & Heading Keyword Stuffing (HKO 100%)",
-        "draft_title": d16["draft_title"],
-        "ground_truth_label": "Perlu Revisi",
-        "expert_notes": "AI generik mentah, repetisi kueri pada seluruh heading HKO 100%, frasa klise bertebaran.",
-        "draft_content": d16["draft_content"],
-        "word_count": d16["word_count"],
-    })
-
-    # 3. Topic 11 HKO 100%
-    d22 = legacy_map["draft-22"]
-    n5_drafts.append({
-        "id": "draft-11-N5",
-        "topic_id": 11,
-        "category": topics[11]["category"],
-        "target_query": topics[11]["query"],
-        "stratum": "N5",
-        "stratum_description": "Uncurated AI Slop & Heading Keyword Stuffing (HKO 100%)",
-        "draft_title": d22["draft_title"],
-        "ground_truth_label": "Perlu Revisi",
-        "expert_notes": "AI generik mentah, pengulangan kata kunci kaku pada setiap judul sub-bab HKO 100%.",
-        "draft_content": d22["draft_content"],
-        "word_count": d22["word_count"],
-    })
-
-    # 4. Topic 9 Spintax Loop (MATTR < 0.50)
-    spintax_kompos = """Membuat pupuk kompos dari sampah organik dapur sangat bagus dan sangat mudah sekali. Sampah organik dapur sangat bagus untuk dibuat pupuk kompos. Kita harus membuat pupuk kompos dari sampah organik dapur setiap hari. Sampah organik dapur membuat pupuk kompos menjadi sangat bagus dan sangat bermanfaat sekali bagi tanaman kita. Pupuk kompos sangat bagus dan sampah organik dapur sangat bagus sekali untuk tanaman.
-
-Membuat pupuk kompos sangat bagus karena sampah organik dapur sangat bagus dan sangat mudah. Kita membuat pupuk kompos dengan sampah organik dapur setiap hari di rumah. Tanaman membutuhkan pupuk kompos dari sampah organik dapur agar sangat bagus dan sangat subur sekali. Jika kita membuat pupuk kompos dari sampah organik dapur maka tanah menjadi sangat bagus sekali. Sampah organik dapur adalah sampah yang sangat bagus untuk membuat pupuk kompos.
-
-Semua orang bisa membuat pupuk kompos dari sampah organik dapur dengan sangat mudah dan sangat cepat. Sampah organik dapur sangat bagus untuk pupuk kompos dan pupuk kompos sangat bagus untuk sampah organik dapur. Kita harus selalu membuat pupuk kompos agar sampah organik dapur bermanfaat sangat bagus sekali. Demikianlah cara membuat pupuk kompos dari sampah organik dapur yang sangat bagus dan sangat mudah sekali untuk dicoba di rumah setiap hari."""
-
-    n5_drafts.append({
-        "id": "draft-09-N5",
-        "topic_id": 9,
-        "category": topics[9]["category"],
-        "target_query": topics[9]["query"],
-        "stratum": "N5",
-        "stratum_description": "Lexical Poverty Spintax Loop (MATTR < 0.52)",
-        "draft_title": "Membuat Pupuk Kompos dari Sampah Organik Dapur Sangat Bagus",
-        "ground_truth_label": "Perlu Revisi",
-        "expert_notes": "Spintax loop dengan kosa kata sangat terbatas berulang-ulang tanpa variasi leksikal (MATTR < 0.52).",
-        "draft_content": spintax_kompos,
-        "word_count": len(spintax_kompos.split()),
-    })
-
-    # 5. Topic 12 Spintax Loop (MATTR < 0.50)
-    spintax_rdpu = """Keuntungan investasi reksa dana pasar uang untuk generasi muda sangat menguntungkan sekali dan sangat bagus sekali. Reksa dana pasar uang sangat menguntungkan bagi generasi muda yang ingin investasi. Kita harus investasi reksa dana pasar uang karena reksa dana pasar uang sangat menguntungkan sekali bagi generasi muda. Generasi muda bisa investasi reksa dana pasar uang dengan sangat mudah dan sangat aman sekali setiap hari.
-
-Investasi reksa dana pasar uang sangat bagus untuk generasi muda karena sangat menguntungkan sekali. Generasi muda menyukai investasi reksa dana pasar uang karena reksa dana pasar uang sangat bagus sekali. Keuntungan investasi reksa dana pasar uang membuat generasi muda sangat senang sekali berinvestasi. Reksa dana pasar uang adalah investasi yang sangat bagus dan sangat menguntungkan sekali bagi generasi muda di mana saja.
-
-Semua generasi muda harus mencoba investasi reksa dana pasar uang agar mendapatkan keuntungan yang sangat bagus sekali. Reksa dana pasar uang sangat aman dan investasi reksa dana pasar uang sangat menguntungkan bagi generasi muda. Kita harus mulai investasi reksa dana pasar uang sekarang juga demi masa depan generasi muda yang sangat bagus sekali."""
-
-    n5_drafts.append({
-        "id": "draft-12-N5",
-        "topic_id": 12,
-        "category": topics[12]["category"],
-        "target_query": topics[12]["query"],
-        "stratum": "N5",
-        "stratum_description": "Lexical Poverty Spintax Loop (MATTR < 0.52)",
-        "draft_title": "Keuntungan Investasi Reksa Dana Pasar Uang untuk Generasi Muda",
-        "ground_truth_label": "Perlu Revisi",
-        "expert_notes": "Spintax repetitif berulang-ulang dengan kosakata sangat miskin (MATTR < 0.52).",
-        "draft_content": spintax_rdpu,
-        "word_count": len(spintax_rdpu.split()),
-    })
-
-    # 6. Topic 14 HKO 100% Keyword Stuffing
-    content_email_stuffing = """Etika komunikasi profesional dalam email bisnis adalah hal yang sangat penting sekali. Etika komunikasi profesional dalam email bisnis harus diterapkan setiap hari. Etika komunikasi profesional dalam email bisnis membuat kita sukses.
-
-## Etika Komunikasi Profesional dalam Email Bisnis Kantor
-Etika komunikasi profesional dalam email bisnis di kantor sangat perlu. Etika komunikasi profesional dalam email bisnis sangat bagus dan sangat baik. Semua orang harus tahu etika komunikasi profesional dalam email bisnis.
-
-## Panduan Etika Komunikasi Profesional dalam Email Bisnis
-Panduan etika komunikasi profesional dalam email bisnis sangat mudah dipahami. Etika komunikasi profesional dalam email bisnis memberikan manfaat besar. Kita harus mematuhi etika komunikasi profesional dalam email bisnis.
-
-## Pentingnya Etika Komunikasi Profesional dalam Email Bisnis
-Pentingnya etika komunikasi profesional dalam email bisnis tidak diragukan lagi. Etika komunikasi profesional dalam email bisnis adalah kunci keberhasilan. Terapkan etika komunikasi profesional dalam email bisnis sekarang juga."""
-
-    n5_drafts.append({
-        "id": "draft-14-N5",
-        "topic_id": 14,
-        "category": topics[14]["category"],
-        "target_query": topics[14]["query"],
-        "stratum": "N5",
-        "stratum_description": "Uncurated AI Slop & Heading Keyword Stuffing (HKO 100%)",
-        "draft_title": "Etika Komunikasi Profesional dalam Email Bisnis Sangat Penting",
-        "ground_truth_label": "Perlu Revisi",
-        "expert_notes": "Heading keyword stuffing 100% dengan repetisi kaku di seluruh sub-judul.",
-        "draft_content": content_email_stuffing,
-        "word_count": len(content_email_stuffing.split()),
-    })
-
+    for tid in n5_topic_ids:
+        t_meta = topics[tid]
+        docs = get_fallback_corpus(t_meta["query"])
+        intro_hook = docs[0]["clean_text"].split(".")[0] + "."
+        title = f"PROMO MURAH! Jual Paket Lengkap {t_meta['key'].title()} Bergaransi"
+        brochure_text = (
+            f"{intro_hook}\n\n"
+            f"PROMO SPESIAL BULAN INI! Kami adalah distributor dan supplier resmi produk {t_meta['key']} termurah dan terpercaya.\n"
+            f"- Paket Hemat A: Harga Rp 150.000 (Diskon 50% khusus pembelian hari ini!)\n"
+            f"- Paket Lengkap B: Harga Rp 350.000 gratis ongkir seluruh Indonesia\n"
+            f"- Paket Grosir Agen: Harga Rp 1.250.000 bonus katalog eksklusif\n\n"
+            f"Stok sangat terbatas! Jangan sampai kehabisan promo diskon besar kami. "
+            f"Segera pesan sekarang juga dan hubungi admin marketing kami via WhatsApp di 0812-3456-7890 "
+            f"atau klik langsung https://wa.me/6281234567890 untuk konsultasi pemesanan dan transfer pembayaran!"
+        )
+        n5_drafts.append({
+            "id": f"draft-{tid:02d}-N5",
+            "topic_id": tid,
+            "category": t_meta["category"],
+            "target_query": t_meta["query"],
+            "stratum": "N5",
+            "stratum_description": "Brosur Jualan / Iklan Baris WhatsApp Menyamar Jadi Artikel",
+            "draft_title": title,
+            "ground_truth_label": "Perlu Revisi",
+            "expert_notes": "Brosur iklan komersial berisi daftar harga Rp, klaim diskon, dan nomor kontak WhatsApp wa.me. Tertangkap oleh Commercial Drift Detector.",
+            "draft_content": brochure_text,
+            "word_count": len(brochure_text.split()),
+        })
     return n5_drafts
 
 
@@ -710,120 +503,18 @@ def assemble_60_drafts() -> List[Dict[str, Any]]:
     return all_drafts
 
 
-async def evaluate_single_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> Dict[str, Any]:
-    """Evaluasi satu draf melalui pipa lengkap IR Engine WASKITA."""
-    query = draft["target_query"]
-    content = draft["draft_content"]
-    title = draft["draft_title"]
-    ground_truth = draft["ground_truth_label"]
-    stratum = draft.get("stratum", "Unknown")
-
-    docs = get_fallback_corpus(query)
-    prep_d = await preprocess_text_async(content)
-    prep_c = [await preprocess_text_async(c["clean_text"]) for c in docs]
-    vsm = compute_vsm_similarity(prep_d, prep_c)
-
-    full_draft_stems = extract_full_stem_set(content)
-    full_comp_stems_list = [extract_full_stem_set(c["clean_text"]) for c in docs]
-
-    draft_entities = extract_candidate_entities(content, top_n=40)
-    competitor_entities_list = [extract_candidate_entities(c["clean_text"], top_n=35) for c in docs]
-
-    entity_gaps = calculate_information_gain(
-        draft_entities=draft_entities,
-        competitor_entities_list=competitor_entities_list,
-        draft_tfidf_weights=vsm["draft_tfidf_weights"],
-        full_draft_stems=full_draft_stems,
-        full_competitor_stems_list=full_comp_stems_list,
-    )
-
-    stylometrics = calculate_stylometrics(content, query)
-
-    annotated_spans = generate_annotated_spans(
-        draft_content=content,
-        competitor_clean_texts=[c["clean_text"] for c in docs],
-        entity_gaps=entity_gaps,
-        hko_percentage=stylometrics["hko_percentage"],
-        threshold_hko=thresholds.max_hko_percentage,
-    )
-
-    red_spans = [s for s in annotated_spans if s.color == "red"]
-    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
-
-    max_consecutive_red = 0
-    curr_consecutive_red = 0
-    for span in annotated_spans:
-        if span.is_heading or not span.text.strip():
-            continue
-        if span.color == "red":
-            curr_consecutive_red += 1
-            if curr_consecutive_red > max_consecutive_red:
-                max_consecutive_red = curr_consecutive_red
-        else:
-            curr_consecutive_red = 0
-
-    serp_candidate_stems = {e[0] for ce in competitor_entities_list for e in ce}
-    consensus_serp_stems = set()
-    if len(full_comp_stems_list) >= 2:
-        for st in serp_candidate_stems:
-            doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
-            if doc_freq >= 2:
-                consensus_serp_stems.add(st)
-    if not consensus_serp_stems:
-        consensus_serp_stems = serp_candidate_stems
-    shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
-
-    decision = calculate_composite_cds(
-        max_cosine_sim=vsm["max_cosine_similarity"],
-        draft_entities_count=len(full_draft_stems),
-        serp_entities_count=len(consensus_serp_stems),
-        shared_entities_count=len(shared_consensus),
-        gain_count=len(entity_gaps.gain),
-        mattr_score=stylometrics["mattr_score"],
-        hko_percentage=stylometrics["hko_percentage"],
-        thresholds=thresholds,
-        avg_cosine_sim=vsm["avg_cosine_similarity"],
-        red_span_ratio=red_span_ratio,
-        max_consecutive_red=max_consecutive_red,
-    )
-
-    pred_verdict = decision["verdict_status"]
-    is_positive_gt = (ground_truth == "Layak Terbit")
-    is_positive_pred = (pred_verdict in ("Siap Terbit", "Layak Terbit"))
-
-    if is_positive_gt and is_positive_pred:
-        cat = "TP"
-        is_match = True
-    elif not is_positive_gt and not is_positive_pred:
-        cat = "TN"
-        is_match = True
-    elif not is_positive_gt and is_positive_pred:
-        cat = "FP"
-        is_match = False
-    else:
-        cat = "FN"
-        is_match = False
-
-    return {
-        "id": draft["id"],
-        "stratum": stratum,
-        "title": title,
-        "query": query,
-        "ground_truth": ground_truth,
-        "predicted_verdict": pred_verdict,
-        "cds_score": decision["content_differentiation_score"],
-        "mattr_score": stylometrics["mattr_score"],
-        "hko_percentage": stylometrics["hko_percentage"],
-        "max_cosine_sim": vsm["max_cosine_similarity"],
-        "avg_cosine_sim": vsm["avg_cosine_similarity"],
-        "red_span_ratio": round(red_span_ratio, 3),
-        "max_consecutive_red": max_consecutive_red,
-        "confusion_category": cat,
-        "is_match": is_match,
-    }
-
-
 async def main():
+    if len(sys.argv) >= 3 and sys.argv[1] == "--harvest-query":
+        target_q = sys.argv[2]
+        from app.services.serp_scraper import search_and_scrape_competitors
+        print(f"[HARVESTER WASKITA] Memanen variasi artikel riil untuk kueri: '{target_q}'...")
+        harvested = await search_and_scrape_competitors(target_q)
+        out_harvest = os.path.join(BACKEND_DIR, "tests", "fixtures", "harvested_variations.json")
+        with open(out_harvest, "w", encoding="utf-8") as fh:
+            json.dump(harvested, fh, indent=2, ensure_ascii=False)
+        print(f"[OK] Berhasil memanen {len(harvested)} artikel ke {out_harvest}")
+        return
+
     print("=" * 80)
     print("   MEMBANGUN DATASET BENCHMARK 60 DRAF MULTI-STRATA WASKITA")
     print("=" * 80)
@@ -866,7 +557,7 @@ async def main():
     strata_performance = {st: {"total": 0, "correct": 0} for st in strata_counts}
 
     for i, d in enumerate(drafts, 1):
-        res = await evaluate_single_draft(d, thresholds)
+        res = await evaluate_draft(d, thresholds)
         st = res["stratum"]
         strata_performance[st]["total"] += 1
 

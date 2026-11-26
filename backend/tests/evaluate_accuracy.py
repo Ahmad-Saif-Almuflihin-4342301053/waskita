@@ -16,6 +16,7 @@ import asyncio
 import json
 import os
 import sys
+import time
 from typing import Any, Dict, List, Tuple
 
 # Tambahkan direktori root backend ke PYTHONPATH
@@ -34,6 +35,7 @@ from app.services.vsm_calculator import compute_vsm_similarity
 
 async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> Dict[str, Any]:
     """Mengeksekusi pipa IR Engine secara jujur end-to-end pada satu draf artikel."""
+    t_start = time.perf_counter()
     query = draft["target_query"]
     content = draft["draft_content"]
     title = draft["draft_title"]
@@ -78,7 +80,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
     # 5. Analisis Stilometri (TTR, MATTR w=50, HKO %)
     stylometrics = calculate_stylometrics(content, query)
 
-    # 6. Analisis Stabilo Kalimat & Deteksi Red-Span (Sprint 4.0 & 4.4)
+    # 6. Analisis Stabilo Kalimat & Deteksi Red-Span (Sprint 4.0, 4.4 & 4.5)
     annotated_spans = generate_annotated_spans(
         draft_content=content,
         competitor_clean_texts=[c.get("clean_text", "") for c in competitor_docs],
@@ -87,8 +89,12 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         threshold_hko=thresholds.max_hko_percentage,
     )
 
-    red_spans = [span for span in annotated_spans if span.color == "red"]
-    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+    valid_content_spans = [
+        span for span in annotated_spans
+        if not span.is_heading and span.text.strip() and span.label != "Residu Elemen Web (Ctrl+A)"
+    ]
+    red_spans = [span for span in valid_content_spans if span.color == "red"]
+    red_span_ratio = len(red_spans) / max(1, len(valid_content_spans))
 
     max_consecutive_red = 0
     curr_consecutive_red = 0
@@ -115,7 +121,17 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
 
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
 
-    # 8. Gatekeeper Composite CDS & Aturan Vonis (Sprint 3.1 Topic Relevance & Sprint 4.0 Red-Span Veto)
+    # 8. Detektor E-E-A-T & Konten Liar (Sprint 4.5)
+    from app.services.gatekeeper import detect_web_chrome_noise, detect_commercial_drift, detect_ai_prompt_leak
+    has_chrome_noise, _, _ = detect_web_chrome_noise(content)
+    is_commercial_drift, _ = detect_commercial_drift(
+        content,
+        consensus_serp_stems=consensus_serp_stems,
+        target_query=query,
+    )
+    has_ai_prompt_leak, _ = detect_ai_prompt_leak(content)
+
+    # 9. Gatekeeper Composite CDS & Aturan Vonis (Sprint 3.1, 4.0 & 4.5 E-E-A-T Veto)
     decision = calculate_composite_cds(
         max_cosine_sim=vsm_results["max_cosine_similarity"],
         draft_entities_count=len(full_draft_stems),
@@ -128,6 +144,9 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         avg_cosine_sim=vsm_results["avg_cosine_similarity"],
         red_span_ratio=red_span_ratio,
         max_consecutive_red=max_consecutive_red,
+        has_web_chrome_noise=has_chrome_noise,
+        is_commercial_drift=is_commercial_drift,
+        has_ai_prompt_leak=has_ai_prompt_leak,
     )
 
     predicted_verdict = decision["verdict_status"]
@@ -151,6 +170,8 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         category = "FN"  # False Negative
         is_match = False
 
+    latency_ms = round((time.perf_counter() - t_start) * 1000.0, 2)
+
     return {
         "id": draft["id"],
         "stratum": stratum,
@@ -171,6 +192,7 @@ async def evaluate_draft(draft: Dict[str, Any], thresholds: ThresholdConfig) -> 
         "is_out_of_domain": decision["is_out_of_domain"],
         "confusion_category": category,
         "is_match": is_match,
+        "latency_ms": latency_ms,
     }
 
 
@@ -264,6 +286,13 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
         print(f"Strata {st:<3} : {data['correct']:>2}/{data['total']:>2} Sukses ({pct:>5.1f}%)")
     print("=" * 60 + "\n")
 
+    latencies = sorted(r.get("latency_ms", 0.0) for r in results)
+    avg_latency_ms = round(sum(latencies) / max(1, len(latencies)), 2)
+    min_latency_ms = round(latencies[0], 2) if latencies else 0.0
+    max_latency_ms = round(latencies[-1], 2) if latencies else 0.0
+    p95_idx = min(len(latencies) - 1, int(len(latencies) * 0.95)) if latencies else 0
+    p95_latency_ms = round(latencies[p95_idx], 2) if latencies else 0.0
+
     summary = {
         "total_samples": total,
         "confusion_matrix": {
@@ -281,6 +310,12 @@ async def run_accuracy_evaluation(fixtures_path: str = None) -> Dict[str, Any]:
             "precision_percentage": f"{precision * 100:.2f}%",
             "recall_percentage": f"{recall * 100:.2f}%",
             "f1_score_percentage": f"{f1_score * 100:.2f}%",
+        },
+        "latency_benchmark_ms": {
+            "avg_latency_ms": avg_latency_ms,
+            "min_latency_ms": min_latency_ms,
+            "max_latency_ms": max_latency_ms,
+            "p95_latency_ms": p95_latency_ms,
         },
         "strata_performance": strata_performance,
         "detailed_results": results,

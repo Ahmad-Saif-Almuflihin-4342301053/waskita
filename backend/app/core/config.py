@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     FEATURE_CURL_CFFI_FALLBACK: bool = True
     FEATURE_SERP_CACHE: bool = True
     FEATURE_OFFLINE_CORPUS_FALLBACK: bool = True
+    SEARXNG_URL: Optional[str] = None
+    SEARXNG_ENGINES: str = "google,startpage,brave"
     SERPER_API_KEY: Optional[str] = None
 
     # Global Default Thresholds (Tabel 3.5 & FR-10)
@@ -40,7 +42,7 @@ class Settings(BaseSettings):
     DEFAULT_MIN_CDS_SCORE: float = 75.0
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=[".env", "backend/.env"],
         env_file_encoding="utf-8",
         extra="ignore"
     )

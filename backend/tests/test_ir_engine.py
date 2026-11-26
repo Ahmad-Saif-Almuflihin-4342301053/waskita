@@ -1176,3 +1176,169 @@ class TestSprint43StabiloPrecisionAndVisualSlots:
         assert decision["is_sentence_redundant"] is True
         assert decision["verdict_status"] == "Perlu Revisi - Redundansi Kalimat Tinggi"
         assert decision["content_differentiation_score"] <= 58.0
+
+    def test_sanderson_subsumption_relaxation(self):
+        """ADR-04 & Langkah 3: Sanderson & Croft (1999) lexical subsumption relaxation."""
+        from app.schemas.audit import EntityGapItem
+        from app.services.information_gain import _deduplicate_subsumed_unigrams, deduplicate_consensus_stems
+
+        # Unigram 'presiden' (DF=10) dan 'wakil' (DF=10) diserap oleh 'wakil presiden' (DF=9)
+        # karena 9 >= floor(0.75 * 10) = 7 dan 9 >= 2
+        items = [
+            EntityGapItem(term_string="wakil presiden", term_surface_form="Wakil Presiden", tfidf_weight=0.9, competitor_consensus_count=9),
+            EntityGapItem(term_string="presiden", term_surface_form="Presiden", tfidf_weight=0.85, competitor_consensus_count=10),
+            EntityGapItem(term_string="wakil", term_surface_form="Wakil", tfidf_weight=0.80, competitor_consensus_count=10),
+            EntityGapItem(term_string="indonesia", term_surface_form="Indonesia", tfidf_weight=0.75, competitor_consensus_count=10),
+        ]
+
+        deduped = _deduplicate_subsumed_unigrams(items, limit=10)
+        terms = [it.term_string for it in deduped]
+        assert "wakil presiden" in terms
+        assert "presiden" not in terms
+        assert "wakil" not in terms
+        assert "indonesia" in terms
+
+        # Test deduplicate_consensus_stems
+        stem_freqs = [("wakil presiden", 9), ("presiden", 10), ("wakil", 10), ("indonesia", 10)]
+        deduped_stems = deduplicate_consensus_stems(stem_freqs)
+        stem_dict = dict(deduped_stems)
+        assert "wakil presiden" in stem_dict
+        assert "presiden" not in stem_dict
+        assert "wakil" not in stem_dict
+        assert "indonesia" in stem_dict
+
+    def test_remediation_prompt_out_of_domain_clean_rewrite_no_delimiter(self):
+        """ADR-01 & Langkah 4: Out-of-Domain remediation prompt is Clean Re-write without draft delimiter."""
+        from app.schemas.audit import EntityGapsGroup, EntityGapItem
+        from app.services.gatekeeper import generate_overview_and_remediation
+
+        entity_gaps = EntityGapsGroup(
+            deficit=[EntityGapItem(term_string="gibran", term_surface_form="Gibran", tfidf_weight=0.9, competitor_consensus_count=5)],
+            gain=[],
+        )
+
+        res = generate_overview_and_remediation(
+            verdict_status="Perlu Revisi - Topik Tidak Relevan",
+            cds_score=15.0,
+            is_redundant=False,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.04,
+            mattr_score=0.60,
+            hko_percentage=20.0,
+            entity_gaps=entity_gaps,
+            target_query="wapres pengganti gibran",
+            is_out_of_domain=True,
+            draft_content="Berita pembunuhan di Magetan seorang pria ditemukan tewas...",
+        )
+
+        prompt = res["remediation_prompt"]
+        # Wajib berupa instruksi reorientasi total & clean re-write
+        assert "REORIENTASI TOPIK TOTAL" in prompt
+        assert "Out-of-Domain" in prompt
+        # Dilarang menyertakan aturan surgical editing 80% verbatim
+        assert "Pertahankan minimal 80%" not in prompt
+        # Dilarang menyertakan delimiter draft naskah lama
+        assert "=== DRAF ARTIKEL PENULIS ===" not in prompt
+        assert "[NASKAH ARTIKEL YANG AKAN DIPROSES]:" not in prompt
+
+    def test_remediation_prompt_in_domain_embeds_draft_content(self):
+        """ADR-01 & Langkah 4: In-domain remediation prompt embeds draft_content inside delimiter."""
+        from app.schemas.audit import EntityGapsGroup, EntityGapItem
+        from app.services.gatekeeper import generate_overview_and_remediation
+
+        sample_draft = "Arsitektur brutalist mengedepankan ekspresi kejujuran material beton bertulang telanjang."
+        entity_gaps = EntityGapsGroup(
+            deficit=[EntityGapItem(term_string="le corbusier", term_surface_form="Le Corbusier", tfidf_weight=0.9, competitor_consensus_count=3)],
+            gain=[],
+        )
+
+        res = generate_overview_and_remediation(
+            verdict_status="Perlu Revisi",
+            cds_score=62.0,
+            is_redundant=False,
+            is_keyword_stuffed=False,
+            max_cosine_sim=0.20,
+            mattr_score=0.75,
+            hko_percentage=18.0,
+            entity_gaps=entity_gaps,
+            target_query="arsitektur brutalisme modern",
+            is_out_of_domain=False,
+            draft_content=sample_draft,
+        )
+
+        prompt = res["remediation_prompt"]
+        # Wajib menyertakan surgical editing 80% verbatim
+        assert "Pertahankan minimal 80%" in prompt
+        # Wajib menyertakan delimiter dan teks naskah aktual
+        assert "=== DRAF ARTIKEL PENULIS ===" in prompt
+        assert sample_draft in prompt
+
+    def test_out_of_domain_zero_gain_policy(self):
+        """ADR-02: Zero-Gain Policy on Out-of-Domain (Sim < 0.05)."""
+        from app.services.gatekeeper import calculate_composite_cds
+        from app.schemas.audit import ThresholdConfig
+
+        thresholds = ThresholdConfig()
+        decision = calculate_composite_cds(
+            max_cosine_sim=0.03,
+            draft_entities_count=50,
+            serp_entities_count=20,
+            shared_entities_count=1,
+            gain_count=15,  # Banyak kata berbeda karena topik melenceng (kriminal vs politik)
+            mattr_score=0.70,
+            hko_percentage=15.0,
+            thresholds=thresholds,
+            avg_cosine_sim=0.02,  # Out-of-Domain
+        )
+
+        assert decision["is_out_of_domain"] is True
+        assert decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan"
+        # Zero-Gain Policy: Sub-score IG harus 0.0
+        assert decision["sub_scores"]["ig"] == 0.0
+        assert decision["sub_scores"]["c_ig"] == 0.0
+        assert decision["content_differentiation_score"] <= 20.0
+
+    def test_multimodal_social_domains_not_blocked_and_meta_extracted(self):
+        """
+        Sprint 4.6: Platform sosial/UGC (LinkedIn, Quora, Medium, TikTok, Instagram, YouTube)
+        tidak lagi diblokir hardcode oleh classify_url_skip_reason, dan _extract_meta_and_jsonld_text
+        mampu memanen caption/articleBody secara efisien.
+        """
+        from app.services.serp_scraper import classify_url_skip_reason, _extract_meta_and_jsonld_text
+        from app.services.nlp_pipeline import ALL_INDONESIAN_STOPWORDS
+
+        for url in [
+            "https://www.linkedin.com/advice/0/how-does-feel-work-digital-marketing-agency",
+            "https://id.quora.com/Bagaimana-pengalamanmu-bekerja-di-digital-agency",
+            "https://medium.com/@adnan/suka-duka-bekerja-di-bidang-digital-marketing",
+            "https://www.tiktok.com/@creator/photo/734567890123",
+            "https://www.instagram.com/p/C9xyz123/",
+            "https://www.youtube.com/post/Ugkx12345",
+        ]:
+            assert classify_url_skip_reason(url) is None, f"URL {url} tidak boleh diblokir hardcode"
+
+        # Pastikan entitas platform sosial tidak lagi dibuang oleh stopwords
+        for platform in ("instagram", "tiktok", "youtube", "facebook", "whatsapp"):
+            assert platform not in ALL_INDONESIAN_STOPWORDS
+
+        # Uji ekstraksi Lapis 2 (OpenGraph + JSON-LD)
+        sample_html = """
+        <html>
+        <head>
+            <meta property="og:title" content="Pengalaman Kerja Digital Marketing Agency dan Strategi Konten TikTok" />
+            <meta property="og:description" content="Bekerja di agensi pemasaran digital membutuhkan kemampuan analisis kampanye Instagram Reels, optimasi SEO website, serta manajemen iklan berbayar yang terukur." />
+            <script type="application/ld+json">
+            {
+                "@context": "https://schema.org",
+                "@type": "SocialMediaPosting",
+                "articleBody": "Panduan lengkap mengelola kampanye digital marketing lintas platform mulai dari riset audiens hingga evaluasi konversi organik."
+            }
+            </script>
+        </head>
+        <body><div id="app"></div></body>
+        </html>
+        """
+        harvested = _extract_meta_and_jsonld_text(sample_html)
+        assert "Pengalaman Kerja Digital Marketing" in harvested
+        assert "Instagram Reels" in harvested
+        assert "Panduan lengkap mengelola kampanye" in harvested

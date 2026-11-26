@@ -23,6 +23,7 @@ export interface AuditOptionsOverlayProps {
   onFileUpload?: (file: File) => void;
   isOpen?: boolean;
   onClose?: () => void;
+  initialFocusSection?: 'word-budget' | 'query' | 'thresholds' | null;
 }
 
 export const DEFAULT_THRESHOLDS: QualityThresholds = {
@@ -30,6 +31,7 @@ export const DEFAULT_THRESHOLDS: QualityThresholds = {
   min_mattr: 0.55,
   max_hko_percentage: 40.0,
   min_cds_score: 75.0,
+  min_draft_words: 300,
   word_budget_mode: 'adaptive',
   word_budget_min: undefined,
   word_budget_max: undefined,
@@ -54,32 +56,35 @@ export const WORD_BUDGET_PRESETS: WordBudgetPreset[] = [
 export const PRESET_OPTIONS = [
   {
     name: 'Editorial (Standar)',
-    desc: 'Standar umum artikel informatif & web SEO',
+    desc: 'Standar umum artikel informatif & web SEO (min. 300 kata)',
     thresholds: {
       max_cosine_similarity: 0.60,
       min_mattr: 0.55,
       max_hko_percentage: 40.0,
       min_cds_score: 75.0,
+      min_draft_words: 300,
     },
   },
   {
     name: 'Blog (Fleksibel)',
-    desc: 'Lebih toleran untuk gaya bahasa santai atau personal',
+    desc: 'Lebih toleran untuk gaya bahasa santai atau berita ringkas (min. 200 kata)',
     thresholds: {
       max_cosine_similarity: 0.70,
       min_mattr: 0.48,
       max_hko_percentage: 50.0,
       min_cds_score: 65.0,
+      min_draft_words: 200,
     },
   },
   {
     name: 'Riset (Ketat)',
-    desc: 'Standar ketat orisinalitas riset & variasi kosakata',
+    desc: 'Standar ketat orisinalitas riset & naskah komprehensif (min. 500 kata)',
     thresholds: {
       max_cosine_similarity: 0.45,
       min_mattr: 0.65,
       max_hko_percentage: 30.0,
       min_cds_score: 82.0,
+      min_draft_words: 500,
     },
   },
 ];
@@ -94,8 +99,21 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
   onFileUpload,
   isOpen = false,
   onClose,
+  initialFocusSection = null,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen && initialFocusSection === 'word-budget') {
+      const timer = setTimeout(() => {
+        const el = document.getElementById('section-word-budget');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, initialFocusSection]);
 
   // Gemini-Style Bottom Sheet Expansion & Drag Handle Gestures
   const [isExpandedSheet, setIsExpandedSheet] = useState(false);
@@ -680,14 +698,18 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
 
           {/* 3. Target Panjang Naskah (Word Budget - Sprint 4.4) */}
           <div
+            id="section-word-budget"
             style={{
               background: 'var(--waskita-surface-white, #FFFFFF)',
-              border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
+              border: initialFocusSection === 'word-budget'
+                ? '2px solid var(--waskita-emerald-accent, #059669)'
+                : '1px solid var(--waskita-border, rgba(30, 41, 59, 0.1))',
               borderRadius: '16px',
               padding: '14px',
               display: 'flex',
               flexDirection: 'column',
               gap: '12px',
+              transition: 'border 0.3s ease',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -706,8 +728,82 @@ export const AuditOptionsOverlay: React.FC<AuditOptionsOverlayProps> = ({
               >
                 {currentBudgetMode === 'adaptive'
                   ? 'Adaptif SERP'
-                  : `${thresholds.word_budget_min ?? 300}–${thresholds.word_budget_max ?? 1200} kata`}
+                  : `${thresholds.word_budget_min ?? (thresholds.min_draft_words ?? 300)}–${thresholds.word_budget_max ?? 1200} kata`}
               </span>
+            </div>
+
+            {/* Batas Minimal Naskah (Audit Threshold Slider) */}
+            <div
+              style={{
+                background: 'var(--waskita-surface-subtle, #F8FAFC)',
+                border: '1px solid var(--waskita-border, rgba(30, 41, 59, 0.12))',
+                borderRadius: '12px',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '12px', fontWeight: 700, color: COLORS.deepSlate, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>Batas Minimal Naskah Draf</span>
+                  <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'rgba(5, 150, 105, 0.12)', color: 'var(--waskita-emerald-accent, #059669)', fontWeight: 600 }}>
+                    Dinamis
+                  </span>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--waskita-emerald-accent, #059669)' }}>
+                  {thresholds.min_draft_words ?? 300} kata
+                </span>
+              </div>
+
+              <input
+                type="range"
+                className="waskita-slider-custom"
+                min="30"
+                max="1000"
+                step="25"
+                value={thresholds.min_draft_words ?? 300}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  handleSliderChange('min_draft_words', val);
+                }}
+              />
+
+              {/* Quick Preset Buttons */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '2px' }}>
+                {[
+                  { label: '30 (Multimedia)', val: 30 },
+                  { label: '100 (Berita Kilat)', val: 100 },
+                  { label: '150 (Ringkas)', val: 150 },
+                  { label: '300 (Standar)', val: 300 },
+                  { label: '500 (Panjang)', val: 500 },
+                ].map((item) => {
+                  const isSelected = (thresholds.min_draft_words ?? 300) === item.val;
+                  return (
+                    <button
+                      key={item.val}
+                      type="button"
+                      onClick={() => handleSliderChange('min_draft_words', item.val)}
+                      style={{
+                        fontSize: '10.5px',
+                        fontWeight: isSelected ? 700 : 500,
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: isSelected ? '1px solid var(--waskita-emerald-accent, #059669)' : '1px solid rgba(30, 41, 59, 0.15)',
+                        background: isSelected ? 'rgba(5, 150, 105, 0.1)' : '#FFFFFF',
+                        color: isSelected ? 'var(--waskita-emerald-accent, #059669)' : COLORS.deepSlate,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: '10.5px', color: 'var(--waskita-text-muted, #64748B)', lineHeight: 1.3 }}>
+                Naskah di bawah batas ini akan dicegat (indikator kata bergetar) sebelum dikirim ke analisis audit.
+              </div>
             </div>
 
             {/* Segmented Preset Pills */}

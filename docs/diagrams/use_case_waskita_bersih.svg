@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="960" viewBox="0 0 1500 960">
+<defs>
+  <style>
+    .title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 22px; font-weight: 700; fill: #000000; text-anchor: start; }
+    .subtitle { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; fill: #444444; text-anchor: start; }
+    .bound-box { fill: #ffffff; stroke: #000000; stroke-width: 2.2; }
+    .bound-hdr { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #000000; text-anchor: middle; }
+    .uc-oval { fill: #ffffff; stroke: #000000; stroke-width: 2.0; }
+    .uc-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13.5px; font-weight: 700; fill: #000000; text-anchor: middle; dominant-baseline: central; }
+    .actor-line { stroke: #000000; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .actor-head { fill: #ffffff; stroke: #000000; stroke-width: 2.4; }
+    .actor-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 14.5px; font-weight: 700; fill: #000000; text-anchor: middle; }
+    .assoc-line { stroke: #000000; stroke-width: 1.8; fill: none; }
+  </style>
+</defs>
+<rect width="1500" height="960" fill="#ffffff"/>
+<text x="60" y="45" class="title">USE CASE DIAGRAM — SISTEM WASKITA</text>
+<text x="60" y="70" class="subtitle">Fungsionalitas Inti Sistem Kurasi Konten Pra-Publikasi (Standar UML OMG — Versi Bersih)</text>
+<rect x="480" y="150" width="940" height="740" class="bound-box"/>
+<text x="950.0" y="186" class="bound-hdr">Sistem Kurasi Konten WASKITA</text>
+<line x1="480" y1="202" x2="1420" y2="202" stroke="#000000" stroke-width="1.2" stroke-dasharray="4,4"/>
+<circle cx="220" cy="440" r="28" class="actor-head"/>
+<line x1="220" y1="468" x2="220" y2="545" class="actor-line"/>
+<line x1="165" y1="495" x2="275" y2="495" class="actor-line"/>
+<line x1="220" y1="545" x2="175" y2="625" class="actor-line"/>
+<line x1="220" y1="545" x2="265" y2="625" class="actor-line"/>
+<text x="220" y="665" class="actor-txt">Penulis / Editor Konten Web</text>
+<line x1="275" y1="495" x2="740.0" y2="250" class="assoc-line"/>
+<ellipse cx="950.0" cy="250" rx="210" ry="32" class="uc-oval"/>
+<text x="950.0" y="250" class="uc-txt">Memasukkan Draf Naskah &amp; Kueri Target</text>
+<line x1="275" y1="495" x2="740.0" y2="380" class="assoc-line"/>
+<ellipse cx="950.0" cy="380" rx="210" ry="32" class="uc-oval"/>
+<text x="950.0" y="380" class="uc-txt">Menjalankan Audit Mutu Konten</text>
+<line x1="275" y1="495" x2="740.0" y2="510" class="assoc-line"/>
+<ellipse cx="950.0" cy="510" rx="210" ry="32" class="uc-oval"/>
+<text x="950.0" y="510" class="uc-txt">Melihat Laporan Diagnostik &amp; Skor CDS</text>
+<line x1="275" y1="495" x2="740.0" y2="640" class="assoc-line"/>
+<ellipse cx="950.0" cy="640" rx="210" ry="32" class="uc-oval"/>
+<text x="950.0" y="640" class="uc-txt">Melakukan Perbaikan Draf (Turn Revisi)</text>
+<line x1="275" y1="495" x2="740.0" y2="770" class="assoc-line"/>
+<ellipse cx="950.0" cy="770" rx="210" ry="32" class="uc-oval"/>
+<text x="950.0" y="770" class="uc-txt">Mengekspor Laporan Hasil Audit</text>
+</svg>

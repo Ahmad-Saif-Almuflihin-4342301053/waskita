@@ -114,7 +114,38 @@ Pengujian otomatis E2E berhasil mengungkap 2 anomali penting yang langsung disel
 
 ---
 
-## 5. Matriks Perbedaan Slop: "AI Slop" vs "UI Slop"
+## 5. Galeri Bukti Visual Hasil Pengujian Playwright (Desktop & Mobile)
+
+Berikut adalah tangkapan layar otomatis dari suite pengujian Playwright (`visual-design-audit.spec.ts`) yang membuktikan antarmuka bebas dari cacat *UI Slop*:
+
+### 5.1 Skenario 1: Tampilan Awal Pengguna Baru (Empty State)
+Memastikan tampilan awal bersih, memuat panduan ringkas, tombol draf instan, dan tidak ada elemen berantakan sebelum audit dimulai.
+
+| Tampilan Desktop (1280 × 800) | Tampilan Mobile (390 × 844 / 360 × 800) |
+| :---: | :---: |
+| ![Empty State Desktop](/docs/obsidian/figures/visual_audit/01-empty-state-desktop.png) | ![Empty State Mobile](/docs/obsidian/figures/visual_audit/01-empty-state-mobile.png) |
+
+---
+
+### 5.2 Skenario 2: Tampilan Hasil Audit "Perlu Revisi" (CDS 42%)
+Memvalidasi kartu vonis merah/oranye, gauge dinamis, stabilo kalimat jiplakan, dan prompt kurasi dengan hierarki visual yang kontras dan rapi.
+
+| Tampilan Desktop (1280 × 800) | Tampilan Mobile (390 × 844 / 360 × 800) |
+| :---: | :---: |
+| ![Perlu Revisi Desktop](/docs/obsidian/figures/visual_audit/02-audit-perlu-revisi-desktop.png) | ![Perlu Revisi Mobile](/docs/obsidian/figures/visual_audit/02-audit-perlu-revisi-mobile.png) |
+
+---
+
+### 5.3 Skenario 3: Tampilan Hasil Audit "Siap Terbit" (CDS 95%)
+Memvalidasi gauge hijau zamrud, status kelayakan, tab Micro-Tuning dan CMS Pack aktif, serta tombol aksi "Salin Prompt" tidak tertindih oleh *floating composer dock*.
+
+| Tampilan Desktop (1280 × 800) | Tampilan Mobile (390 × 844 / 360 × 800) |
+| :---: | :---: |
+| ![Siap Terbit Desktop](/docs/obsidian/figures/visual_audit/03-audit-siap-terbit-desktop.png) | ![Siap Terbit Mobile](/docs/obsidian/figures/visual_audit/03-audit-siap-terbit-mobile.png) |
+
+---
+
+## 6. Matriks Perbedaan Slop: "AI Slop" vs "UI Slop"
 
 Dalam konteks WASKITA, istilah **"Slop"** dibedakan secara tegas menjadi dua ranah:
 
@@ -139,7 +170,7 @@ WASKITA berhasil meniadakan kedua jenis *slop* tersebut:
 
 ---
 
-## 6. Kesimpulan & Status Kesiapan Pra-Deploy
+## 7. Kesimpulan & Status Kesiapan Pra-Deploy
 
 1. Seluruh 25 pengujian Playwright E2E berstatus **HIJAU / PASSED**.
 2. Modul *Gatekeeper* siap menangani beragam persona (jurnalistik, kasual, gaya alternatif) tanpa perusakan gaya bahasa asli.

@@ -18,20 +18,26 @@ def calculate_ttr(tokens: List[str]) -> float:
 
 def calculate_mattr(tokens: List[str], window_size: int = 50) -> float:
     """
-    Moving-Average Type-Token Ratio (MATTR) dengan jendela L = 50 kata.
+    Moving-Average Type-Token Ratio (MATTR) dengan jendela adaptif L = 50 kata.
     Menghilangkan bias panjang dokumen sesuai Bab 2.2.5.
+    Untuk draf pendek (30 s.d. 49 kata), jendela beradaptasi menjadi L = max(15, n // 2).
     """
     n = len(tokens)
     if n == 0:
         return 0.0
+
+    eff_window = window_size
     if n < window_size:
-        return calculate_ttr(tokens)
+        if n >= 30:
+            eff_window = max(15, n // 2)
+        else:
+            return calculate_ttr(tokens)
 
     window_ttrs = []
-    for i in range(n - window_size + 1):
-        window = tokens[i : i + window_size]
+    for i in range(n - eff_window + 1):
+        window = tokens[i : i + eff_window]
         unique_count = len(set(window))
-        window_ttrs.append(unique_count / window_size)
+        window_ttrs.append(unique_count / eff_window)
 
     return round(float(sum(window_ttrs) / len(window_ttrs)), 4)
 

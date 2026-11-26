@@ -15,37 +15,19 @@ from app.fixtures.benchmark_corpus import get_fallback_corpus
 
 logger = logging.getLogger(__name__)
 
-# FR-04: Domain video, sosmed, ecommerce
-VIDEO_SOCIAL_DOMAINS = {
-    "youtube.com",
-    "www.youtube.com",
-    "m.youtube.com",
-    "youtu.be",
-    "tiktok.com",
-    "www.tiktok.com",
-    "instagram.com",
-    "www.instagram.com",
-    "facebook.com",
-    "www.facebook.com",
-    "twitter.com",
-    "www.twitter.com",
-    "x.com",
-    "www.x.com",
-    "shopee.co.id",
-    "www.shopee.co.id",
-    "tokopedia.com",
-    "www.tokopedia.com",
-    "bukalapak.com",
-    "www.bukalapak.com",
-    "lazada.co.id",
-    "www.lazada.co.id",
-    "blibli.com",
-    "www.blibli.com",
-    "pinterest.com",
-    "www.pinterest.com",
-    "linkedin.com",
-    "www.linkedin.com",
-}
+# Sprint 4.6 (Platform Convergence Architecture):
+# WASKITA tidak lagi memblokir domain sosial media/UGC (LinkedIn, Quora, Medium, TikTok Carousel,
+# Instagram, YouTube Post, X) secara hardcode di awal. Seluruh URL dievaluasi secara objektif
+# melalui Ekstraksi Hibrida 3-Lapis (Trafilatura Body + OpenGraph/JSON-LD Metadata + SERP Snippet)
+# dan Saringan Relevansi 3-Tier.
+VIDEO_SOCIAL_DOMAINS: Set[str] = set()
+
+# Penanda domain platform multi-modal/sosial untuk pengayaan ekstraksi metadata & snippet
+MULTIMODAL_SOCIAL_DOMAINS = (
+    "youtube.com", "youtu.be", "tiktok.com", "instagram.com",
+    "facebook.com", "twitter.com", "x.com", "pinterest.com",
+    "linkedin.com", "quora.com", "medium.com", "reddit.com", "threads.net",
+)
 
 DOC_EXTENSIONS = (
     ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".zip", ".rar"
@@ -159,10 +141,86 @@ def _extract_headings_from_html(html_str: str) -> List[Dict[str, str]]:
     return headings
 
 
+def _extract_meta_and_jsonld_text(html_str: str) -> str:
+    """
+    Lapis 2 Ekstraksi Hibrida (Sprint 4.6):
+    Mengekstrak teks substantif dari meta tags (og:title, og:description, twitter:description,
+    description) serta blok JSON-LD (articleBody, text, description, headline).
+    Sangat efektif memanen teks caption panjang dari TikTok Carousel, Instagram Post,
+    YouTube Community/Video Description, LinkedIn Pulse/Advice, Quora, dan X Articles
+    tanpa membutuhkan headless browser.
+    """
+    if not html_str:
+        return ""
+    fragments: List[str] = []
+    seen_fragments: Set[str] = set()
+
+    def _add_frag(val: str) -> None:
+        if not val or not isinstance(val, str):
+            return
+        cleaned = re.sub(r"\s+", " ", val).strip()
+        # Abaikan boilerplate login pendek
+        if len(cleaned) < 25:
+            return
+        low = cleaned.lower()
+        if any(b in low for b in ("log in to", "sign in to", "masuk untuk melanjutkan", "buat akun atau masuk")):
+            return
+        if low not in seen_fragments:
+            seen_fragments.add(low)
+            fragments.append(cleaned)
+
+    try:
+        import json
+        parser = etree.HTMLParser(recover=True, encoding="utf-8")
+        tree = etree.fromstring(html_str.encode("utf-8"), parser=parser)
+        if tree is None:
+            return ""
+
+        # 1. Panen Meta Description & OpenGraph / Twitter Card
+        for meta in tree.xpath("//meta"):
+            prop = (meta.get("property") or meta.get("name") or "").lower().strip()
+            content = meta.get("content") or ""
+            if prop in (
+                "og:title", "og:description", "twitter:title",
+                "twitter:description", "description",
+            ):
+                _add_frag(content)
+
+        # 2. Panen JSON-LD (Schema.org Article, SocialMediaPosting, DiscussionForumPosting, VideoObject, FAQPage)
+        for script in tree.xpath("//script[@type='application/ld+json']"):
+            raw_json = "".join(script.itertext()).strip()
+            if not raw_json:
+                continue
+            try:
+                data = json.loads(raw_json)
+                stack = [data]
+                while stack:
+                    curr = stack.pop()
+                    if isinstance(curr, dict):
+                        for k in ("headline", "name", "description", "articleBody", "text", "transcript"):
+                            if isinstance(curr.get(k), str):
+                                _add_frag(curr[k])
+                        for v in curr.values():
+                            if isinstance(v, (dict, list)):
+                                stack.append(v)
+                    elif isinstance(curr, list):
+                        for item in curr:
+                            if isinstance(item, (dict, list)):
+                                stack.append(item)
+            except Exception:
+                continue
+    except Exception as e:
+        logger.debug(f"Meta/JSON-LD extraction fallback error: {e}")
+
+    return "\n\n".join(fragments)
+
+
 def _heavy_trafilatura_extract(html_str: str) -> str:
     """
-    Operasi CPU berat #1: Ekstraksi teks web bersih dari DOM XML Trafilatura.
-    Wajib dieksekusi via asyncio.to_thread!
+    Operasi CPU berat #1: Ekstraksi teks web bersih Hibrida (DOM XML Trafilatura + OpenGraph/JSON-LD Metadata).
+    Jika teks body utama dari Trafilatura panjangnya memadai (>= 150 kata), gunakan body utama.
+    Jika halaman merupakan platform sosial/SPA (TikTok Carousel, IG, YouTube, LinkedIn, Quora)
+    di mana body HTML tipis, perkaya dengan ekstraksi Meta & JSON-LD secara efisien.
     """
     if not html_str:
         return ""
@@ -171,8 +229,18 @@ def _heavy_trafilatura_extract(html_str: str) -> str:
         include_comments=False,
         include_tables=False,
         no_fallback=False,
-    )
-    return extracted or ""
+    ) or ""
+
+    body_words = len(re.findall(r"\b\w+\b", extracted))
+    if body_words >= 150:
+        return extracted
+
+    meta_jsonld_text = _extract_meta_and_jsonld_text(html_str)
+    if not extracted:
+        return meta_jsonld_text
+    if meta_jsonld_text and meta_jsonld_text.lower() not in extracted.lower():
+        return f"{extracted}\n\n{meta_jsonld_text}".strip()
+    return extracted
 
 
 # Korpus fallback diekstrak ke app.fixtures.benchmark_corpus
@@ -210,6 +278,13 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
         async with httpx.AsyncClient(http2=True, timeout=fast_timeout, follow_redirects=True, headers=headers) as client:
             resp = await client.get(url)
             status_code = resp.status_code
+            content_type = resp.headers.get("content-type", "").lower()
+            if content_type and not any(h in content_type for h in ("text/html", "application/xhtml", "text/plain")):
+                logger.warning(f"Skipping non-HTML Content-Type: {content_type} on {url}")
+                result["fetch_status"] = "failed"
+                _log_domain_quarantine(urlparse(url).netloc, f"non_html_mime_{content_type[:30]}", status_code)
+                return result
+
             if resp.status_code == 200:
                 html_content = resp.text
                 fetch_method = "success"
@@ -217,11 +292,14 @@ async def fetch_page_content(url: str) -> Dict[str, Any]:
             elif resp.status_code in (401, 403, 406, 429, 503):
                 logger.warning(f"HTTPX blocked by bot guard with status {resp.status_code} on {url}, falling back to curl_cffi")
                 trigger_curl_fallback = True
+                _log_domain_quarantine(urlparse(url).netloc, "bot_protection", resp.status_code)
             else:
                 logger.warning(f"HTTPX failed with non-bot status {resp.status_code} on {url}")
+                _log_domain_quarantine(urlparse(url).netloc, f"http_status_{resp.status_code}", resp.status_code)
     except (httpx.TimeoutException, httpx.ConnectError) as e:
         logger.warning(f"HTTPX fast-fail (timeout/connect error) on {url}: {e} - skipping curl_cffi")
         trigger_curl_fallback = False
+        _log_domain_quarantine(urlparse(url).netloc, "timeout_or_connect_error", 0)
     except Exception as e:
         logger.warning(f"HTTPX fetch error on {url}: {e}")
         trigger_curl_fallback = False
@@ -337,6 +415,89 @@ def passes_three_tier_relevance_guard(
     return True
 
 
+async def _fetch_searxng_results(query: str, max_results: int = 25) -> List[Dict[str, Any]]:
+    """
+    Tier-1 SERP Provider: Mengambil hasil pencarian organik dari instance SearXNG (Google, Startpage, Brave)
+    dalam format JSON (gl=ID, language=id-ID) tanpa biaya per-kueri.
+    """
+    if not settings.SEARXNG_URL:
+        return []
+    base_url = settings.SEARXNG_URL.rstrip("/")
+    search_url = f"{base_url}/search"
+    params = {
+        "q": query,
+        "format": "json",
+        "language": "id-ID",
+        "engines": settings.SEARXNG_ENGINES,
+    }
+    headers = {
+        "User-Agent": settings.USER_AGENT,
+        "Accept": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+            resp = await client.get(search_url, params=params, headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                raw_results = data.get("results", [])
+                organic: List[Dict[str, Any]] = []
+                for r in raw_results[:max_results]:
+                    link = r.get("url", "")
+                    if not link:
+                        continue
+                    organic.append({
+                        "title": r.get("title", ""),
+                        "link": link,
+                        "snippet": r.get("content", ""),
+                    })
+                logger.info(f"SearXNG Tier-1 returned {len(organic)} results for query '{query}'")
+                return organic
+            else:
+                logger.warning(f"SearXNG Tier-1 returned HTTP {resp.status_code} on query '{query}'")
+                return []
+    except Exception as e:
+        logger.warning(f"SearXNG Tier-1 fetch error on query '{query}': {e}")
+        return []
+
+
+async def _fetch_duckduckgo_results(query: str, max_results: int = 20) -> List[Dict[str, Any]]:
+    """Live search fallback menggunakan duckduckgo-search (DDGS) region Indonesia."""
+    try:
+        from ddgs import DDGS
+        def _ddgs_call():
+            with DDGS() as ddgs:
+                return list(ddgs.text(query, region="id-id", max_results=max_results))
+        results = await asyncio.to_thread(_ddgs_call)
+        organic = []
+        for r in results:
+            organic.append({
+                "title": r.get("title", ""),
+                "link": r.get("href", ""),
+                "snippet": r.get("body", ""),
+            })
+        return organic
+    except Exception as e:
+        logger.warning(f"DuckDuckGo search fallback error on query '{query}': {e}")
+        return []
+
+
+def _log_domain_quarantine(domain: str, reason: str, status_code: int = 0):
+    """Mencatat domain bermasalah/terblokir ke berkas audit karantina (Sprint 4.5)."""
+    try:
+        from datetime import datetime, timezone
+        import json
+        log_entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "domain": domain,
+            "reason": reason,
+            "status_code": status_code,
+        }
+        with open("backend/logs/quarantined_domains.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+
+
 async def _fetch_serper_page(client: httpx.AsyncClient, query: str, page_num: int = 1) -> List[Dict[str, Any]]:
     """Helper untuk mengambil hasil organik Google per halaman dari Serper.dev."""
     url = "https://google.serper.dev/search"
@@ -401,32 +562,60 @@ async def search_and_scrape_competitors(
         logger.info(f"Cache-Aside HIT: SERP snapshot for query '{clean_query}' resolved in < 5ms.")
         return cached_serp
 
-    if not settings.SERPER_API_KEY:
-        if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-            logger.warning("SERPER_API_KEY is not configured and FEATURE_OFFLINE_CORPUS_FALLBACK is disabled.")
-            return []
-        logger.info(f"SERPER_API_KEY is not set. Using offline fallback corpus for query: {clean_query}")
-        fallback_docs = get_fallback_corpus(clean_query)
-        # SPRINT 3.0: Dokumen offline TIDAK di-cache sebagai data live
-        return fallback_docs
+    import time
+    start_serp_time = time.time()
+    tier_used = "offline_fallback"
 
     try:
         organic_results: List[Dict[str, Any]] = []
-        async with httpx.AsyncClient(timeout=12.0) as client:
-            # Sprint 4.1: Tarik 4 halaman paralel (40 hasil mentah Google)
-            page_tasks = [
-                _fetch_serper_page(client, clean_query, page_num=p)
-                for p in (1, 2, 3, 4)
-            ]
-            pages_data = await asyncio.gather(*page_tasks)
-            for p_res in pages_data:
-                organic_results.extend(p_res)
 
+        # TIER 1: Self-Hosted SearXNG (Google + Startpage + Brave) jika SEARXNG_URL dikonfigurasi
+        if settings.SEARXNG_URL:
+            organic_results = await _fetch_searxng_results(clean_query, max_results=30)
+            if organic_results:
+                tier_used = "tier1_searxng"
+
+        # TIER 2: Serper.dev Google.co.id API jika Tier 1 kosong/tidak aktif dan SERPER_API_KEY tersedia
+        if not organic_results and settings.SERPER_API_KEY:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                page_tasks = [
+                    _fetch_serper_page(client, clean_query, page_num=p)
+                    for p in (1, 2, 3, 4)
+                ]
+                pages_data = await asyncio.gather(*page_tasks)
+                for p_res in pages_data:
+                    organic_results.extend(p_res)
+            if organic_results:
+                tier_used = "tier2_serper"
+
+        # TIER 3: DuckDuckGo Indonesia (ddgs) Live Fallback jika Tier 1 & Tier 2 tidak menghasilkan kandidat
         if not organic_results:
-            logger.warning("Serper.dev returned 0 organic results across queried pages.")
+            logger.info(f"Trying Tier-3 live search fallback via DDGS for query: {clean_query}")
+            organic_results = await _fetch_duckduckgo_results(clean_query, max_results=20)
+            if organic_results:
+                tier_used = "tier3_ddgs"
+
+        # TIER 4: Offline Benchmark Corpus (Jaring Pengaman Terakhir)
+        if not organic_results:
+            tier_used = "tier4_offline_corpus"
             if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
+                logger.warning("All live SERP tiers (SearXNG, Serper, DDGS) returned 0 results and offline fallback is disabled.")
                 return []
-            return get_fallback_corpus(clean_query)
+            logger.info(f"All live SERP tiers empty. Using Tier-4 offline fallback corpus for query: {clean_query}")
+            fallback_res = get_fallback_corpus(clean_query)
+            try:
+                from app.core.logging_config import append_structured_jsonl_log
+                elapsed_serp_ms = round((time.time() - start_serp_time) * 1000, 2)
+                append_structured_jsonl_log("serp_waterfall_telemetry.jsonl", {
+                    "query": clean_query,
+                    "tier_used": tier_used,
+                    "candidates_found": 0,
+                    "valid_docs_returned": len(fallback_res),
+                    "elapsed_ms": elapsed_serp_ms,
+                })
+            except Exception:
+                pass
+            return fallback_res
 
         summary["total_candidates_evaluated"] = len(organic_results)
 
@@ -488,14 +677,11 @@ async def search_and_scrape_competitors(
 
             fetch_st = res.get("fetch_status", "failed")
             http_st = res.get("http_status_code", 0)
-
-            if fetch_st == "failed" or not res.get("clean_text"):
-                # Gagal fetch atau terkena proteksi bot / firewall
-                summary["skipped_bot_protect_count"] += 1
-                continue
-
-            # Periksa URL akhir setelah redirect (misal redirect google goto ke detik, youtube, pdf, dll.)
             final_url = res.get("source_url") or meta.get("link", "")
+            page_title = meta.get("title", f"Kompetitor {current_rank}")
+            serp_snippet = (meta.get("snippet") or "").strip()
+
+            # Periksa URL akhir setelah redirect (misal redirect google goto ke pdf, proxy, dll.)
             final_skip = classify_url_skip_reason(final_url)
             if final_skip == "video_social":
                 summary["skipped_video_social_count"] += 1
@@ -507,14 +693,30 @@ async def search_and_scrape_competitors(
                 summary["skipped_proxy_count"] += 1
                 continue
 
-            word_count = res.get("word_count", 0)
-            if word_count < min_words:
-                # Teks terlalu pendek (< SERP_MIN_DOC_WORDS)
-                summary["skipped_short_text_count"] += 1
+            clean_text = (res.get("clean_text") or "").strip()
+            # Lapis 3 Ekstraksi Hibrida: Gabungkan SERP Snippet yang diindeks Google jika teks hasil fetch tipis
+            if serp_snippet and serp_snippet.lower() not in clean_text.lower():
+                if len(re.findall(r"\b\w+\b", clean_text)) < min_words:
+                    clean_text = f"{page_title}. {serp_snippet}\n\n{clean_text}".strip()
+                    if fetch_st == "failed" and clean_text:
+                        fetch_st = "serp_snippet_enriched"
+
+            if not clean_text:
+                summary["skipped_bot_protect_count"] += 1
                 continue
 
-            clean_text = res.get("clean_text", "")
-            page_title = meta.get("title", f"Kompetitor {current_rank}")
+            word_count = len(re.findall(r"\b\w+\b", clean_text))
+            is_multimodal_social = any(m_dom in final_url.lower() for m_dom in MULTIMODAL_SOCIAL_DOMAINS)
+            # Untuk platform sosial/UGC multi-modal di halaman 1 (idx_cand < 10) yang sudah diperkaya
+            # metadata/snippet, ambang batas efektif adalah 35 kata; untuk situs web standar tetap min_words (150)
+            effective_min_words = 35 if (is_multimodal_social and idx_cand < 10) else min_words
+
+            if word_count < effective_min_words:
+                if is_multimodal_social:
+                    summary["skipped_video_social_count"] += 1
+                else:
+                    summary["skipped_short_text_count"] += 1
+                continue
 
             # 3 Lapis Saringan Penjaga (Sprint 4.1)
             if not passes_three_tier_relevance_guard(
@@ -573,14 +775,31 @@ async def search_and_scrape_competitors(
             if len(scraped_docs) >= settings.SERP_TOP_K:
                 break
 
+        final_return_docs = []
         if len(scraped_docs) >= 2:
             await set_serp_cache(clean_query, scraped_docs)
-            return scraped_docs
+            final_return_docs = scraped_docs
         else:
             logger.warning(f"Scraping live articles yielded {len(scraped_docs)} usable documents (< 2).")
             if not settings.FEATURE_OFFLINE_CORPUS_FALLBACK:
-                return scraped_docs
-            return get_fallback_corpus(clean_query)
+                final_return_docs = scraped_docs
+            else:
+                final_return_docs = get_fallback_corpus(clean_query)
+
+        try:
+            from app.core.logging_config import append_structured_jsonl_log
+            elapsed_serp_ms = round((time.time() - start_serp_time) * 1000, 2)
+            append_structured_jsonl_log("serp_waterfall_telemetry.jsonl", {
+                "query": clean_query,
+                "tier_used": tier_used,
+                "candidates_found": len(organic_results),
+                "valid_docs_returned": len(final_return_docs),
+                "elapsed_ms": elapsed_serp_ms,
+            })
+        except Exception:
+            pass
+
+        return final_return_docs
 
     except Exception as e:
         logger.error(f"Error in search_and_scrape_competitors: {e}")

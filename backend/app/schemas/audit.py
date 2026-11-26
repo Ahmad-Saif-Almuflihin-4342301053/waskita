@@ -28,6 +28,7 @@ class ThresholdConfig(BaseModel):
     min_mattr: float = Field(default=0.55, ge=0.0, le=1.0)
     max_hko_percentage: float = Field(default=40.0, ge=0.0, le=100.0)
     min_cds_score: float = Field(default=75.0, ge=0.0, le=100.0)
+    min_draft_words: Optional[int] = Field(default=None, ge=30, le=5000)
 
 
 class AuditExecuteRequest(BaseModel):
@@ -38,8 +39,8 @@ class AuditExecuteRequest(BaseModel):
     use_cached_serp: bool = True
     thresholds: Optional[ThresholdConfig] = Field(default_factory=ThresholdConfig)
     # Dynamic Word Budget (Sprint 4.4)
-    word_budget_min: Optional[int] = Field(default=None, ge=300, le=5000)
-    word_budget_max: Optional[int] = Field(default=None, ge=400, le=6000)
+    word_budget_min: Optional[int] = Field(default=None, ge=30, le=5000)
+    word_budget_max: Optional[int] = Field(default=None, ge=30, le=6000)
 
     @field_validator("target_query", "draft_title", "draft_content", mode="before")
     @classmethod
@@ -48,24 +49,30 @@ class AuditExecuteRequest(BaseModel):
             return sanitize_xss(v)
         return v
 
-    @field_validator("draft_content")
-    @classmethod
-    def validate_word_count(cls, v: str) -> str:
-        # Menghitung jumlah kata murni (mengabaikan placeholder media [gambar N], [video N], dsb)
+    @model_validator(mode="after")
+    def validate_word_count(self) -> "AuditExecuteRequest":
+        # Menghitung jumlah kata murni (mempertahankan alt/caption media jika ada deskripsi)
         cleaned_pure = re.sub(
             r"\[(?:gambar|video|foto|tabel|bagan|audio|grafik)\s*\d*[^\]]*\]",
             " ",
-            v,
+            self.draft_content,
             flags=re.IGNORECASE,
         )
         words = re.findall(r"\b\w+\b", cleaned_pure)
-        if len(words) < 300:
+        # Mode Adaptif WASKITA (FR-02): Mendukung naskah pendek bermedia (min 30 kata) hingga panjang
+        min_words = 30
+        if self.thresholds and getattr(self.thresholds, "min_draft_words", None) is not None:
+            min_words = self.thresholds.min_draft_words
+        elif self.word_budget_min is not None:
+            min_words = self.word_budget_min
+
+        if len(words) < min_words:
             raise ValueError(
-                f"Draf artikel Anda hanya memuat {len(words)} kata murni. "
-                "Sesuai standar audit WASKITA (FR-02), panjang naskah minimal adalah 300 kata "
+                f"Draf naskah Anda hanya memuat {len(words)} kata murni. "
+                f"Sesuai standar audit WASKITA (FR-02), panjang naskah minimal adalah {min_words} kata "
                 "agar analisis semantik IR dan stilometri dapat dihitung secara valid."
             )
-        return v
+        return self
 
 
 class MetricResultSchema(BaseModel):

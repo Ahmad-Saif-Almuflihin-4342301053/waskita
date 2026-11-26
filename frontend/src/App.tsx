@@ -101,6 +101,17 @@ export const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState<boolean>(false);
+  const [optionsFocusSection, setOptionsFocusSection] = useState<'word-budget' | 'query' | 'thresholds' | null>(null);
+
+  const handleOpenWordSettings = () => {
+    setOptionsFocusSection('word-budget');
+    setIsOptionsOpen(true);
+  };
+
+  const handleOpenGeneralOptions = () => {
+    setOptionsFocusSection(null);
+    setIsOptionsOpen(true);
+  };
 
   const handleToggleCollapse = () => {
     setIsSidebarCollapsed((prev) => !prev);
@@ -240,11 +251,12 @@ export const App: React.FC = () => {
     }
 
     const wordCount = countPureWords(content);
-    if (wordCount < 300) {
+    const minWordsAllowed = thresholds.min_draft_words ?? 300;
+    if (wordCount < minWordsAllowed) {
       showToast({
         type: 'warning',
         title: 'Kata-kata Belum Cukup',
-        message: `Naskah baru memiliki ${wordCount} / 300 kata minimum. Lengkapi naskah Anda agar evaluasi valid.`,
+        message: `Naskah baru memiliki ${wordCount} / ${minWordsAllowed} kata minimum. Lengkapi naskah Anda agar evaluasi valid.`,
       });
       return;
     }
@@ -302,7 +314,7 @@ export const App: React.FC = () => {
           parent_session_id: parentSession,
           use_cached_serp: true,
           thresholds,
-          word_budget_min: thresholds.word_budget_min,
+          word_budget_min: thresholds.min_draft_words ?? thresholds.word_budget_min,
           word_budget_max: thresholds.word_budget_max,
         });
       } catch (err: any) {
@@ -769,7 +781,9 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
             isSidebarCollapsed={isSidebarCollapsed}
             onOpenSidebar={() => setIsSidebarOpen(true)}
             onToggleSidebar={handleToggleCollapse}
-            onOpenPlus={() => setIsOptionsOpen(true)}
+            onOpenPlus={handleOpenGeneralOptions}
+            onOpenWordSettings={handleOpenWordSettings}
+            minWordCount={thresholds.min_draft_words ?? 300}
             onSignIn={() => {
               setIsAuthenticated(true);
               showToast({
@@ -884,13 +898,14 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
                     <FloatingComposerDock
                       isDesktop={isDesktop}
                       layoutMode="centered"
-                      onOpenPlus={() => setIsOptionsOpen(true)}
+                      onOpenPlus={handleOpenGeneralOptions}
+                      onOpenWordSettings={handleOpenWordSettings}
                       draftText={draftInput}
                       onDraftTextChange={handleDraftInputChange}
                       onSubmit={() => handleExecuteAudit()}
                       isLoading={isLoading}
                       wordCount={currentWordCount}
-                      minWordCount={300}
+                      minWordCount={thresholds.min_draft_words ?? 300}
                       isPlusGlowing={isPlusGlowing}
                       detectedKeywordHint={detectedKeywordHint}
                       onPasteSanitized={handlePasteSanitized}
@@ -923,13 +938,14 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
               <FloatingComposerDock
                 isDesktop={isDesktop}
                 layoutMode="docked"
-                onOpenPlus={() => setIsOptionsOpen(true)}
+                onOpenPlus={handleOpenGeneralOptions}
+                onOpenWordSettings={handleOpenWordSettings}
                 draftText={draftInput}
                 onDraftTextChange={handleDraftInputChange}
                 onSubmit={() => handleExecuteAudit()}
                 isLoading={isLoading}
                 wordCount={currentWordCount}
-                minWordCount={300}
+                minWordCount={thresholds.min_draft_words ?? 300}
                 isPlusGlowing={isPlusGlowing}
                 detectedKeywordHint={detectedKeywordHint}
                 onPasteSanitized={handlePasteSanitized}
@@ -957,6 +973,7 @@ HKO Overlap: ${Math.round(latest.metrics.hko_percentage)}%`;
         thresholds={thresholds}
         onThresholdsChange={handleThresholdsChange}
         onFileUpload={handleFileUpload}
+        initialFocusSection={optionsFocusSection}
       />
 
       {/* Rename Modal */}

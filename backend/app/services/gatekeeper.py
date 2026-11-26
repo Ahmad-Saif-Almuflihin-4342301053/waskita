@@ -1,10 +1,12 @@
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
+from datasketch import MinHash
 
 from app.schemas.audit import AnnotatedSpan, EntityGapsGroup, ThresholdConfig
 from app.services.nlp_pipeline import (
     ALL_INDONESIAN_STOPWORDS,
     NON_TOPICAL_VERBS_AND_ADJECTIVES,
+    is_web_chrome_noise_line,
     normalize_text_ascii,
     stem_word,
 )
@@ -54,22 +56,10 @@ COMMERCIAL_SPONSOR_KEYWORDS = {
     "roman ceramic",
     "onduline",
     "alustar",
-    "shopee",
-    "tokopedia",
-    "lazada",
-    "blibli",
-    "whatsapp",
-    "instagram",
-    "facebook",
-    "youtube",
-    "tiktok",
     "hubungi",
     "kontak",
     "promo",
     "diskon",
-    "harga",
-    "jual",
-    "beli",
     "distributor",
     "supplier",
 }
@@ -85,6 +75,131 @@ def is_commercial_or_sponsor(term: str) -> bool:
         if brand in words or brand == t_lower:
             return True
     return False
+
+
+def _build_sentence_minhash(words: List[str], num_perm: int = 64) -> MinHash:
+    """Membangun representasi MinHash berbasis 3-shingles kata untuk mendeteksi redundansi urutan frasa."""
+    m = MinHash(num_perm=num_perm)
+    if len(words) >= 3:
+        for i in range(len(words) - 2):
+            shingle = f"{words[i]} {words[i+1]} {words[i+2]}"
+            m.update(shingle.encode("utf-8"))
+    else:
+        for w in words:
+            m.update(w.encode("utf-8"))
+    return m
+
+
+def detect_web_chrome_noise(text: str) -> Tuple[bool, int, List[str]]:
+    """
+    Mendeteksi apakah naskah memuat sampah elemen tata letak web hasil copas mentah (Ctrl+A).
+    Menggabungkan:
+    1. Pola baris navigasi/footer eksplisit (is_web_chrome_noise_line).
+    2. Analisis Kepadatan Struktural Tata Letak Web (Structural Layout Density - Anti-Hardcode):
+       - Rasio baris sangat pendek (<= 3 kata) yang ekstrem (> 45% pada dokumen >= 15 baris).
+       - Kepadatan baris tautan Markdown `[anchor](url)` (> 35% baris) atau baris daftar harga/direktori.
+    """
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    matched_noise: List[str] = []
+    for line in lines:
+        if is_web_chrome_noise_line(line):
+            matched_noise.append(line[:60])
+
+    # Heuristik Kepadatan Struktural (Structural Layout Density) untuk dokumen >= 15 baris
+    if len(lines) >= 15:
+        short_lines = sum(1 for l in lines if len(l.split()) <= 3)
+        md_link_lines = sum(1 for l in lines if re.search(r"\[[^\]]+\]\(https?://", l))
+        short_ratio = short_lines / len(lines)
+        link_ratio = md_link_lines / len(lines)
+        if short_ratio > 0.45 and link_ratio > 0.30:
+            matched_noise.append(
+                f"[Structural Layout Density: {short_ratio:.0%} short-lines, {link_ratio:.0%} link-lines]"
+            )
+            matched_noise.append("[Directory/Portal Listing Dump Structure Detected]")
+
+    has_noise = len(matched_noise) >= 2
+    return has_noise, len(matched_noise), matched_noise
+
+
+TRANSACTIONAL_SOLICITATION_PATTERNS = [
+    re.compile(
+        r"(?:https?://(?:wa\.me/|api\.whatsapp\.com/send\?phone=))?(?:\+?62|08)\d{8,12}\b",
+        re.IGNORECASE,
+    ),
+    re.compile(r"\b(?:kode\s+voucher|voucher\s+diskon|tebus\s+murah|diskon\s+spesial)\b", re.IGNORECASE),
+    re.compile(r"\b(?:promo\s+terbatas|hubungi\s+admin|pemesanan\s+agen|beli\s+sekarang|order\s+sekarang|transfer\s+mahar)\b", re.IGNORECASE),
+    re.compile(r"\b(?:sembuh\s+total\s+tanpa\s+operasi|dijamin\s+sembuh\s+dalam\s+\w+\s+hari|obat\s+ajaib)\b", re.IGNORECASE),
+    re.compile(r"\b(?:slot\s+gacor|jackpot\s+sensational|deposit\s+pulsa|tanpa\s+potongan)\b", re.IGNORECASE),
+]
+
+
+def detect_commercial_drift(
+    text: str,
+    consensus_serp_stems: Optional[Set[str]] = None,
+    target_query: str = "",
+) -> Tuple[bool, List[str]]:
+    """
+    Mendeteksi Bait-and-Switch (Kuda Troya) secara kontekstual dan SERP-Relative (Tanpa Hardcode Topik):
+    1. Tidak pernah menghukum topik cerita mistis/klenik/budaya/hiburan selama konsisten dengan kueri/SERP.
+    2. Hanya memicu veto apabila naskah memuat >= 2 sinyal ajakan transaksi/kontak komersial eksplisit
+       YANG TIDAK ADA di dalam target_query maupun konsensus SERP (Tail Semantic Drift).
+    """
+    if not text:
+        return False, []
+
+    q_lower = (target_query or "").lower()
+    matches: List[str] = []
+    for pat in TRANSACTIONAL_SOLICITATION_PATTERNS:
+        found = pat.findall(text)
+        for item in found[:2]:
+            item_low = item.lower().strip()
+            # Jika frasa tersebut memang bagian dari kueri yang dicari pengguna, jangan anggap penyimpangan
+            if item_low and item_low in q_lower:
+                continue
+            matches.append(item)
+
+    if len(matches) < 2:
+        return False, matches
+
+    # Jika consensus_serp_stems tersedia, cek apakah paragraf akhir (tail) mengalami penyimpangan dari konsensus SERP
+    if consensus_serp_stems:
+        paragraphs = [p.strip() for p in text.split("\n") if len(p.strip().split()) >= 6]
+        if len(paragraphs) >= 2:
+            tail_text = " ".join(paragraphs[-2:]).lower()
+            tail_tokens = set(re.findall(r"\b[a-z]{3,}\b", tail_text))
+            # Jika tail masih sangat padat dengan istilah konsensus SERP (>= 5 irisan) dan tidak memuat spam judi/klaim medis palsu, izinkan
+            overlap_with_serp = len(tail_tokens.intersection(consensus_serp_stems))
+            has_hard_scam = any(
+                re.search(r"slot\s+gacor|jackpot\s+sensational|sembuh\s+total\s+tanpa\s+operasi|obat\s+ajaib", m, re.IGNORECASE)
+                for m in matches
+            )
+            if overlap_with_serp >= 5 and not has_hard_scam:
+                return False, matches
+
+    return True, matches
+
+
+AI_PROMPT_LEAK_PATTERNS = [
+    re.compile(r"^\s*(?:tentu(?:lah)?|tentu saja|pasti|baiklah)[!,.]?\s*(?:sebagai asisten ai|berikut (?:adalah )?(?:draf|artikel|panduan))", re.IGNORECASE),
+    re.compile(r"\b(?:sebagai model bahasa ai|sebagai asisten virtual|sebagai asisten cerdas)\b", re.IGNORECASE),
+    re.compile(r"\b(?:apakah ada hal lain yang (?:bisa|dapat) saya bantu|silakan beri tahu saya jika (?:anda|kamu) ingin)\b", re.IGNORECASE),
+    re.compile(r"\b(?:semoga (?:draf\s+)?artikel ini (?:membantu|bermanfaat) (?:untuk|dalam) mendongkrak)\b", re.IGNORECASE),
+    re.compile(r"^\s*meta title\s*:", re.IGNORECASE),
+    re.compile(r"^\s*meta description\s*:", re.IGNORECASE),
+]
+
+
+def detect_ai_prompt_leak(text: str) -> Tuple[bool, List[str]]:
+    """Mendeteksi apakah naskah menyisakan teks pembuka/penutup percakapan chatbot AI."""
+    matches = []
+    lines = [l.strip() for l in text.split("\n") if l.strip()]
+    for line in lines:
+        for pat in AI_PROMPT_LEAK_PATTERNS:
+            if pat.search(line):
+                matches.append(line[:60])
+                break
+    has_leak = len(matches) >= 1
+    return has_leak, matches
 
 
 PROMPT_DRAFT_DELIMITER = (
@@ -150,11 +265,26 @@ def generate_annotated_spans(
     # Ekstraksi heading resmi
     detected_headings = set(extract_headings_from_markdown_or_text(draft_content))
 
+    # Ekstraksi rentang kutipan sah (markdown blockquotes '>' atau tanda kutip ganda "...")
+    quoted_texts = set()
+    for m in re.finditer(r'[\"“]([^\"”]{15,})[\"”]', draft_content):
+        q_clean = m.group(1).strip().lower()
+        if any(w in q_clean for w in ["menurut", "berdasarkan", "dikutip", "ujar", "kata", "melansir", "penelitian", "studi"]):
+            for s in re.split(r"(?<=[.!?])\s+", m.group(1)):
+                if len(s.strip().split()) >= 4:
+                    quoted_texts.add(s.strip(" \"“”'").lower())
+    for line in draft_content.split("\n"):
+        if line.strip().startswith(">"):
+            for s in re.split(r"(?<=[.!?])\s+", line.strip().lstrip(">")):
+                if len(s.strip().split()) >= 4:
+                    quoted_texts.add(s.strip(" \"“”'").lower())
+
     # Himpunan stem entitas gain unik
     gain_stems = {item.term_string for item in entity_gaps.gain}
 
-    # Pra-komputasi himpunan stem kalimat kompetitor satu kali (Sprint 4.1)
+    # Pra-komputasi himpunan stem dan MinHash kalimat kompetitor (Sprint 4.5)
     competitor_sentence_stems_list: List[Set[str]] = []
+    competitor_sentence_minhashes: List[MinHash] = []
     for c_text in competitor_clean_texts:
         for s in _split_into_sentences(c_text):
             comp_words = re.findall(r"\b\w+\b", s.lower())
@@ -166,8 +296,21 @@ def generate_annotated_spans(
                 }
                 if len(c_stems) >= 4:
                     competitor_sentence_stems_list.append(c_stems)
+                    competitor_sentence_minhashes.append(_build_sentence_minhash(comp_words))
 
     for sentence in sentences:
+        # Cek apakah segmen merupakan residu web chrome (Ctrl+A Liar)
+        if is_web_chrome_noise_line(sentence):
+            spans.append(
+                AnnotatedSpan(
+                    text=sentence,
+                    color="yellow",
+                    label="Residu Elemen Web (Ctrl+A)",
+                    is_heading=False,
+                )
+            )
+            continue
+
         # Cek apakah segmen merupakan token slot visual media [gambar N: ...] (Sprint 4.3)
         if re.match(r"^\[gambar\s+\d+", sentence, re.IGNORECASE):
             spans.append(AnnotatedSpan(text=sentence, color=None, label="Slot Visual Media", is_heading=False))
@@ -201,20 +344,43 @@ def generate_annotated_spans(
 
         local_ttr = len(set(words)) / word_count if word_count > 0 else 1.0
 
-        # Prioritas #1: Cek Merah (Red - Sprint 4.1): Redundansi VSM Kalimat Lokal terhadap Kalimat Kompetitor
+        # Cek Kutipan Beretika Sah (Fair-Use Quotation with Attribution)
+        s_clean_quote = s_lower.strip(" \"“”'")
+        is_quote = (
+            s_clean_quote in quoted_texts
+            or any(s_clean_quote in qt or qt in s_clean_quote for qt in quoted_texts)
+            or (
+                (sentence.startswith('"') or sentence.startswith('“') or sentence.startswith("'"))
+                and any(w in s_lower for w in ["menurut", "berdasarkan", "dikutip", "ujar", "kata", "melansir", "penelitian"])
+            )
+        )
+        if is_quote:
+            spans.append(
+                AnnotatedSpan(
+                    text=sentence,
+                    color=None,
+                    label="Kutipan Beretika / Rujukan",
+                    is_heading=False,
+                )
+            )
+            continue
+
+        # Prioritas #1: Cek Merah (Red - Sprint 4.1 & 4.5): Redundansi VSM & MinHash Kalimat Lokal terhadap Kalimat Kompetitor
         is_redundant = False
         if competitor_sentence_stems_list and word_count >= 6:
+            sent_minhash = _build_sentence_minhash(words)
             sentence_stems = {
                 stem_word(w)
                 for w in words
                 if w not in ALL_INDONESIAN_STOPWORDS and len(w) > 2
             }
             if len(sentence_stems) >= 4:
-                for comp_stems in competitor_sentence_stems_list:
+                for idx_comp, comp_stems in enumerate(competitor_sentence_stems_list):
                     overlap = len(sentence_stems.intersection(comp_stems))
                     jaccard = overlap / len(sentence_stems.union(comp_stems))
                     containment = overlap / min(len(sentence_stems), len(comp_stems))
-                    if jaccard >= 0.50 or (containment >= 0.72 and overlap >= 4):
+                    minhash_sim = sent_minhash.jaccard(competitor_sentence_minhashes[idx_comp]) if idx_comp < len(competitor_sentence_minhashes) else 0.0
+                    if jaccard >= 0.50 or (containment >= 0.72 and overlap >= 4) or (minhash_sim >= 0.45 and overlap >= 4):
                         is_redundant = True
                         break
 
@@ -307,6 +473,9 @@ def calculate_composite_cds(
     avg_cosine_sim: Optional[float] = None,
     red_span_ratio: float = 0.0,
     max_consecutive_red: int = 0,
+    has_web_chrome_noise: bool = False,
+    is_commercial_drift: bool = False,
+    has_ai_prompt_leak: bool = False,
 ) -> Dict[str, any]:
     """
     Rumus Komposit Content Differentiation Score (CDS 0-100%) & Keputusan Gatekeeper (Bab 2.4 & FR-10):
@@ -369,6 +538,10 @@ def calculate_composite_cds(
     # Topic Relevance Gate (Sprint 3.1 & 3.4)
     is_out_of_domain = (avg_cosine_sim is not None) and (avg_cosine_sim < 0.05)
 
+    # ADR-02 Zero-Gain Policy: Isolasi mutlak jika naskah di luar domain (C_IG = 0.0)
+    if is_out_of_domain:
+        c_ig = 0.0
+
     # Sprint 4.0 & 4.4: Red-Span Density Veto Gate (ambang batas >= 20% kalimat redundan atau >= 3 kalimat merah beruntun)
     is_sentence_redundant = (red_span_ratio >= 0.20) or (max_consecutive_red >= 3)
 
@@ -384,6 +557,15 @@ def calculate_composite_cds(
         # Skor CDS tidak boleh melebihi 58.0% jika ada redundansi kalimat signifikan / jiplakan beruntun
         effective_penalty_ratio = max(red_span_ratio, 0.20 if max_consecutive_red >= 3 else 0.0)
         cds = min(cds, round(58.0 * (1.0 - (effective_penalty_ratio - 0.20)), 1))
+    elif has_web_chrome_noise:
+        verdict_status = "Perlu Revisi - Residu Elemen Website Terdeteksi"
+        cds = min(cds, 48.0)
+    elif is_commercial_drift:
+        verdict_status = "Perlu Revisi - Promosi Komersial Terselubung"
+        cds = min(cds, 42.0)
+    elif has_ai_prompt_leak:
+        verdict_status = "Perlu Revisi - Teks Percakapan AI Terdeteksi"
+        cds = min(cds, 45.0)
     elif (
         (cds >= thresholds.min_cds_score)
         and (not is_redundant)
@@ -403,6 +585,9 @@ def calculate_composite_cds(
         "red_span_ratio": round(red_span_ratio, 3),
         "is_keyword_stuffed": is_keyword_stuffed,
         "is_out_of_domain": is_out_of_domain,
+        "has_web_chrome_noise": has_web_chrome_noise,
+        "is_commercial_drift": is_commercial_drift,
+        "has_ai_prompt_leak": has_ai_prompt_leak,
         "verdict_status": verdict_status,
         "sub_scores": {
             "vsm": round(0.35 * c_vsm, 1),
@@ -435,6 +620,7 @@ def generate_overview_and_remediation(
     draft_word_count: int = 0,
     word_budget_min: Optional[int] = None,
     word_budget_max: Optional[int] = None,
+    draft_content: Optional[str] = None,
 ) -> Dict[str, any]:
     """
     Menghasilkan poin ringkasan overview_bullets dan instruksi kurasi remediation_prompt (Sprint 4.2).
@@ -480,15 +666,31 @@ def generate_overview_and_remediation(
                 other_domains.append(d)
     other_domains_str = ", ".join(other_domains[:3]) if other_domains else "kompetitor teratas lainnya"
 
+    # Deteksi kehadiran platform sosial / UGC / multi-modal di lanskap kompetitor SERP (Sprint 4.6)
+    MULTIMODAL_UGC_DOMAINS = (
+        "tiktok.com", "instagram.com", "youtube.com", "youtu.be",
+        "linkedin.com", "quora.com", "medium.com", "reddit.com",
+        "x.com", "twitter.com", "pinterest.com", "kompasiana.com",
+    )
+    multimodal_competitor_domains: List[str] = []
+    if serp_competitors:
+        for c in serp_competitors:
+            d = (c.get("domain_name") or c.get("domain") or "").lower()
+            if any(m_dom in d for m_dom in MULTIMODAL_UGC_DOMAINS) and d not in multimodal_competitor_domains:
+                multimodal_competitor_domains.append(d)
+
     # 3. Hitung Plafon & Batasan Kata Ketat (Word Budget Enforcement - Sprint 4.4 Dynamic Budget)
     if word_budget_min and word_budget_max and word_budget_max > word_budget_min:
         min_target_words = word_budget_min
         max_target_words = word_budget_max
+    elif 0 < draft_word_count < 300:
+        min_target_words = max(50, int(draft_word_count * 0.90))
+        max_target_words = max(min_target_words + 60, int(draft_word_count * 1.35))
     elif draft_word_count >= 300:
-        min_target_words = max(800, int(draft_word_count * 0.85))
-        max_target_words = max(min_target_words + 150, min(1400, int(draft_word_count * 1.05)))
+        min_target_words = max(300, int(draft_word_count * 0.85))
+        max_target_words = max(min_target_words + 150, int(draft_word_count * 1.15))
     else:
-        min_target_words = 900
+        min_target_words = 800
         max_target_words = 1200
 
     # 4. Filter entitas defisit dari noise komersial/sponsor dan verba/adjektiva non-topikal (Sprint 4.2)
@@ -506,6 +708,21 @@ def generate_overview_and_remediation(
         gain_terms = ", ".join([g.term_surface_form for g in entity_gaps.gain[:4]])
     else:
         gain_terms = "konten orisinal naskah"
+
+    # ADR-01 & Langkah 4: Format Delimiter Naskah Dinamis
+    if is_out_of_domain:
+        draft_delimiter_block = ""
+    elif draft_content and draft_content.strip():
+        draft_delimiter_block = (
+            f"\n\n=== DRAF ARTIKEL PENULIS ===\n"
+            f"[NASKAH ARTIKEL YANG AKAN DIPROSES]:\n"
+            f'"""\n'
+            f"{draft_content.strip()}\n"
+            f'"""\n'
+            f"============================="
+        )
+    else:
+        draft_delimiter_block = PROMPT_DRAFT_DELIMITER
 
     remediation_prompt_cms: Optional[str] = None
     remediation_prompt_perfectionist: Optional[str] = None
@@ -532,7 +749,7 @@ def generate_overview_and_remediation(
             f"3. Taksonomi & Tag: Ekstrak 3–5 tag kategori paling relevan untuk pengelompokan artikel di CMS.\n"
             "4. Ringkasan Eksekutif (Lead): Tuliskan cuplikan pembuka 2 kalimat untuk teaser media sosial dan newsletter.\n"
             f"5. Pertahankan Nilai Orisinal: Pastikan poin-poin kebaruan materi draf berikut tetap terjaga: {gain_terms}."
-            f"{PROMPT_DRAFT_DELIMITER}"
+            f"{draft_delimiter_block}"
         )
 
         # Tab 2: Micro-Tuning Menuju 100% (Perfeksionis - Sprint 4.2 & Anti-Slop)
@@ -554,7 +771,7 @@ def generate_overview_and_remediation(
             f"   - Jaga agar entitas nilai tambah unik berikut tetap dominan di naskah: {gain_terms}.\n"
             "4. Disiplin Panjang Naskah:\n"
             f"   - Pertahankan panjang artikel di rentang {min_target_words} – {max_target_words} kata tanpa menambah kalimat klise."
-            f"{PROMPT_DRAFT_DELIMITER}"
+            f"{draft_delimiter_block}"
         )
 
         remediation_prompt = cms_pack_prompt
@@ -568,6 +785,18 @@ def generate_overview_and_remediation(
             remediation_points.append(f"Topik naskah tidak relevan dengan sesi/kueri '{target_query}'. Mulai sesi analisis baru jika naskah ini membahas topik yang berbeda agar dievaluasi terhadap kompetitor SERP yang sesuai.")
         if verdict_status == "Perlu Revisi - Redundansi Kalimat Tinggi":
             bullets.append("Naskah terdeteksi memiliki kepadatan kalimat redundan langsung yang tinggi (≥ 20% kalimat naskah mirip kompetitor). Skor CDS dipangkas secara proporsional.")
+        elif verdict_status == "Perlu Revisi - Residu Elemen Website Terdeteksi":
+            bullets.append(
+                "Naskah terdeteksi memuat residu elemen tata letak website (navigasi, footer, daftar tautan direktori, atau hasil salin tempel Ctrl+A). Skor CDS dibatasi maksimal 48.0%."
+            )
+        elif verdict_status == "Perlu Revisi - Promosi Komersial Terselubung":
+            bullets.append(
+                "Naskah terindikasi mengalami pembelokan muatan transaksi/promosi komersial terselubung (Commercial Drift / kontak transaksi langsung di luar konsensus SERP). Skor CDS dibatasi maksimal 42.0%."
+            )
+        elif verdict_status == "Perlu Revisi - Teks Percakapan AI Terdeteksi":
+            bullets.append(
+                "Naskah masih memuat kebocoran teks percakapan asisten AI (prolog/epilog chatbot seperti 'Tentu, berikut artikelnya...'). Skor CDS dibatasi maksimal 45.0%."
+            )
         elif is_redundant:
             if comp_citation:
                 bullets.append(f"Tingkat kemiripan semantik tinggi terhadap {comp_citation} (melampaui ambang batas).")
@@ -596,31 +825,59 @@ def generate_overview_and_remediation(
             if unique_snippets:
                 snippets_block = "\n   - Cuplikan kalimat naskah yang terindikasi parafrase/jiplak langsung:\n" + "\n".join([f'     > "{s}"' for s in unique_snippets])
 
-        # Prompt Terstruktur 4-Pilar Anti-Slop & Bedah Presisi (Sprint 4.2 & Fabric Anti-Slop)
-        remediation_prompt = (
-            f"Anda adalah Kurator dan Redaktur Editorial Ahli.\n"
-            f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan {competitor_count} artikel kompetitor acuan Google SERP berikut:\n\n"
-            f"<prinsip_editorial_anti_slop>\n"
-            f"- ATURAN BEDAH PRESISI (SURGICAL EDITING): Draf ini adalah naskah asli manusia. DILARANG merombak total dari nol. Pertahankan minimal 80% kalimat asli yang tidak bermasalah kata demi kata (verbatim) demi menjaga otentisitas suara penulis.\n"
-            f"- PRINSIP TONE & PERSONA MIRRORING: Hormati dan tiru gaya tutur khas naskah asli penulis (baik bergaya jurnalistik, kasual/santai, naratif-bercerita, teknis, maupun esoteris/khas). Jangan mengubah kepribadian tulisan menjadi bahasa korporat yang kaku.\n"
-            f"- LARANGAN KERAS FRASA KLISE AI (ANTI-SLOP):\n"
-            f"  Dilarang menggunakan frasa pembuka/penghubung klise AI seperti: 'Di era digital saat ini', 'Di era modern yang serba cepat ini', 'Tidak dapat dipungkiri bahwa', 'Hadir sebagai solusi inovatif', 'Mari kita simak', 'Seperti yang kita ketahui bersama', 'Bukan rahasia lagi', 'Dalam kesimpulannya', atau 'Semoga artikel ini bermanfaat'.\n"
-            f"- NADA BAHASA: Lugas, objektif, padat informasi, tanpa basa-basi marketing, dan langsung menuju inti bahasan (straight lead).\n"
-            f"- FORMAT KELUARAN MURNI: Keluarkan HANYA naskah artikel hasil kurasi akhir. DILARANG menyertakan salam pembuka, prolog ('Berikut revisi artikel...'), atau epilog penjelasan dari AI.\n"
-            f"</prinsip_editorial_anti_slop>\n\n"
-            f"<instruksi_kurasi_4_pilar>\n"
-            f"1. ELIMINASI JIPLAKAN DARI SUMBER UTAMA:\n"
-            f"   - Draf memiliki kemiripan struktur tinggi dengan {comp_citation or 'artikel kompetitor utama'}. Parafrase secara bedah presisi hanya pada kalimat-kalimat yang terindikasi plagiasi berikut tanpa mengubah data faktualnya:{snippets_block or ' Parafrase kalimat yang terlalu mirip acuan.'}\n\n"
-            f"2. LENGKAPI CELAH KONSENSUS DARI KOMPETITOR LAIN:\n"
-            f"   - Sebagaimana dibahas oleh kompetitor SERP lainnya ({other_domains_str}), sertakan pembahasan aspek penting yang masih absen di naskah Anda: {valid_deficits_str}. Sisipkan aspek ini secara organik ke dalam 1–2 paragraf terkait tanpa memanjangkan artikel secara berlebihan.\n\n"
-            f"3. CIPTAKAN NILAI TAMBAH BARU (KALAHKAN {competitor_count} KOMPETITOR SERP):\n"
-            f"   - Ke-{competitor_count} kompetitor acuan belum mengulas sudut pandang spesifik ini secara mendalam. Sertakan minimal 2 pembahasan baru atau studi kasus kontekstual yang bernilai tinggi bagi pembaca.\n"
-            f"   - PENTING: Jangan hanya menaruh istilah nilai tambah baru ini sebagai judul atau sub-judul. Uraikan dan sebutkan istilah pembeda tersebut di dalam 2–3 kalimat penjelasan naratif pada badan paragraf agar terbaca jelas oleh pembaca dan algoritma mesin pencari.\n\n"
-            f"4. BATASAN PANJANG KATA KETAT (SERP WORD BUDGET):\n"
-            f"   - Target panjang artikel: {min_target_words} – {max_target_words} kata (DILARANG melebihi {max_target_words} kata).\n"
-            f"   - Hapus basa-basi pembuka dan pengantar klise. Langsung bahas substansi pokok secara padat dan lugas.\n"
-            f"</instruksi_kurasi_4_pilar>"
-            f"{PROMPT_DRAFT_DELIMITER}"
+        if is_out_of_domain:
+            # ADR-01: Prompt Khusus Out-of-Domain: Reorientasi Total (Clean Re-write tanpa Delimiter Draf Lama)
+            remediation_prompt = (
+                f"Anda adalah Kurator dan Redaktur Editorial Ahli.\n"
+                f"PERINGATAN KURASI: Draf artikel ini terdeteksi berada di luar domain topik utama (Out-of-Domain, kemiripan semantik < 5%) untuk kueri target '{target_query}'.\n"
+                f"Naskah sebelumnya memuat materi atau cuplikan berita acak yang menyimpang dari topik ini.\n\n"
+                f"<instruksi_reorientasi_topik>\n"
+                f"1. ELIMINASI KONTEN NON-TOPIKAL (BERSIHKAN NOISE):\n"
+                f"   - Buang seluruh paragraf dan materi acak yang tidak berhubungan dengan '{target_query}'. DILARANG mempertahankan teks yang menyimpang dari topik utama.\n\n"
+                f"2. REORIENTASI TOPIK TOTAL (TULIS ULANG BERFOKUS PENUH PADA KONSENSUS SERP):\n"
+                f"   - Tulis ulang artikel 100% baru berfokus pada topik target '{target_query}' secara koheren dan berbobot.\n"
+                f"   - Sebagaimana disepakati oleh {competitor_count} artikel acuan Google SERP ({other_domains_str}), wajib mengulas aspek penting berikut: {valid_deficits_str}.\n\n"
+                f"3. LARANGAN KERAS FRASA KLISE AI (ANTI-SLOP):\n"
+                f"   - Tulis dengan gaya jurnalistik profesional yang lugas, padat informasi, dan langsung ke inti persoalan (straight lead).\n"
+                f"   - Dilarang menggunakan frasa klise AI seperti: 'Di era digital saat ini', 'Di era modern yang serba cepat ini', 'Tidak dapat dipungkiri bahwa', 'Hadir sebagai solusi inovatif', 'Mari kita simak', 'Seperti yang kita ketahui bersama', 'Bukan rahasia lagi', 'Dalam kesimpulannya', atau 'Semoga artikel ini bermanfaat'.\n\n"
+                f"4. BATASAN PANJANG KATA (SERP WORD BUDGET):\n"
+                f"   - Target panjang artikel: {min_target_words} – {max_target_words} kata (DILARANG melebihi {max_target_words} kata).\n"
+                f"- FORMAT KELUARAN MURNI: Keluarkan HANYA naskah artikel hasil kurasi akhir tanpa salam pembuka, prolog, atau epilog basa-basi AI.\n"
+                f"</instruksi_reorientasi_topik>"
+            )
+        else:
+            # Prompt Terstruktur 4-Pilar Anti-Slop & Bedah Presisi (Sprint 4.2 & Fabric Anti-Slop)
+            remediation_prompt = (
+                f"Anda adalah Kurator dan Redaktur Editorial Ahli.\n"
+                f"Tolong sempurnakan draf artikel ini untuk topik '{target_query}' dengan panduan kurasi berdasarkan perbandingan {competitor_count} artikel kompetitor acuan Google SERP berikut:\n\n"
+                f"<prinsip_editorial_anti_slop>\n"
+                f"- ATURAN BEDAH PRESISI (SURGICAL EDITING): Draf ini adalah naskah asli manusia. DILARANG merombak total dari nol. Pertahankan minimal 80% kalimat asli yang tidak bermasalah kata demi kata (verbatim) demi menjaga otentisitas suara penulis.\n"
+                f"- PRINSIP TONE & PERSONA MIRRORING: Hormati dan tiru gaya tutur khas naskah asli penulis (baik bergaya jurnalistik, kasual/santai, naratif-bercerita, teknis, maupun esoteris/khas). Jangan mengubah kepribadian tulisan menjadi bahasa korporat yang kaku.\n"
+                f"- LARANGAN KERAS FRASA KLISE AI (ANTI-SLOP):\n"
+                f"  Dilarang menggunakan frasa pembuka/penghubung klise AI seperti: 'Di era digital saat ini', 'Di era modern yang serba cepat ini', 'Tidak dapat dipungkiri bahwa', 'Hadir sebagai solusi inovatif', 'Mari kita simak', 'Seperti yang kita ketahui bersama', 'Bukan rahasia lagi', 'Dalam kesimpulannya', atau 'Semoga artikel ini bermanfaat'.\n"
+                f"- NADA BAHASA: Lugas, objektif, padat informasi, tanpa basa-basi marketing, dan langsung menuju inti bahasan (straight lead).\n"
+                f"- FORMAT KELUARAN MURNI: Keluarkan HANYA naskah artikel hasil kurasi akhir. DILARANG menyertakan salam pembuka, prolog ('Berikut revisi artikel...'), atau epilog penjelasan dari AI.\n"
+                f"</prinsip_editorial_anti_slop>\n\n"
+                f"<instruksi_kurasi_4_pilar>\n"
+                f"1. ELIMINASI JIPLAKAN DARI SUMBER UTAMA:\n"
+                f"   - Draf memiliki kemiripan struktur tinggi dengan {comp_citation or 'artikel kompetitor utama'}. Parafrase secara bedah presisi hanya pada kalimat-kalimat yang terindikasi plagiasi berikut tanpa mengubah data faktualnya:{snippets_block or ' Parafrase kalimat yang terlalu mirip acuan.'}\n\n"
+                f"2. LENGKAPI CELAH KONSENSUS DARI KOMPETITOR LAIN:\n"
+                f"   - Sebagaimana dibahas oleh kompetitor SERP lainnya ({other_domains_str}), sertakan pembahasan aspek penting yang masih absen di naskah Anda: {valid_deficits_str}. Sisipkan aspek ini secara organik ke dalam 1–2 paragraf terkait tanpa memanjangkan artikel secara berlebihan.\n\n"
+                f"3. CIPTAKAN NILAI TAMBAH BARU (KALAHKAN {competitor_count} KOMPETITOR SERP):\n"
+                f"   - Ke-{competitor_count} kompetitor acuan belum mengulas sudut pandang spesifik ini secara mendalam. Sertakan minimal 2 pembahasan baru atau studi kasus kontekstual yang bernilai tinggi bagi pembaca.\n"
+                f"   - PENTING: Jangan hanya menaruh istilah nilai tambah baru ini sebagai judul atau sub-judul. Uraikan dan sebutkan istilah pembeda tersebut di dalam 2–3 kalimat penjelasan naratif pada badan paragraf agar terbaca jelas oleh pembaca dan algoritma mesin pencari.\n\n"
+                f"4. BATASAN PANJANG KATA KETAT (SERP WORD BUDGET):\n"
+                f"   - Target panjang artikel: {min_target_words} – {max_target_words} kata (DILARANG melebihi {max_target_words} kata).\n"
+                f"   - Hapus basa-basi pembuka dan pengantar klise. Langsung bahas substansi pokok secara padat dan lugas.\n"
+                f"</instruksi_kurasi_4_pilar>"
+                f"{draft_delimiter_block}"
+            )
+
+    if multimodal_competitor_domains:
+        mm_str = ", ".join(multimodal_competitor_domains[:3])
+        bullets.append(
+            f"Sinyal Lanskap Multi-Modal & UGC SERP: Kompetitor halaman pertama memuat platform sosial/komunitas ({mm_str}). "
+            "Perkuat narasi pengalaman praktis (first-hand experience) dan sertakan elemen visual/multimedia ([gambar: ...] atau [video: ...]) agar selaras dengan intensi pencarian pengguna."
         )
 
     return {

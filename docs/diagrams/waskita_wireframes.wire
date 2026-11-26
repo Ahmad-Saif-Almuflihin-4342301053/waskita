@@ -1,0 +1,185 @@
+project "WASKITA v2 - Desain Antarmuka Responsif" {
+  style {
+    density: "normal"
+    spacing: "md"
+    radius: "md"
+    stroke: "normal"
+    font: "base"
+  }
+
+  // =========================================================================
+  // 1. LAYAR 1 (DESKTOP): WORKSPACE AWAL / EMPTY STATE (GuestWorkspace)
+  // =========================================================================
+  screen WorkspaceAwalDesktop {
+    layout split(left: 250, gap: none) {
+      // Sidebar Kiri (AuthSidebar)
+      layout card(padding: md, gap: md) {
+        component Heading text: "WASKITA  [BETA]"
+        component Button text: "+ Audit Baru" variant: primary
+        component Divider
+        component Text text: "RIWAYAT SESI AUDIT"
+        component SidebarMenu items: "Resep Kopi Tubruk (Turn 2), Panduan SEO Teknis (Turn 1), Artikel Energi Surya (Turn 1)" active: 0
+        component Divider
+        component Button text: "Pengaturan & Tema" variant: secondary
+      }
+
+      // Main Area (Centered Hero + FloatingComposerDock)
+      layout stack(direction: vertical, gap: lg, padding: lg) {
+        component Topbar title: "Workspace Audit Pra-Publikasi" actions: "Sign in"
+        layout stack(direction: vertical, gap: md, padding: lg, align: center) {
+          component Badge text: "WASKITA v2 • BETA"
+          component Heading text: "Periksa Kualitas & Orisinalitas Artikel"
+          component Text text: "Tempelkan draf artikel (>= 300 kata) untuk audit diferensiasi konten berbasis VSM, Information Gain, dan Stilometri."
+        }
+
+        // FloatingComposerDock (Mode Centered)
+        layout card(padding: md, gap: md) {
+          component Textarea label: "Draf Naskah Artikel" placeholder: "Tempelkan atau ketik draf naskah artikel Anda di sini (minimal 300 kata)..." rows: 5
+          layout stack(direction: horizontal, gap: md, justify: spaceBetween) {
+            component Button text: "+ Kueri & Opsi Audit" variant: secondary
+            component Badge text: "0 / 300 kata"
+            component Button text: "Jalankan Audit ->" variant: primary
+          }
+        }
+
+        // Pilihan Contoh Draf Cepat
+        layout stack(direction: horizontal, gap: md, justify: center) {
+          component Button text: "Coba Contoh: Draf Perlu Revisi" variant: secondary
+          component Button text: "Coba Contoh: Draf Layak Terbit" variant: secondary
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // 2. LAYAR 1 (MOBILE-FIRST): WORKSPACE AWAL / EMPTY STATE
+  // =========================================================================
+  screen WorkspaceAwalMobile {
+    layout stack(direction: vertical, gap: md, padding: md) {
+      component Topbar title: "WASKITA [BETA]" icon: "menu" actions: "Sign in"
+      layout stack(direction: vertical, gap: sm, padding: md, align: center) {
+        component Heading text: "Periksa Kualitas & Orisinalitas Artikel"
+        component Text text: "Audit pra-publikasi berbasis VSM, Information Gain & Stilometri."
+      }
+      layout card(padding: md, gap: sm) {
+        component Textarea label: "Draf Naskah (>= 300 kata)" placeholder: "Tempelkan draf artikel di sini..." rows: 6
+        layout stack(direction: horizontal, gap: sm, justify: spaceBetween) {
+          component Button text: "+ Opsi" variant: secondary
+          component Badge text: "0/300 kata"
+          component Button text: "Audit ->" variant: primary
+        }
+      }
+      component Button text: "Coba Contoh Draf (Perlu Revisi)" variant: secondary
+      component Button text: "Coba Contoh Draf (Layak Terbit)" variant: secondary
+    }
+  }
+
+  // =========================================================================
+  // 3. LAYAR 2 (DESKTOP): HASIL AUDIT MULTI-TURN (MultiTurnAuditStreamView)
+  // =========================================================================
+  screen HasilAuditDesktop {
+    layout split(left: 250, gap: none) {
+      // Sidebar Kiri
+      layout card(padding: md, gap: md) {
+        component Heading text: "WASKITA  [BETA]"
+        component Button text: "+ Audit Baru" variant: primary
+        component Divider
+        component Text text: "RIWAYAT SESI AUDIT"
+        component SidebarMenu items: "Resep Kopi Tubruk (Turn 2), Panduan SEO Teknis (Turn 1), Artikel Energi Surya (Turn 1)" active: 0
+      }
+
+      // Stream Hasil Audit Multi-Turn
+      layout stack(direction: vertical, gap: md, padding: lg) {
+        component Topbar title: "Sesi: Resep Kopi Tubruk Tradisional" actions: "Ekspor Markdown"
+
+        // Gelembung Draf Pengguna (User Input Bubble)
+        layout card(padding: sm, gap: sm) {
+          component Badge text: "DRAF AWAL • 412 KATA"
+          component Text text: "Judul: Cara Membuat Kopi Tubruk Tradisional Khas Jawa | Target Kueri: resep kopi tubruk tradisional"
+        }
+
+        // VerdictSection
+        layout card(padding: md, gap: sm) {
+          component Heading text: "Hasil Analisis #1 — LAYAK TERBIT (Skor CDS: 78.4 / 100)"
+          component Text text: "Naskah memiliki kebaruan informasi tinggi terhadap Top-3 SERP kompetitor dan gaya bahasa natural."
+        }
+
+        // 7 Metrik Evaluasi White-Box IR & Stilometri (Grid 4 Kolom)
+        layout grid(columns: 4, gap: sm) {
+          component Stat title: "Max Cosine Sim" value: "42.0%" change: "Target <= 60%"
+          component Stat title: "MATTR (L=50)" value: "74.0%" change: "Target >= 55%"
+          component Stat title: "HKO Overlap" value: "12.4%" change: "Target <= 40%"
+          component Stat title: "Information Gain" value: "+14 / -3" change: "Delta Gain / Deficit"
+        }
+
+        // EntityGapsSection & SerpCompetitorsSection
+        layout grid(columns: 2, gap: md) {
+          layout card(padding: md, gap: sm) {
+            component Heading text: "Celah Topik (Entity Gaps)"
+            component Text text: "Entitas Hilang (Delta Deficit): rasio air kopi, suhu seduh 90C, gilingan robusta"
+            component Text text: "Rekomendasi: Tambahkan penjelasan takaran air & suhu seduh."
+          }
+          layout card(padding: md, gap: sm) {
+            component Heading text: "Korpus Kompetitor Top-3 SERP"
+            component Text text: "1. kompetitor-a.id (Cosine: 0.46 • 1.120 kata)"
+            component Text text: "2. kompetitor-b.com (Cosine: 0.39 • 940 kata)"
+            component Text text: "3. kompetitor-c.id (Cosine: 0.41 • 880 kata)"
+          }
+        }
+
+        // FloatingComposerDock di Bawah (untuk Revisi Turn #2)
+        layout card(padding: sm, gap: sm) {
+          layout stack(direction: horizontal, gap: sm, justify: spaceBetween) {
+            component Button text: "+ Opsi" variant: secondary
+            component Input placeholder: "Tempelkan draf revisi (Turn #2) untuk evaluasi ulang..."
+            component Button text: "Audit Revisi ->" variant: primary
+          }
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // 4. LAYAR 2 (MOBILE-FIRST): HASIL AUDIT MULTI-TURN
+  // =========================================================================
+  screen HasilAuditMobile {
+    layout stack(direction: vertical, gap: sm, padding: md) {
+      component Topbar title: "Resep Kopi Tubruk" icon: "menu" actions: "Ekspor"
+
+      // User Input Bubble
+      layout card(padding: sm, gap: sm) {
+        component Badge text: "DRAF AWAL • 412 KATA"
+        component Text text: "Kueri: resep kopi tubruk tradisional"
+      }
+
+      // VerdictSection
+      layout card(padding: sm, gap: sm) {
+        component Heading text: "LAYAK TERBIT (CDS: 78.4)"
+        component Text text: "Kebaruan informasi tinggi & stilometri natural."
+      }
+
+      // Grid 2x2 Metrik (Sesuai AuditMetricsGrid.tsx mobile)
+      layout grid(columns: 2, gap: sm) {
+        component Stat title: "Max Cosine" value: "42.0%" change: "<= 60%"
+        component Stat title: "MATTR (L=50)" value: "74.0%" change: ">= 55%"
+        component Stat title: "HKO Overlap" value: "12.4%" change: "<= 40%"
+        component Stat title: "Info Gain" value: "+14 / -3" change: "Gain/Deficit"
+      }
+
+      // Entity Gaps
+      layout card(padding: sm, gap: sm) {
+        component Heading text: "Celah Topik (Delta Deficit)"
+        component Text text: "[+] rasio air kopi  [+] suhu seduh 90C"
+      }
+
+      // FloatingComposerDock Bawah
+      layout card(padding: sm, gap: sm) {
+        layout stack(direction: horizontal, gap: sm, justify: spaceBetween) {
+          component Button text: "+" variant: secondary
+          component Input placeholder: "Tempel revisi Turn #2..."
+          component Button text: "Kirim" variant: primary
+        }
+      }
+    }
+  }
+}

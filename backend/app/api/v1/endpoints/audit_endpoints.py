@@ -38,6 +38,7 @@ from app.services.gatekeeper import (
 )
 from app.services.information_gain import (
     calculate_information_gain,
+    deduplicate_consensus_stems,
     find_snippet_and_domain,
 )
 from app.services.nlp_pipeline import (
@@ -99,11 +100,13 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
     deficit_items = []
     gain_items = []
     for g in session.entity_gaps:
+        is_prio = bool((g.competitor_consensus_count or 0) >= 2) if g.entity_type == "deficit" else False
         item = EntityGapItem(
             term_string=g.term_string,
             term_surface_form=g.term_surface_form,
             tfidf_weight=g.tfidf_weight,
             competitor_consensus_count=g.competitor_consensus_count,
+            is_consensus_priority=is_prio,
         )
         if g.entity_type == "deficit":
             deficit_items.append(item)
@@ -169,19 +172,23 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         hko_pts = round(0.15 * c_hko_100, 1)
         ig_pts = max(0.0, round((m.content_differentiation_score or 0.0) - vsm_pts - mattr_pts - hko_pts, 1))
 
+        c_ig_100 = max(0.0, min(100.0, round((ig_pts / 0.30), 1))) if ig_pts > 0 else 0.0
         sub_scores = {
             "vsm": vsm_pts,
             "ig": ig_pts,
             "mattr": mattr_pts,
             "hko": hko_pts,
-            "c_vsm": vsm_pts,
-            "c_ig": ig_pts,
-            "c_mattr": mattr_pts,
-            "c_hko": hko_pts,
+            "c_vsm": round(c_vsm_100, 1),
+            "c_ig": c_ig_100,
+            "c_mattr": round(c_mattr_100, 1),
+            "c_hko": round(c_hko_100, 1),
         }
 
+    total_entity_pool = len(deficit_items) + len(gain_items)
+    dynamic_target = max(1, min(20, total_entity_pool)) if total_entity_pool > 0 else 10
+    dynamic_total = max(dynamic_target, total_entity_pool)
     priority_deficits_count = sum(1 for d in deficit_items if d.is_consensus_priority)
-    consensus_matched = max(0, 20 - priority_deficits_count) if priority_deficits_count > 0 else 20
+    consensus_matched = max(0, dynamic_target - priority_deficits_count)
 
     metrics_schema = MetricResultSchema(
         content_differentiation_score=m.content_differentiation_score if m else 0.0,
@@ -195,8 +202,8 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         is_keyword_stuffed=m.is_keyword_stuffed if m else False,
         sub_scores=sub_scores,
         consensus_matched_count=consensus_matched,
-        consensus_target_count=20,
-        consensus_total_count=25,
+        consensus_target_count=dynamic_target,
+        consensus_total_count=dynamic_total,
     )
 
     # Rekonstruksi overview_bullets & remediation_prompt asli saat memuat riwayat (Sprint 4.1)
@@ -233,6 +240,7 @@ def build_audit_execute_response(session: AuditSession) -> AuditExecuteResponse:
         highest_competitor=highest_comp,
         redundant_snippets=red_snippets,
         competitor_count=len(serp_items) if serp_items else 5,
+        draft_content=session.draft_content,
     )
     overview_bullets = ov_rem.get("overview_bullets", [
         f"Audit selesai dengan status vonis {session.verdict_status}.",
@@ -364,16 +372,24 @@ async def execute_audit(
     draft_content = req.draft_content.strip()
     thresholds = req.thresholds or ThresholdConfig()
 
+    import time
+    start_audit_time = time.time()
     clean_text_for_count = strip_media_placeholders(draft_content)
     words = clean_text_for_count.split()
     draft_word_count = len(words)
 
     # 1. Tentukan nomor turn jika revisi berulang (Multi-Turn)
     turn_number = 1
+    parent_session = None
+    is_same_query = True
     if req.parent_session_id:
-        parent = db.query(AuditSession).filter(AuditSession.session_id == req.parent_session_id).first()
-        if parent:
-            turn_number = parent.turn_number + 1
+        parent_session = db.query(AuditSession).filter(AuditSession.session_id == req.parent_session_id).first()
+        if parent_session:
+            turn_number = parent_session.turn_number + 1
+            is_same_query = bool(
+                parent_session.target_query
+                and parent_session.target_query.strip().lower() == target_query.strip().lower()
+            )
 
     # 2. Akuisisi SERP Competitors (Scraper / Snapshot Cache / Fallback)
     competitor_docs = None
@@ -386,13 +402,10 @@ async def execute_audit(
         "total_candidates_evaluated": 0,
     }
 
-    if req.use_cached_serp and req.parent_session_id:
-        parent_session = (
-            db.query(AuditSession)
-            .filter(AuditSession.session_id == req.parent_session_id)
-            .first()
-        )
-        if parent_session and parent_session.snapshot and parent_session.snapshot.documents:
+    if req.use_cached_serp and req.parent_session_id and is_same_query and parent_session:
+        # Hanya gunakan snapshot jika kueri target SAMA persis dengan kueri sesi induk!
+        # Jika kueri berbeda (pengguna mengganti kata kunci target), korpus SERP lama tidak boleh dipakai.
+        if parent_session.snapshot and parent_session.snapshot.documents:
             valid_docs = [
                 normalize_competitor_doc(
                     {
@@ -458,11 +471,11 @@ async def execute_audit(
         if idx < len(competitor_docs):
             competitor_docs[idx]["cosine_similarity"] = sim
 
-    # Topic Shift Guard (Sprint 3.4):
-    # Jika draf revisi memiliki kemiripan < 0.05 terhadap kompetitor parent, tolak cache parent dan tandai pergantian topik.
+    # Topic Shift Guard (Sprint 3.4 & Langkah 2.1):
+    # Jika kueri sama dan draf revisi memiliki kemiripan < 0.05 terhadap kompetitor parent, tandai pergantian topik.
     avg_cosine_sim = vsm_results.get("avg_cosine_similarity", 0.0)
     topic_shift_detected = False
-    if req.parent_session_id and (avg_cosine_sim is not None and avg_cosine_sim < 0.05):
+    if req.parent_session_id and is_same_query and (avg_cosine_sim is not None and avg_cosine_sim < 0.05):
         topic_shift_detected = True
         degradation_warning = (
             "Perhatian: Terdeteksi pergantian topik dari sesi induk. "
@@ -496,13 +509,15 @@ async def execute_audit(
         and e[0] not in ALL_INDONESIAN_STOPWORDS
     }
     consensus_serp_stems = set()
+    stem_freqs = []
     if len(full_comp_stems_list) >= 2:
-        stem_freqs = []
         for st in serp_candidate_stems:
             doc_freq = sum(1 for c_set in full_comp_stems_list if st in c_set)
             if doc_freq >= 2:
                 stem_freqs.append((st, doc_freq))
         stem_freqs.sort(key=lambda x: x[1], reverse=True)
+        # ADR-04 & Langkah 2.4: Terapkan Sanderson Subsumption deduplikasi unigram
+        stem_freqs = deduplicate_consensus_stems(stem_freqs)
         consensus_serp_stems = {st for st, _ in stem_freqs[:25]}
     if not consensus_serp_stems:
         consensus_serp_stems = serp_candidate_stems
@@ -542,6 +557,11 @@ async def execute_audit(
         competitor_docs=competitor_docs,
     )
 
+    # ADR-02 & Langkah 2.2: Isolasi mutlak Out-of-Domain (Zero-Gain Policy)
+    is_ood = (avg_cosine_sim is not None and avg_cosine_sim < 0.05)
+    if is_ood:
+        entity_gaps = EntityGapsGroup(deficit=entity_gaps.deficit, gain=[])
+
     # 6. Analisis Stilometri (TTR, MATTR, HKO)
     stylometrics = calculate_stylometrics(draft_content, target_query)
 
@@ -554,9 +574,13 @@ async def execute_audit(
         threshold_hko=thresholds.max_hko_percentage,
     )
 
-    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate & Consecutive Red Guard (Sprint 4.4)
-    red_spans = [span for span in annotated_spans if span.color == "red"]
-    red_span_ratio = len(red_spans) / max(1, len(annotated_spans))
+    # Hitung rasio kalimat stabilo merah untuk Red-Span Density Veto Gate & Consecutive Red Guard (Sprint 4.4 & 4.5)
+    valid_content_spans = [
+        span for span in annotated_spans
+        if not span.is_heading and span.text.strip() and span.label != "Residu Elemen Web (Ctrl+A)"
+    ]
+    red_spans = [span for span in valid_content_spans if span.color == "red"]
+    red_span_ratio = len(red_spans) / max(1, len(valid_content_spans))
 
     max_consecutive_red = 0
     curr_consecutive_red = 0
@@ -570,7 +594,16 @@ async def execute_audit(
         else:
             curr_consecutive_red = 0
 
-    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4 & Sprint 4.3 80% Saturation)
+    # 8. Gatekeeper Aggregator & Rumus Komposit CDS (Bab 2.4, Sprint 4.3 80% Saturation & Sprint 4.5 E-E-A-T Veto)
+    from app.services.gatekeeper import detect_web_chrome_noise, detect_commercial_drift, detect_ai_prompt_leak
+    has_chrome_noise, _, _ = detect_web_chrome_noise(draft_content)
+    is_commercial_drift, _ = detect_commercial_drift(
+        draft_content,
+        consensus_serp_stems=consensus_serp_stems,
+        target_query=target_query,
+    )
+    has_ai_prompt_leak, _ = detect_ai_prompt_leak(draft_content)
+
     shared_consensus = consensus_serp_stems.intersection(full_draft_stems)
     consensus_matched_count = len(shared_consensus)
     consensus_total_count = len(consensus_serp_stems)
@@ -588,13 +621,14 @@ async def execute_audit(
         avg_cosine_sim=vsm_results["avg_cosine_similarity"],
         red_span_ratio=red_span_ratio,
         max_consecutive_red=max_consecutive_red,
+        has_web_chrome_noise=has_chrome_noise,
+        is_commercial_drift=is_commercial_drift,
+        has_ai_prompt_leak=has_ai_prompt_leak,
     )
 
     serp_source = determine_serp_source(competitor_docs)
-    if cds_decision["verdict_status"] == "Perlu Revisi - Topik Tidak Relevan":
-        final_verdict_status = "Perlu Revisi - Topik Tidak Relevan"
-    elif cds_decision["verdict_status"] == "Perlu Revisi - Redundansi Kalimat Tinggi":
-        final_verdict_status = "Perlu Revisi - Redundansi Kalimat Tinggi"
+    if cds_decision["verdict_status"].startswith("Perlu Revisi - "):
+        final_verdict_status = cds_decision["verdict_status"]
     elif serp_source == "offline_synthetic":
         final_verdict_status = "Mode Demo"
     else:
@@ -625,6 +659,7 @@ async def execute_audit(
         draft_word_count=draft_word_count,
         word_budget_min=req.word_budget_min,
         word_budget_max=req.word_budget_max,
+        draft_content=draft_content,
     )
 
     # 10. Persistensi ke SQLite WAL (Tabel 3.5 Proposal TA)
@@ -732,6 +767,25 @@ async def execute_audit(
         )
 
     db.commit()
+
+    try:
+        from app.core.logging_config import append_structured_jsonl_log
+        elapsed_audit_ms = round((time.time() - start_audit_time) * 1000, 2)
+        append_structured_jsonl_log("audit_decision_forensics.jsonl", {
+            "session_id": session_id,
+            "target_query": target_query,
+            "word_count": draft_word_count,
+            "verdict_status": final_verdict_status,
+            "cds_score": cds_decision["content_differentiation_score"],
+            "sub_scores": cds_decision.get("sub_scores", {}),
+            "is_out_of_domain": cds_decision.get("is_out_of_domain", False),
+            "has_web_chrome_noise": has_chrome_noise,
+            "is_commercial_drift": is_commercial_drift,
+            "has_ai_prompt_leak": has_ai_prompt_leak,
+            "elapsed_ms": elapsed_audit_ms,
+        })
+    except Exception:
+        pass
 
     return AuditExecuteResponse(
         session_id=session_id,

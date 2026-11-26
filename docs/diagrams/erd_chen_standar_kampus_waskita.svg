@@ -1,0 +1,200 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1220" viewBox="0 0 1920 1220">
+<defs>
+  <style>
+    .title { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 26px; font-weight: 700; fill: #0f172a; }
+    .subtitle { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 15px; fill: #475569; }
+    .entity-box { fill: #eff6ff; stroke: #1e3a8a; stroke-width: 2.8; }
+    .entity-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 16px; font-weight: 700; fill: #0f172a; text-anchor: middle; dominant-baseline: central; }
+    .rel-dia { fill: #fef9c3; stroke: #854d0e; stroke-width: 2.4; }
+    .rel-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #422006; text-anchor: middle; dominant-baseline: central; }
+    .attr-ov { fill: #ffffff; stroke: #334155; stroke-width: 1.8; }
+    .attr-pk { fill: #fef2f2; stroke: #991b1b; stroke-width: 2.0; }
+    .attr-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13px; fill: #1e293b; text-anchor: middle; dominant-baseline: central; }
+    .pk-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13px; font-weight: 700; fill: #991b1b; text-anchor: middle; dominant-baseline: central; text-decoration: underline; }
+    .edge { stroke: #334155; stroke-width: 2.0; fill: none; }
+    .attr-edge { stroke: #64748b; stroke-width: 1.4; fill: none; }
+    .card { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 16px; font-weight: 700; fill: #b91c1c; text-anchor: middle; }
+    .legend-box { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.6; rx: 8; }
+    .legend-hdr { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #0f172a; }
+    .legend-txt { font-family: "DejaVu Sans", Arial, sans-serif; font-size: 13px; fill: #334155; dominant-baseline: central; }
+  </style>
+</defs>
+<rect width="1920" height="1220" fill="#ffffff"/>
+<text x="48" y="48" class="title">Entity Relationship Diagram (ERD) — Notasi Chen (Standar Konseptual Kampus Indonesia)</text>
+<text x="48" y="74" class="subtitle">Basis Data Sistem Kurasi Konten Pra-Publikasi WASKITA (6 Entitas Utama — Skema Aktual entities.py)</text>
+<line x1="345" y1="350" x2="495" y2="350" class="edge"/>
+<line x1="625" y1="350" x2="815" y2="350" class="edge"/>
+<line x1="1025" y1="350" x2="1185" y2="350" class="edge"/>
+<line x1="1315" y1="350" x2="1455" y2="350" class="edge"/>
+<line x1="850" y1="380" x2="600" y2="592" class="edge"/>
+<line x1="520" y1="648" x2="360" y2="850" class="edge"/>
+<line x1="920" y1="380" x2="920" y2="584" class="edge"/>
+<line x1="920" y1="656" x2="920" y2="850" class="edge"/>
+<line x1="1580" y1="380" x2="1580" y2="584" class="edge"/>
+<line x1="1580" y1="656" x2="1580" y2="850" class="edge"/>
+<polyline points="975,320 975,200 1127,200" class="edge"/>
+<polyline points="1185,234 1185,338 1025,338" class="edge"/>
+<line x1="260" y1="350" x2="125" y2="195" class="attr-edge"/>
+<line x1="260" y1="350" x2="270" y2="160" class="attr-edge"/>
+<line x1="260" y1="350" x2="405" y2="195" class="attr-edge"/>
+<line x1="260" y1="350" x2="95" y2="290" class="attr-edge"/>
+<line x1="260" y1="350" x2="95" y2="420" class="attr-edge"/>
+<line x1="260" y1="350" x2="230" y2="495" class="attr-edge"/>
+<line x1="260" y1="350" x2="375" y2="485" class="attr-edge"/>
+<line x1="920" y1="350" x2="650" y2="190" class="attr-edge"/>
+<line x1="920" y1="350" x2="765" y2="125" class="attr-edge"/>
+<line x1="920" y1="350" x2="915" y2="115" class="attr-edge"/>
+<line x1="920" y1="350" x2="1060" y2="130" class="attr-edge"/>
+<line x1="920" y1="350" x2="710" y2="255" class="attr-edge"/>
+<line x1="920" y1="350" x2="1095" y2="440" class="attr-edge"/>
+<line x1="920" y1="350" x2="1095" y2="505" class="attr-edge"/>
+<line x1="1580" y1="350" x2="1435" y2="190" class="attr-edge"/>
+<line x1="1580" y1="350" x2="1580" y2="145" class="attr-edge"/>
+<line x1="1580" y1="350" x2="1735" y2="190" class="attr-edge"/>
+<line x1="1580" y1="350" x2="1815" y2="295" class="attr-edge"/>
+<line x1="1580" y1="350" x2="1805" y2="425" class="attr-edge"/>
+<line x1="1580" y1="350" x2="1730" y2="505" class="attr-edge"/>
+<line x1="290" y1="880" x2="115" y2="760" class="attr-edge"/>
+<line x1="290" y1="880" x2="105" y2="865" class="attr-edge"/>
+<line x1="290" y1="880" x2="125" y2="975" class="attr-edge"/>
+<line x1="290" y1="880" x2="245" y2="1060" class="attr-edge"/>
+<line x1="290" y1="880" x2="405" y2="1060" class="attr-edge"/>
+<line x1="290" y1="880" x2="530" y2="975" class="attr-edge"/>
+<line x1="290" y1="880" x2="520" y2="860" class="attr-edge"/>
+<line x1="920" y1="880" x2="735" y2="985" class="attr-edge"/>
+<line x1="920" y1="880" x2="835" y2="1070" class="attr-edge"/>
+<line x1="920" y1="880" x2="995" y2="1070" class="attr-edge"/>
+<line x1="920" y1="880" x2="1125" y2="995" class="attr-edge"/>
+<line x1="920" y1="880" x2="1135" y2="880" class="attr-edge"/>
+<line x1="1580" y1="880" x2="1395" y2="995" class="attr-edge"/>
+<line x1="1580" y1="880" x2="1500" y2="1075" class="attr-edge"/>
+<line x1="1580" y1="880" x2="1665" y2="1075" class="attr-edge"/>
+<line x1="1580" y1="880" x2="1795" y2="995" class="attr-edge"/>
+<line x1="1580" y1="880" x2="1815" y2="885" class="attr-edge"/>
+<line x1="1580" y1="880" x2="1790" y2="770" class="attr-edge"/>
+<text x="415" y="336" class="card">1</text>
+<text x="715" y="336" class="card">N</text>
+<text x="1105" y="336" class="card">1</text>
+<text x="1385" y="336" class="card">1</text>
+<text x="725" y="485" class="card">1</text>
+<text x="415" y="765" class="card">1</text>
+<text x="940" y="485" class="card">1</text>
+<text x="940" y="760" class="card">N</text>
+<text x="1600" y="485" class="card">1</text>
+<text x="1600" y="760" class="card">N</text>
+<text x="960" y="216" class="card">1</text>
+<text x="1203" y="328" class="card">N</text>
+<ellipse cx="125" cy="195" rx="58" ry="20" class="attr-pk"/>
+<text x="125" y="195" class="pk-txt">user_id</text>
+<ellipse cx="270" cy="160" rx="62" ry="20" class="attr-ov"/>
+<text x="270" y="160" class="attr-txt">username</text>
+<ellipse cx="405" cy="195" rx="54" ry="20" class="attr-ov"/>
+<text x="405" y="195" class="attr-txt">email</text>
+<ellipse cx="95" cy="290" rx="72" ry="20" class="attr-ov"/>
+<text x="95" y="290" class="attr-txt">password_hash</text>
+<ellipse cx="95" cy="420" rx="50" ry="20" class="attr-ov"/>
+<text x="95" y="420" class="attr-txt">role</text>
+<ellipse cx="230" cy="495" rx="60" ry="20" class="attr-ov"/>
+<text x="230" y="495" class="attr-txt">plan_tier</text>
+<ellipse cx="375" cy="485" rx="62" ry="20" class="attr-ov"/>
+<text x="375" y="485" class="attr-txt">created_at</text>
+<ellipse cx="650" cy="190" rx="64" ry="20" class="attr-pk"/>
+<text x="650" y="190" class="pk-txt">session_id</text>
+<ellipse cx="765" cy="125" rx="68" ry="20" class="attr-ov"/>
+<text x="765" y="125" class="attr-txt">target_query</text>
+<ellipse cx="915" cy="115" rx="62" ry="20" class="attr-ov"/>
+<text x="915" y="115" class="attr-txt">draft_title</text>
+<ellipse cx="1060" cy="130" rx="66" ry="20" class="attr-ov"/>
+<text x="1060" y="130" class="attr-txt">turn_number</text>
+<ellipse cx="710" cy="255" rx="68" ry="20" class="attr-ov"/>
+<text x="710" y="255" class="attr-txt">draft_content</text>
+<ellipse cx="1095" cy="440" rx="70" ry="20" class="attr-ov"/>
+<text x="1095" y="440" class="attr-txt">verdict_status</text>
+<ellipse cx="1095" cy="505" rx="76" ry="20" class="attr-ov"/>
+<text x="1095" y="505" class="attr-txt">audit_timestamp</text>
+<ellipse cx="1435" cy="190" rx="68" ry="20" class="attr-pk"/>
+<text x="1435" y="190" class="pk-txt">snapshot_id</text>
+<ellipse cx="1580" cy="145" rx="64" ry="20" class="attr-ov"/>
+<text x="1580" y="145" class="attr-txt">query_hash</text>
+<ellipse cx="1735" cy="190" rx="74" ry="20" class="attr-ov"/>
+<text x="1735" y="190" class="attr-txt">search_engine</text>
+<ellipse cx="1815" cy="295" rx="66" ry="20" class="attr-ov"/>
+<text x="1815" y="295" class="attr-txt">serp_locale</text>
+<ellipse cx="1805" cy="425" rx="74" ry="20" class="attr-ov"/>
+<text x="1805" y="425" class="attr-txt">total_retrieved</text>
+<ellipse cx="1730" cy="505" rx="72" ry="20" class="attr-ov"/>
+<text x="1730" y="505" class="attr-txt">snapshot_time</text>
+<ellipse cx="115" cy="760" rx="60" ry="20" class="attr-pk"/>
+<text x="115" y="760" class="pk-txt">metric_id</text>
+<ellipse cx="105" cy="865" rx="76" ry="20" class="attr-ov"/>
+<text x="105" y="865" class="attr-txt">avg_cosine_sim</text>
+<ellipse cx="125" cy="975" rx="78" ry="20" class="attr-ov"/>
+<text x="125" y="975" class="attr-txt">max_cosine_sim</text>
+<ellipse cx="245" cy="1060" rx="66" ry="20" class="attr-ov"/>
+<text x="245" y="1060" class="attr-txt">mattr_score</text>
+<ellipse cx="405" cy="1060" rx="74" ry="20" class="attr-ov"/>
+<text x="405" y="1060" class="attr-txt">hko_percentage</text>
+<ellipse cx="530" cy="975" rx="60" ry="20" class="attr-ov"/>
+<text x="530" y="975" class="attr-txt">cds_score</text>
+<ellipse cx="520" cy="860" rx="68" ry="20" class="attr-ov"/>
+<text x="520" y="860" class="attr-txt">is_redundant</text>
+<ellipse cx="735" cy="985" rx="56" ry="20" class="attr-pk"/>
+<text x="735" y="985" class="pk-txt">gap_id</text>
+<ellipse cx="835" cy="1070" rx="64" ry="20" class="attr-ov"/>
+<text x="835" y="1070" class="attr-txt">entity_type</text>
+<ellipse cx="995" cy="1070" rx="66" ry="20" class="attr-ov"/>
+<text x="995" y="1070" class="attr-txt">term_string</text>
+<ellipse cx="1125" cy="995" rx="68" ry="20" class="attr-ov"/>
+<text x="1125" y="995" class="attr-txt">tfidf_weight</text>
+<ellipse cx="1135" cy="880" rx="80" ry="20" class="attr-ov"/>
+<text x="1135" y="880" class="attr-txt">consensus_count</text>
+<ellipse cx="1395" cy="995" rx="70" ry="20" class="attr-pk"/>
+<text x="1395" y="995" class="pk-txt">document_id</text>
+<ellipse cx="1500" cy="1075" rx="72" ry="20" class="attr-ov"/>
+<text x="1500" y="1075" class="attr-txt">rank_position</text>
+<ellipse cx="1665" cy="1075" rx="72" ry="20" class="attr-ov"/>
+<text x="1665" y="1075" class="attr-txt">domain_name</text>
+<ellipse cx="1795" cy="995" rx="64" ry="20" class="attr-ov"/>
+<text x="1795" y="995" class="attr-txt">source_url</text>
+<ellipse cx="1815" cy="885" rx="66" ry="20" class="attr-ov"/>
+<text x="1815" y="885" class="attr-txt">word_count</text>
+<ellipse cx="1790" cy="770" rx="64" ry="20" class="attr-ov"/>
+<text x="1790" y="770" class="attr-txt">cosine_sim</text>
+<rect x="175.0" y="320.0" width="170" height="60" class="entity-box"/>
+<text x="260" y="350" class="entity-txt">USERS</text>
+<rect x="815.0" y="320.0" width="210" height="60" class="entity-box"/>
+<text x="920" y="350" class="entity-txt">AUDIT_SESSIONS</text>
+<rect x="1455.0" y="320.0" width="250" height="60" class="entity-box"/>
+<text x="1580" y="350" class="entity-txt">COMPETITOR_SNAPSHOTS</text>
+<rect x="190.0" y="850.0" width="200" height="60" class="entity-box"/>
+<text x="290" y="880" class="entity-txt">METRIC_RESULTS</text>
+<rect x="827.5" y="850.0" width="185" height="60" class="entity-box"/>
+<text x="920" y="880" class="entity-txt">ENTITY_GAPS</text>
+<rect x="1452.5" y="850.0" width="255" height="60" class="entity-box"/>
+<text x="1580" y="880" class="entity-txt">COMPETITOR_DOCUMENTS</text>
+<polygon points="560,314 625,350 560,386 495,350" class="rel-dia"/>
+<text x="560" y="350" class="rel-txt">melakukan</text>
+<polygon points="1250,314 1315,350 1250,386 1185,350" class="rel-dia"/>
+<text x="1250" y="350" class="rel-txt">mengambil</text>
+<polygon points="560,584 632,620 560,656 488,620" class="rel-dia"/>
+<text x="560" y="620" class="rel-txt">menghasilkan</text>
+<polygon points="920,584 982,620 920,656 858,620" class="rel-dia"/>
+<text x="920" y="620" class="rel-txt">memiliki</text>
+<polygon points="1580,584 1642,620 1580,656 1518,620" class="rel-dia"/>
+<text x="1580" y="620" class="rel-txt">memuat</text>
+<polygon points="1185,166 1243,200 1185,234 1127,200" class="rel-dia"/>
+<text x="1185" y="200" class="rel-txt">merevisi</text>
+<rect x="48" y="1125" width="1824" height="68" class="legend-box"/>
+<text x="68" y="1163" class="legend-hdr">LEGENDA NOTASI CHEN:</text>
+<rect x="283" y="1143" width="64" height="32" class="entity-box"/>
+<text x="360" y="1159" class="legend-txt">Entitas</text>
+<polygon points="473,1139 508,1159 473,1179 438,1159" class="rel-dia"/>
+<text x="520" y="1159" class="legend-txt">Relasi</text>
+<ellipse cx="633" cy="1159" rx="42" ry="16" class="attr-ov"/>
+<text x="688" y="1159" class="legend-txt">Atribut</text>
+<ellipse cx="808" cy="1159" rx="48" ry="16" class="attr-pk"/>
+<text x="808" y="1159" class="pk-txt">id_pk</text>
+<text x="870" y="1159" class="legend-txt">Primary Key (Garis Bawah)</text>
+<text x="1113" y="1165" class="card">1  /  N</text>
+<text x="1158" y="1159" class="legend-txt">Derajat Kardinalitas (One-to-One, One-to-Many)</text>
+</svg>
